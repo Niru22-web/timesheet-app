@@ -23,6 +23,7 @@ model Employee {
   leaves           Leave[]
   leaveBalance     LeaveBalance?
   registrationTokens RegistrationToken[]
+  emailConnections  EmailConnection[]
 }
 
 model EmployeeProfile {
@@ -198,12 +199,29 @@ model Leave {
 model LeaveBalance {
   id             String   @id @default(uuid())
   employeeId     String   @unique
-  openingBalance Float    @default(0)
-  leavesEarned   Float    @default(0)
-  leavesTaken    Float    @default(0)
-  closingBalance Float    @default(0)
-  lastUpdated    DateTime @default(now())
-  employee       Employee @relation(fields: [employeeId], references: [id])
+  totalLeaves    Int      @default(21)
+  usedLeaves     Int      @default(0)
+  remainingLeaves Int      @default(21)
+  year           Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  employee       Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+}
+
+model EmailConnection {
+  id           String   @id @default(uuid())
+  employeeId   String
+  provider     String   // 'gmail' or 'outlook'
+  email        String
+  accessToken  String   @db.Text
+  refreshToken String   @db.Text
+  tokenExpiry  DateTime
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  employee     Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+  
+  @@unique([employeeId, provider])
 }
 
 model PasswordReset {

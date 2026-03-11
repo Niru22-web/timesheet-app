@@ -2,7 +2,8 @@ import axios, { AxiosInstance } from "axios";
 import { loadingManager } from "./utils/loadingManager";
 
 const API: AxiosInstance = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  withCredentials: true
 });
 
 API.interceptors.request.use((config) => {

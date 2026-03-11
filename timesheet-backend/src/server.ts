@@ -1,9 +1,7 @@
 import express from "express";
 import cors from "cors";
-import { createEmployee, getEmployees, getEmployeesByDepartment, deleteEmployee, updateEmployee } from "./modules/employee/employee.controller";
-import { completeEmployeeProfile, getEmployeeByEmail, uploadProfileDocuments, updateProfilePhoto, uploadProfilePhoto } from "./modules/employee/employeeProfile.controller";
-import { validateRegistrationToken, markTokenAsUsed } from "./modules/employee/registrationToken.controller";
 import authRoutes from "./modules/auth/auth.routes";
+import employeeRoutes from "./modules/employee/employee.routes";
 import clientRoutes from "./modules/client/client.routes";
 import projectRoutes from "./modules/project/project.routes";
 import jobRoutes from "./modules/job/job.routes";
@@ -11,12 +9,16 @@ import timelogRoutes from "./modules/timelog/timelog.routes";
 import timelogWeeklyRoutes from "./modules/timelog/timelog-weekly.routes";
 import leaveRoutes from "./modules/leave/leave.routes";
 import emailRoutes from "./modules/email/email.routes";
+import emailConnectorRoutes from "./modules/email/email-connector.routes";
+import emailOAuthRoutes from "./routes/emailOAuthRoutes";
+import { validateRegistrationToken } from "./modules/employee/registrationToken.controller";
 import { prisma } from "./config/prisma";
 
 const app = express();
 
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176"]
+  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176"],
+  credentials: true
 }));
 
 app.use(express.json());
@@ -73,146 +75,17 @@ const checkManagerRole = (req: any, res: any, next: any) => {
 app.use("/api/auth", authRoutes);
 
 // Employee routes
-app.post("/api/employees", authenticate, createEmployee);
-app.get("/api/employees", authenticate, getEmployees);
-app.get("/api/employees/department", authenticate, getEmployeesByDepartment);
-app.get("/api/employees/by-email", authenticate, getEmployeeByEmail);
-app.put("/api/employees/:id", authenticate, updateEmployee);
-app.delete("/api/employees/:id", authenticate, deleteEmployee);
-app.post("/api/employees/complete-profile", uploadProfileDocuments, completeEmployeeProfile);
-app.put("/api/employees/profile-photo", authenticate, uploadProfilePhoto, updateProfilePhoto);
+app.use("/api/employees", employeeRoutes);
 
-// Registration token routes
-app.get("/api/registration/validate", validateRegistrationToken);
+// Admin routes
+app.use("/api/admin", emailRoutes);
 
-// Admin approval routes
-app.get("/api/admin/pending-approvals", authenticate, checkManagerRole, async (req: any, res: any) => {
-  try {
-    const pendingEmployees = await prisma.employee.findMany({
-      where: { status: 'pending_approval' },
-      include: {
-        profile: true
-      },
-      orderBy: { createdAt: 'asc' }
-    });
-
-    res.json(pendingEmployees);
-  } catch (error) {
-    console.error("Error fetching pending approvals:", error);
-    res.status(500).json({ error: "Failed to fetch pending approvals" });
-  }
-});
-
-app.post("/api/admin/approve-employee/:id", authenticate, checkManagerRole, async (req: any, res: any) => {
-  try {
-    const { id } = req.params;
-    
-    const employee = await prisma.employee.update({
-      where: { id },
-      data: { status: 'active' },
-      include: {
-        profile: true
-      }
-    });
-
-    res.json({ 
-      message: "Employee approved successfully",
-      employee 
-    });
-  } catch (error) {
-    console.error("Error approving employee:", error);
-    res.status(500).json({ error: "Failed to approve employee" });
-  }
-});
-
-app.post("/api/admin/reject-employee/:id", authenticate, checkManagerRole, async (req: any, res: any) => {
-  try {
-    const { id } = req.params;
-    const { reason } = req.body;
-    
-    const employee = await prisma.employee.update({
-      where: { id },
-      data: { status: 'rejected' },
-      include: {
-        profile: true
-      }
-    });
-
-    res.json({ 
-      message: "Employee rejected successfully",
-      employee,
-      reason 
-    });
-  } catch (error) {
-    console.error("Error rejecting employee:", error);
-    res.status(500).json({ error: "Failed to reject employee" });
-  }
-});
+// Email OAuth and connector routes
+app.use("/api/email/oauth", emailOAuthRoutes);
+app.use("/api/email", emailRoutes);
 
 // Client routes
 app.use("/api/clients", clientRoutes);
-
-// --- Employee Routes for Team Assignment ---
-app.get("/api/employees/team", async (req, res) => {
-  try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    let user = null;
-    
-    // Decode token to get user info
-    if (token) {
-      try {
-        const jwt = require('jsonwebtoken');
-        user = jwt.verify(token, process.env.JWT_SECRET || 'supersecretkey');
-      } catch (error) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
-    }
-
-    let whereClause = {};
-    
-    // Role-based employee filtering
-    if (user) {
-      if (user.role === 'Admin' || user.role === 'admin') {
-        // Admin can see all employees for assignment
-        whereClause = {};
-      } else if (user.role === 'Manager' || user.role === 'manager') {
-        // Manager can only see their team members
-        whereClause = {
-          OR: [
-            { reportingManager: user.email },
-            { reportingPartner: user.email },
-            { officeEmail: user.email } // Include themselves
-          ]
-        };
-      } else {
-        // Regular users can only see themselves
-        whereClause = {
-          officeEmail: user.email
-        };
-      }
-    }
-
-    const teamMembers = await prisma.employee.findMany({
-      where: whereClause,
-      select: {
-        id: true,
-        employeeId: true,
-        firstName: true,
-        lastName: true,
-        officeEmail: true,
-        designation: true,
-        department: true,
-        role: true,
-        status: true
-      }
-    });
-    
-    res.json(teamMembers);
-  } catch (error) {
-    console.error("Failed to fetch team members:", error);
-    res.status(500).json({ error: "Failed to fetch team members" });
-  }
-});
 
 // Project routes
 app.use("/api/projects", projectRoutes);
@@ -227,8 +100,8 @@ app.use("/api/timelogs", timelogWeeklyRoutes);
 // Leave routes
 app.use("/api/leaves", leaveRoutes);
 
-// Email routes
-app.use("/api/admin", emailRoutes);
+// Registration token routes
+app.get("/api/registration/validate", validateRegistrationToken);
 
 // --- Reimbursements ---
 app.get("/api/reimbursements", authenticate, async (req, res) => {
@@ -336,10 +209,58 @@ app.get("/api/reports/summary", checkManagerRole, async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 5000;
+const DEFAULT_PORT = 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+function startServer(port: number) {
+  const server = app.listen(port, () => {
+    console.log(`🚀 Server running successfully on port ${port}`);
+    console.log(`📡 API available at: http://localhost:${port}/api`);
+    console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
+    
+    // Log the actual port for frontend to use
+    if (port !== DEFAULT_PORT) {
+      console.log(`⚠️  Default port ${DEFAULT_PORT} was busy, using port ${port}`);
+      console.log(`💡 Update your frontend API URL to: http://localhost:${port}/api`);
+    }
+  });
+
+  server.on("error", (err: any) => {
+    if (err.code === "EADDRINUSE") {
+      console.log(`❌ Port ${port} is already in use`);
+      console.log(`🔄 Trying next available port: ${port + 1}...`);
+      startServer(port + 1);
+    } else {
+      console.error("❌ Server error:", err);
+      process.exit(1);
+    }
+  });
+
+  // Handle graceful shutdown
+  server.on('close', () => {
+    console.log('🛑 Server closed');
+  });
+
+  return server;
+}
+
+// Start server with automatic port conflict resolution
+const server = startServer(DEFAULT_PORT);
+
+// Handle process termination
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('🛑 Process terminated');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('\n🛑 SIGINT received, shutting down gracefully');
+  server.close(() => {
+    console.log('🛑 Process terminated');
+    process.exit(0);
+  });
 });
 
 export default app;

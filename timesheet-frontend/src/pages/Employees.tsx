@@ -103,7 +103,7 @@ const Employees: React.FC = () => {
 
   const fetchPendingApprovals = async () => {
     try {
-      const res = await API.get('/api/admin/pending-approvals');
+      const res = await API.get('/admin/pending-approvals');
       setPendingApprovals(res.data);
     } catch (err) {
       console.error('Failed to fetch pending approvals:', err);
@@ -112,7 +112,7 @@ const Employees: React.FC = () => {
 
   const handleApproveEmployee = async (employeeId: string) => {
     try {
-      await API.post(`/api/admin/approve-employee/${employeeId}`);
+      await API.post(`/admin/approve-employee/${employeeId}`);
       fetchPendingApprovals();
       fetchEmployees();
     } catch (err) {
@@ -124,7 +124,7 @@ const Employees: React.FC = () => {
   const handleRejectEmployee = async (employeeId: string) => {
     if (window.confirm('Are you sure you want to reject this employee? This action cannot be undone.')) {
       try {
-        await API.post(`/api/admin/reject-employee/${employeeId}`, { reason: 'Rejected by administrator' });
+        await API.post(`/admin/reject-employee/${employeeId}`, { reason: 'Rejected by administrator' });
         fetchPendingApprovals();
         fetchEmployees();
       } catch (err) {
@@ -137,7 +137,7 @@ const Employees: React.FC = () => {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const res = await API.get('/api/employees');
+      const res = await API.get('/employees');
       const mapped = res.data.map((emp: any) => ({
         id: emp.id,
         employeeId: emp.employeeId,
@@ -178,7 +178,7 @@ const Employees: React.FC = () => {
       const employeeCount = employees.length;
       const generatedCode = `EMP${String(employeeCount + 1).padStart(4, '0')}`;
       
-      await API.post('/api/employees', {
+      await API.post('/employees', {
         firstName,
         lastName,
         officeEmail: email,
@@ -222,7 +222,7 @@ const Employees: React.FC = () => {
     }
 
     try {
-      await API.put(`/api/employees/${editingEmployee.id}`, {
+      await API.put(`/employees/${editingEmployee.id}`, {
         firstName,
         lastName,
         officeEmail: email,
@@ -260,7 +260,7 @@ const Employees: React.FC = () => {
   const handleDeleteEmployee = async (id: string, employeeName: string) => {
     if (window.confirm(`Are you sure you want to delete ${employeeName}? This action cannot be undone and will remove all associated data including timelogs, projects, and reimbursements.`)) {
       try {
-        await API.delete(`/api/employees/${id}`);
+        await API.delete(`/employees/${id}`);
         fetchEmployees();
         fetchPendingApprovals();
         alert('Employee deleted successfully');

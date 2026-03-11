@@ -54,8 +54,8 @@ const Admin: React.FC = () => {
     try {
       setLoading(true);
       const [summaryRes, logsRes] = await Promise.all([
-        API.get('/api/reports/summary'),
-        API.get('/api/timelogs') // Use timelogs as audit trail for now
+        API.get('/reports/summary'),
+        API.get('/timelogs') // Use timelogs as audit trail for now
       ]);
       setSummary(summaryRes.data);
       setAuditLogs(logsRes.data.slice(0, 10));

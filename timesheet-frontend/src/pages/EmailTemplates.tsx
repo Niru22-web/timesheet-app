@@ -64,7 +64,7 @@ const EmailTemplates: React.FC = () => {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
-      const response = await API.get('/api/admin/email-templates');
+      const response = await API.get('/admin/email-templates');
       setTemplates(response.data || getDefaultTemplates());
     } catch (err) {
       console.error('Failed to fetch email templates:', err);

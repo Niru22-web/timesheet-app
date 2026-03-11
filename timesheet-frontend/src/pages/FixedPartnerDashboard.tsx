@@ -44,11 +44,11 @@ const PartnerDashboard: React.FC = () => {
       
       // Fetch partner-specific data
       const [summaryRes, employeesRes, projectsRes, clientsRes, timelogsRes] = await Promise.allSettled([
-        API.get('/api/reports/summary'),
-        API.get('/api/employees'),
-        API.get('/api/projects'),
-        API.get('/api/clients'),
-        API.get('/api/timelogs')
+        API.get('/reports/summary'),
+        API.get('/employees'),
+        API.get('/projects'),
+        API.get('/clients'),
+        API.get('/timelogs')
       ]);
 
       const summary = summaryRes.status === 'fulfilled' ? summaryRes.value.data : {

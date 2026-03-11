@@ -48,7 +48,7 @@ const PartnerDashboard: React.FC = () => {
       // Try to fetch summary data
       let summaryData = null;
       try {
-        const summaryRes = await API.get('/api/reports/summary');
+        const summaryRes = await API.get('/reports/summary');
         summaryData = summaryRes.data;
       } catch (summaryError) {
         console.warn('Summary API failed, using fallback:', summaryError);
@@ -64,7 +64,7 @@ const PartnerDashboard: React.FC = () => {
       // Try to fetch timelogs
       let activities: any[] = [];
       try {
-        const timelogsRes = await API.get('/api/timelogs');
+        const timelogsRes = await API.get('/timelogs');
         activities = timelogsRes.data.slice(0, 5).map((log: any) => ({
           id: log.id,
           employee: `${log.employee?.firstName} ${log.employee?.lastName || ''}`.trim() || 'System User',

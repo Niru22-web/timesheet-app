@@ -84,7 +84,7 @@ const Clients: React.FC = () => {
     const fetchClients = async () => {
         try {
             setLoading(true);
-            const response = await API.get('/api/clients');
+            const response = await API.get('/clients');
             setClients(response.data);
         } catch (err) {
             console.error('Failed to fetch clients:', err);
@@ -109,7 +109,7 @@ const Clients: React.FC = () => {
         }
 
         try {
-            await API.post('/api/clients', formData);
+            await API.post('/clients', formData);
             setShowAddModal(false);
             resetForm();
             fetchClients();
@@ -238,7 +238,7 @@ const Clients: React.FC = () => {
             const formData = new FormData();
             formData.append('file', selectedFile);
 
-            const response = await API.post('/api/clients/bulk-upload', formData, {
+            const response = await API.post('/clients/bulk-upload', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -256,7 +256,7 @@ const Clients: React.FC = () => {
 
     const downloadTemplate = async () => {
         try {
-            const response = await API.get('/api/clients/template/download', {
+            const response = await API.get('/clients/template/download', {
                 responseType: 'blob',
             });
 

@@ -102,9 +102,9 @@ const Reimbursement: React.FC = () => {
   const fetchMasterData = async () => {
     try {
       const [clientsRes, projectsRes, jobsRes] = await Promise.all([
-        API.get('/api/clients'),
-        API.get('/api/projects'),
-        API.get('/api/jobs')
+        API.get('/clients'),
+        API.get('/projects'),
+        API.get('/jobs')
       ]);
       setClients(clientsRes.data);
       setProjects(projectsRes.data);
@@ -117,7 +117,7 @@ const Reimbursement: React.FC = () => {
   const fetchClaims = async () => {
     try {
       setLoading(true);
-      const res = await API.get('/api/reimbursements', {
+      const res = await API.get('/reimbursements', {
         params: { status: statusFilter }
       });
       setClaims(res.data);
@@ -146,7 +146,7 @@ const Reimbursement: React.FC = () => {
         submitData.append(`attachments`, file);
       });
 
-      await API.post('/api/reimbursements', submitData, {
+      await API.post('/reimbursements', submitData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

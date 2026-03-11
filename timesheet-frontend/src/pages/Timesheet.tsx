@@ -125,7 +125,7 @@ const Timesheet: React.FC = () => {
       if (dateFrom) params.fromDate = dateFrom;
       if (dateTo) params.toDate = dateTo;
 
-      const res = await API.get('/api/timelogs', { params });
+      const res = await API.get('/timelogs', { params });
       setEntries(res.data);
     } catch (err) {
       console.error('Failed to fetch logs:', err);
@@ -137,9 +137,9 @@ const Timesheet: React.FC = () => {
   const fetchMasters = async () => {
     try {
       const [clientsRes, projectsRes, jobsRes] = await Promise.all([
-        API.get('/api/clients'),
-        API.get('/api/projects'),
-        API.get('/api/jobs')
+        API.get('/clients'),
+        API.get('/projects'),
+        API.get('/jobs')
       ]);
       setClients(clientsRes.data);
       setProjects(projectsRes.data);
@@ -157,7 +157,7 @@ const Timesheet: React.FC = () => {
     }
 
     try {
-      await API.post('/api/timelogs', formData);
+      await API.post('/timelogs', formData);
       setShowLogModal(false);
       setFormData({
         clientId: '',

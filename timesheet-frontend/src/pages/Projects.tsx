@@ -71,7 +71,7 @@ const Projects: React.FC = () => {
 
   const generateProjectId = async () => {
     try {
-      const response = await API.get('/api/projects');
+      const response = await API.get('/projects');
       const projectCount = response.data.length;
       const newId = `PRJ${String(projectCount + 1).padStart(4, '0')}`;
       setGeneratedProjectId(newId);
@@ -86,10 +86,10 @@ const Projects: React.FC = () => {
       setLoading(true);
       console.log('Fetching project data...');
       const [projectsRes, clientsRes, employeesRes, allEmployeesRes] = await Promise.all([
-        API.get('/api/projects'),
-        API.get('/api/clients'),
-        API.get('/api/employees/team'), // For team assignment (filtered)
-        API.get('/api/employees') // For dropdown (all employees)
+        API.get('/projects'),
+        API.get('/clients'),
+        API.get('/employees/team'), // For team assignment (filtered)
+        API.get('/employees') // For dropdown (all employees)
       ]);
       console.log('API responses:', {
         projects: projectsRes.data,
@@ -123,7 +123,7 @@ const Projects: React.FC = () => {
         ...formData,
         projectId: generatedProjectId
       };
-      const response = await API.post('/api/projects', projectData);
+      const response = await API.post('/projects', projectData);
       console.log('Project creation response:', response.data);
       setShowAddModal(false);
       setFormData({

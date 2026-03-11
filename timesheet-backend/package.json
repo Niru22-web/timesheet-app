@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev": "npx kill-port 5000 && ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev:fallback": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "db:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
@@ -23,7 +24,9 @@
     "dotenv": "^16.4.5",
     "express": "^4.22.1",
     "form-data": "^4.0.5",
+    "googleapis": "^171.4.0",
     "jsonwebtoken": "^9.0.2",
+    "kill-port": "^2.0.1",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^8.0.1",
     "xlsx": "^0.18.5"

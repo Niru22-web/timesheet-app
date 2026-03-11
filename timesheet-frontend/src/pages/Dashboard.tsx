@@ -1,25 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { 
+  EmployeesMetricCard,
+  ProjectsMetricCard,
+  HoursMetricCard,
+  ApprovalsMetricCard,
+  RevenueMetricCard,
+  ReportsMetricCard
+} from '../components/ui/MetricCard';
+import Card from '../components/ui/Card';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../api';
-import {
-  UsersIcon,
-  BriefcaseIcon,
+import { 
+  UserGroupIcon,
   ClockIcon,
-  ArrowTrendingUpIcon,
-  PlusIcon,
-  ChartBarIcon,
+  CheckCircleIcon,
   CurrencyDollarIcon,
-  CalendarIcon,
-  RocketLaunchIcon,
-  CommandLineIcon
+  DocumentTextIcon,
+  ChartBarIcon,
+  CalendarIcon
 } from '@heroicons/react/24/outline';
-
-// UI Components
-import Card from '../components/ui/Card';
-import Avatar from '../components/ui/Avatar';
-import Button from '../components/ui/Button';
-import StatusBadge from '../components/ui/StatusBadge';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -41,7 +40,7 @@ const Dashboard: React.FC = () => {
       // Try to fetch summary data
       let summaryData = null;
       try {
-        const summaryRes = await API.get('/api/reports/summary');
+        const summaryRes = await API.get('/reports/summary');
         summaryData = summaryRes.data;
       } catch (summaryError) {
         console.warn('Summary API failed, using fallback:', summaryError);
@@ -57,7 +56,7 @@ const Dashboard: React.FC = () => {
       // Try to fetch timelogs
       let activities: any[] = [];
       try {
-        const timelogsRes = await API.get('/api/timelogs');
+        const timelogsRes = await API.get('/timelogs');
         activities = timelogsRes.data.slice(0, 5).map((log: any) => ({
           id: log.id,
           employee: `${log.employee?.firstName} ${log.employee?.lastName || ''}`.trim() || 'System User',

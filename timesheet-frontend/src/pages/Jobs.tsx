@@ -84,9 +84,9 @@ const Jobs: React.FC = () => {
         try {
             setLoading(true);
             const [jobsRes, clientsRes, projectsRes] = await Promise.all([
-                API.get('/api/jobs'),
-                API.get('/api/clients'),
-                API.get('/api/projects')
+                API.get('/jobs'),
+                API.get('/clients'),
+                API.get('/projects')
             ]);
             setJobs(jobsRes.data);
             setClients(clientsRes.data);
@@ -108,7 +108,7 @@ const Jobs: React.FC = () => {
         }
 
         try {
-            await API.post('/api/jobs', formData);
+            await API.post('/jobs', formData);
             setShowAddModal(false);
             setFormData({
                 name: '',

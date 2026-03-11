@@ -142,7 +142,7 @@ const Profile: React.FC = () => {
             const formData = new FormData();
             formData.append('profilePhoto', profilePhoto);
 
-            const response = await API.put('/api/employees/profile-photo', formData, {
+            const response = await API.put('/employees/profile-photo', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },

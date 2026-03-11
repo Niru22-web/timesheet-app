@@ -43,10 +43,10 @@ const ManagerDashboard: React.FC = () => {
       
       // Fetch manager-specific data
       const [summaryRes, employeesRes, projectsRes, timelogsRes] = await Promise.allSettled([
-        API.get('/api/reports/summary'),
-        API.get('/api/employees'),
-        API.get('/api/projects'),
-        API.get('/api/timelogs')
+        API.get('/reports/summary'),
+        API.get('/employees'),
+        API.get('/projects'),
+        API.get('/timelogs')
       ]);
 
       const summary = summaryRes.status === 'fulfilled' ? summaryRes.value.data : {

@@ -103,7 +103,7 @@ const LeaveManagement: React.FC = () => {
     try {
       // Only fetch employees if user is Admin, Manager, or Partner
       if (user && ['Admin', 'Manager', 'Partner'].includes(user.role)) {
-        const res = await API.get('/api/employees');
+        const res = await API.get('/employees');
         setEmployees(res.data);
       }
     } catch (err) {
@@ -127,7 +127,7 @@ const LeaveManagement: React.FC = () => {
       if (dateTo) params.dateTo = dateTo;
       if (employeeFilter !== 'All Employees') params.employeeId = employeeFilter;
 
-      const res = await API.get('/api/leaves', { params });
+      const res = await API.get('/leaves', { params });
       setLeaveRecords(res.data);
     } catch (err) {
       console.error('Failed to fetch leave records:', err);
@@ -140,7 +140,7 @@ const LeaveManagement: React.FC = () => {
 
   const fetchLeaveBalance = async () => {
     try {
-      const res = await API.get('/api/leaves/balance');
+      const res = await API.get('/leaves/balance');
       setLeaveBalance(res.data);
     } catch (err) {
       console.error('Failed to fetch leave balance:', err);
@@ -193,7 +193,7 @@ const LeaveManagement: React.FC = () => {
         appliedDate: new Date().toISOString().split('T')[0]
       };
 
-      await API.post('/api/leaves', leaveData);
+      await API.post('/leaves', leaveData);
       setShowApplyModal(false);
       setFormData({
         type: 'Paid Leave',

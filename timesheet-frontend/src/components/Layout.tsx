@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import {
   HomeIcon,
   CalendarIcon,
@@ -7,7 +7,6 @@ import {
   BriefcaseIcon,
   ChartBarIcon,
   Cog6ToothIcon,
-  ArrowRightOnRectangleIcon,
   BellIcon,
   Bars3Icon,
   XMarkIcon,
@@ -18,13 +17,11 @@ import {
   UserCircleIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
-import Avatar from './ui/Avatar';
-import Button from './ui/Button';
+import Header from './layout/Header';
 
 const Layout: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Debug logging
@@ -44,16 +41,10 @@ const Layout: React.FC = () => {
     { name: 'Jobs', href: '/jobs', icon: WrenchScrewdriverIcon, show: isAdmin || isManagement },
     { name: 'Clients', href: '/clients', icon: BuildingOfficeIcon, show: isAdmin || isManagement },
     { name: 'Reimbursement', href: '/reimbursement', icon: CurrencyDollarIcon, show: true },
+    { name: 'Leave Management', href: '/leave-management', icon: ShieldCheckIcon, show: true },
     { name: 'Reports', href: '/reports', icon: ChartBarIcon, show: isAdmin || isManagement },
-    { name: 'User Management', href: '/users', icon: UsersIcon, show: isAdmin },
-    { name: 'Admin', href: '/admin-panel', icon: Cog6ToothIcon, show: isAdmin },
     { name: 'Profile', href: '/profile', icon: UserCircleIcon, show: true },
   ].filter(item => item.show);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   return (
     <div className="min-h-screen bg-secondary-50 flex flex-col md:flex-row">
@@ -119,52 +110,60 @@ const Layout: React.FC = () => {
             })}
           </nav>
 
-          {/* User Profile Footer */}
-          <div className="p-4 border-t border-secondary-100 bg-secondary-50/50">
-            <div className="flex items-center gap-3 px-3 py-3">
-              <Avatar name={user?.name || 'User'} size="md" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-secondary-900 truncate uppercase tracking-tight">{user?.name || 'Guest User'}</p>
-                <p className="text-[10px] font-bold text-secondary-500 uppercase tracking-wide truncate">{user?.role || 'User'}</p>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 mt-2 rounded-xl text-sm font-semibold text-danger-600 hover:bg-danger-50 transition-colors group"
-            >
-              <ArrowRightOnRectangleIcon className="w-5 h-5 text-danger-400 group-hover:text-danger-600" />
-              Logout Session
-            </button>
+          {/* Navigation Footer - Additional Options */}
+          <div className="p-4 border-t border-secondary-100">
+            <nav className="space-y-1">
+              <Link
+                to="/admin-panel"
+                onClick={() => setIsSidebarOpen(false)}
+                className={`
+                  flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all group
+                  ${location.pathname === '/admin-panel'
+                    ? 'bg-primary-50 text-primary-700 shadow-sm border border-primary-100'
+                    : 'text-secondary-500 hover:bg-secondary-50 hover:text-secondary-900'
+                  }
+                `}
+              >
+                <Cog6ToothIcon className="w-5 h-5 text-secondary-400 group-hover:text-secondary-600" />
+                Admin Panel
+              </Link>
+              <Link
+                to="/email-configuration"
+                onClick={() => setIsSidebarOpen(false)}
+                className={`
+                  flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all group
+                  ${location.pathname === '/email-configuration'
+                    ? 'bg-primary-50 text-primary-700 shadow-sm border border-primary-100'
+                    : 'text-secondary-500 hover:bg-secondary-50 hover:text-secondary-900'
+                  }
+                `}
+              >
+                <BellIcon className="w-5 h-5 text-secondary-400 group-hover:text-secondary-600" />
+                Email Configuration
+              </Link>
+              <Link
+                to="/email-templates"
+                onClick={() => setIsSidebarOpen(false)}
+                className={`
+                  flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all group
+                  ${location.pathname === '/email-templates'
+                    ? 'bg-primary-50 text-primary-700 shadow-sm border border-primary-100'
+                    : 'text-secondary-500 hover:bg-secondary-50 hover:text-secondary-900'
+                  }
+                `}
+              >
+                <BellIcon className="w-5 h-5 text-secondary-400 group-hover:text-secondary-600" />
+                Email Templates
+              </Link>
+            </nav>
           </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* Header */}
-        <header className="hidden md:flex flex-none items-center justify-between px-10 h-20 bg-white border-b border-secondary-100">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold text-secondary-900">Dashboard Nexus</h2>
-            <div className="h-6 w-px bg-secondary-100 mx-2" />
-            <div className="flex items-center gap-2 px-3 py-1 bg-secondary-50 rounded-full border border-secondary-100 shadow-sm">
-              <div className="w-2 h-2 rounded-full bg-success-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-secondary-500 uppercase tracking-widest italic">Stable Node Connected</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-6">
-            <button className="relative p-2 text-secondary-400 hover:text-secondary-900 hover:bg-secondary-50 rounded-xl transition-all group shadow-sm border border-secondary-100 overflow-hidden">
-              <BellIcon className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-primary-500 rounded-full border-2 border-white" />
-            </button>
-            <div className="flex items-center gap-4 pl-6 border-l border-secondary-100 h-10">
-              <Avatar name={user?.name || 'User'} size="md" />
-              <div className="flex flex-col">
-                <span className="text-sm font-bold text-secondary-900 leading-none">{user?.name || 'Guest User'}</span>
-                <span className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest mt-1 opacity-60">{user?.role || 'Guest'}</span>
-              </div>
-            </div>
-          </div>
-        </header>
+        {/* Header Component */}
+        <Header />
 
         {/* Dynamic Outlet */}
         <div className="flex-1 overflow-y-auto p-6 md:p-10 bg-secondary-50 shadow-inner custom-scrollbar relative">

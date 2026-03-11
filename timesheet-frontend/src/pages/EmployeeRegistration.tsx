@@ -317,7 +317,7 @@ const EmployeeRegistration: React.FC = () => {
       if (files.employeePhoto) data.append('employeePhoto', files.employeePhoto);
       if (files.bankStatementFile) data.append('bankStatementFile', files.bankStatementFile);
 
-      await API.post('/api/employees/complete-profile', data, {
+      await API.post('/employees/complete-profile', data, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

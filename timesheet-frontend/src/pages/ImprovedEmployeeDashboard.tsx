@@ -41,9 +41,9 @@ const EmployeeDashboard: React.FC = () => {
       
       // Fetch employee-specific data
       const [summaryRes, timelogsRes, projectsRes] = await Promise.allSettled([
-        API.get('/api/reports/summary'),
-        API.get(`/api/timelogs?employeeId=${user?.id}`),
-        API.get('/api/projects')
+        API.get('/reports/summary'),
+        API.get(`/timelogs?employeeId=${user?.id}`),
+        API.get('/projects')
       ]);
 
       const summary = summaryRes.status === 'fulfilled' ? summaryRes.value.data : {
