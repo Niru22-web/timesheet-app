@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Photo Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .file-input {
+            margin: 10px 0;
+            padding: 10px;
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px 10px 0;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .debug-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        h1 { color: #333; text-align: center; }
+        h2 { color: #555; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        .preview { text-align: center; margin: 20px 0; }
+        .preview img { max-width: 200px; max-height: 200px; border-radius: 10px; border: 2px solid #ddd; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Profile Photo Debug Test</h1>
+    
+    <div class="test-container">
+        <h2>Step 1: Check Current Authentication Status</h2>
+        <button onclick="checkAuthStatus()">🔑 Check Auth Status</button>
+        <div id="authStatus"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Step 2: Test Profile Photo Upload</h2>
+        <label>Profile Photo (JPG, JPEG, PNG - Max 5MB):</label>
+        <input type="file" id="profilePhoto" class="file-input" accept=".jpg,.jpeg,.png">
+        
+        <div class="preview" id="preview"></div>
+        
+        <button onclick="testUpload()">📤 Upload Profile Photo</button>
+    </div>
+
+    <div class="test-container">
+        <h2>Step 3: Test Different Scenarios</h2>
+        <button onclick="testWithValidToken()">👨‍💼 Test with Admin Token (Niranjan)</button>
+        <button onclick="testWithEmployeeToken()">👩‍💼 Test with Employee Token (Lisa)</button>
+        <button onclick="testWithPartnerToken()">🤝 Test with Partner Token (Netrawati)</button>
+        <button onclick="testWithInvalidToken()">❌ Test with Invalid Token</button>
+        <button onclick="testWithExpiredToken()">⏰ Test with Expired Token</button>
+        <button onclick="clearToken()">🗑️ Clear Token</button>
+    </div>
+
+    <div id="result"></div>
+
+    <script>
+        // Test JWT token generation (simulating backend)
+        function generateTestToken(userId, role = 'Employee') {
+            const header = { alg: 'HS256', typ: 'JWT' };
+            const payload = { id: userId, role: role, iat: Math.floor(Date.now() / 1000) };
+            const signature = btoa('test-signature');
+            
+            return btoa(JSON.stringify(header)) + '.' + btoa(JSON.stringify(payload)) + '.' + signature;
+        }
+
+        function checkAuthStatus() {
+            const token = localStorage.getItem('authToken');
+            const authStatus = document.getElementById('authStatus');
+            
+            if (!token) {
+                authStatus.innerHTML = '<div class="error">❌ No token found in localStorage</div>';
+                return;
+            }
+            
+            try {
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    throw new Error('Invalid token format');
+                }
+                
+                const payload = JSON.parse(atob(parts[1]));
+                authStatus.innerHTML = `
+                    <div class="debug-info">
+                        <h3>✅ Token Found</h3>
+                        <p><strong>User ID:</strong> ${payload.id}</p>
+                        <p><strong>Role:</strong> ${payload.role}</p>
+                        <p><strong>Issued At:</strong> ${new Date(payload.iat * 1000).toLocaleString()}</p>
+                        <p><strong>Token:</strong> ${token.substring(0, 100)}...</p>
+                    </div>
+                `;
+            } catch (error) {
+                authStatus.innerHTML = `<div class="error">❌ Invalid token: ${error.message}</div>`;
+            }
+        }
+
+        function testUpload() {
+            const fileInput = document.getElementById('profilePhoto');
+            const file = fileInput.files[0];
+            const resultDiv = document.getElementById('result');
+            
+            if (!file) {
+                resultDiv.innerHTML = '<div class="error">❌ Please select a profile photo</div>';
+                return;
+            }
+
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                resultDiv.innerHTML = '<div class="error">❌ No authentication token found. Please set a valid token first.</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<div class="result">Uploading profile photo... ⏳</div>';
+            
+            const formData = new FormData();
+            formData.append('profilePhoto', file);
+            
+            fetch('http://localhost:5000/api/employees/profile-photo', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    // Don't set Content-Type for FormData
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.message) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Upload Successful!</h3>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Upload Failed</h3>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>💥 Network Error</h3>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            });
+        }
+
+        function testWithValidToken() {
+            // Use actual employee ID from database
+            const validToken = generateTestToken('9d8fa7a7-0a8b-4e19-84f9-3127748ddaf3', 'Admin');
+            localStorage.setItem('authToken', validToken);
+            document.getElementById('result').innerHTML = '<div class="debug-info">✅ Valid test token set for Niranjan Mulam (Admin). Try uploading now.</div>';
+            checkAuthStatus();
+        }
+
+        function testWithEmployeeToken() {
+            // Use employee ID for Lisa Wilson
+            const validToken = generateTestToken('5a7859ac-b521-47de-80a4-aef4e4144ad5', 'Employee');
+            localStorage.setItem('authToken', validToken);
+            document.getElementById('result').innerHTML = '<div class="debug-info">✅ Valid test token set for Lisa Wilson (Employee). Try uploading now.</div>';
+            checkAuthStatus();
+        }
+
+        function testWithPartnerToken() {
+            // Use partner ID for Netrawati
+            const validToken = generateTestToken('679709d3-a4f8-44d8-84f2-4a0b41b82fac', 'Partner');
+            localStorage.setItem('authToken', validToken);
+            document.getElementById('result').innerHTML = '<div class="debug-info">✅ Valid test token set for Netrawati (Partner). Try uploading now.</div>';
+            checkAuthStatus();
+        }
+
+        function testWithInvalidToken() {
+            const invalidToken = 'invalid.token.here';
+            localStorage.setItem('authToken', invalidToken);
+            document.getElementById('result').innerHTML = '<div class="debug-info">⚠️ Invalid token set. Try uploading to see error handling.</div>';
+            checkAuthStatus();
+        }
+
+        function testWithExpiredToken() {
+            const expiredToken = generateTestToken('test-user-id-123', 'Employee');
+            // Manually expire the token by setting iat to 24 hours ago
+            const parts = expiredToken.split('.');
+            const payload = JSON.parse(atob(parts[1]));
+            payload.iat = Math.floor((Date.now() - 24 * 60 * 60 * 1000) / 1000);
+            const newExpiredToken = parts[0] + '.' + btoa(JSON.stringify(payload)) + '.' + parts[2];
+            
+            localStorage.setItem('authToken', newExpiredToken);
+            document.getElementById('result').innerHTML = '<div class="debug-info">⏰ Expired token set. Try uploading to see error handling.</div>';
+            checkAuthStatus();
+        }
+
+        function clearToken() {
+            localStorage.removeItem('authToken');
+            document.getElementById('result').innerHTML = '<div class="debug-info">🗑️ Token cleared from localStorage.</div>';
+            checkAuthStatus();
+        }
+
+        // File preview
+        document.getElementById('profilePhoto').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('preview');
+            
+            if (file) {
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                if (!allowedTypes.includes(file.type)) {
+                    preview.innerHTML = '<div class="error">❌ Only JPEG, JPG, and PNG files are allowed</div>';
+                    return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                    preview.innerHTML = '<div class="error">❌ File size must be less than 5MB</div>';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `
+                        <p>✅ File selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</p>
+                        <img src="${e.target.result}" alt="Preview">
+                    `;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = '';
+            }
+        });
+
+        // Check auth status on load
+        window.onload = function() {
+            checkAuthStatus();
+        };
+    </script>
+</body>
+</html>

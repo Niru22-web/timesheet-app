@@ -1,0 +1,888 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+interface UserRegistrationData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  designation: string;
+  role: string;
+  dateOfBirth: string;
+  dateOfJoining: string;
+  education: string;
+  maritalStatus: string;
+  gender: string;
+  addressPermanent: string;
+  addressCurrent: string;
+  pinCodePermanent: string;
+  pinCodeCurrent: string;
+  guardianInMumbai: {
+    name: string;
+    address: string;
+    number: string;
+  };
+  selfEmailId: string;
+  selfMobileNumber: string;
+  pan: string;
+  aadhaar: string;
+  attachPan: boolean;
+  attachAadhaar: boolean;
+}
+
+const UserRegistration: React.FC = () => {
+  const [formData, setFormData] = useState<UserRegistrationData>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    designation: '',
+    role: 'user',
+    dateOfBirth: '',
+    dateOfJoining: '',
+    education: '',
+    maritalStatus: '',
+    gender: '',
+    addressPermanent: '',
+    addressCurrent: '',
+    pinCodePermanent: '',
+    pinCodeCurrent: '',
+    guardianInMumbai: { name: '', address: '', number: '' },
+    selfEmailId: '',
+    selfMobileNumber: '',
+    pan: '',
+    aadhaar: '',
+    attachPan: false,
+    attachAadhaar: false
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
+
+  const designationOptions = [
+    'Executive',
+    'Manager',
+    'Senior Manager',
+    'Partner',
+    'Owner'
+  ];
+
+  const educationOptions = [
+    'High School',
+    "Bachelor's Degree",
+    "Master's Degree",
+    'PhD',
+    'Diploma',
+    'Professional Certification',
+    'Other'
+  ];
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const target = e.target;
+    const { name, value } = target;
+    const type = target.type;
+    const checked = target instanceof HTMLInputElement && target.type === 'checkbox' ? target.checked : false;
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    // Basic validation
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.confirmPassword) {
+      setError('Please fill in all required fields');
+      setIsLoading(false);
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // API call to backend for user registration
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          officeEmail: formData.email,
+          password: formData.password,
+          designation: formData.designation,
+          role: formData.role,
+          // Profile data
+          dob: formData.dateOfBirth,
+          doj: formData.dateOfJoining,
+          education: formData.education,
+          maritalStatus: formData.maritalStatus,
+          gender: formData.gender,
+          permanentAddress: formData.addressPermanent,
+          currentAddress: formData.addressCurrent,
+          pan: formData.pan,
+          aadhaar: formData.aadhaar,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      console.log('User registered successfully:', data);
+      
+      setSuccess(true);
+      alert('Registration successful! Please login with your credentials.');
+      
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+      
+    } catch (err) {
+      console.error('Registration error:', err);
+      setError('Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      backgroundColor: '#f8fafc',
+      backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      padding: '2rem'
+    }}>
+      <div style={{ 
+        width: '100%', 
+        maxWidth: '32rem',
+        backgroundColor: 'white',
+        borderRadius: '0.5rem',
+        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05)',
+        padding: '2rem'
+      }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#111827', margin: '0' }}>
+            User Registration
+          </h1>
+          <p style={{ color: '#6b7280', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+            Create your account to get started
+          </p>
+        </div>
+
+        {/* Success Message */}
+        {success && (
+          <div style={{ 
+            backgroundColor: '#dcfce7', 
+            color: '#166534', 
+            padding: '1rem', 
+            borderRadius: '0.375rem',
+            marginBottom: '1rem',
+            fontSize: '0.875rem'
+          }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem' }}>
+              Registration Successful!
+            </h3>
+            <p style={{ marginBottom: '1rem' }}>
+              Your account has been created successfully. Please login with your credentials.
+            </p>
+          </div>
+        )}
+
+        {/* Registration Form */}
+        {!success && (
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {error && (
+              <div style={{ 
+                backgroundColor: '#fef2f2', 
+                color: '#dc2626', 
+                padding: '0.75rem', 
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                marginBottom: '1rem'
+              }}>
+                {error}
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              {/* Personal Information */}
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginBottom: '1rem', gridColumn: 'span 2' }}>
+                  Personal Information
+                </h3>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                      First Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="Enter your first name"
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.5rem', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '0.25rem',
+                        fontSize: '0.875rem'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                      Last Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="Enter your last name"
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.5rem', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '0.25rem',
+                        fontSize: '0.875rem'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="Enter your email address"
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.5rem', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '0.25rem',
+                        fontSize: '0.875rem'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                      Password *
+                    </label>
+                    <input
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="Enter your password"
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.5rem', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '0.25rem',
+                        fontSize: '0.875rem'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                      Confirm Password *
+                    </label>
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="Confirm your password"
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.5rem', 
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '0.25rem',
+                        fontSize: '0.875rem'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Professional Information */}
+                <div>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginBottom: '1rem', gridColumn: 'span 2' }}>
+                    Professional Information
+                  </h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Designation *
+                      </label>
+                      <select
+                        name="designation"
+                        value={formData.designation}
+                        onChange={handleInputChange}
+                        required
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        <option value="">Select Designation</option>
+                        {designationOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Role *
+                      </label>
+                      <select
+                        name="role"
+                        value={formData.role}
+                        onChange={handleInputChange}
+                        required
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        <option value="">Select Role</option>
+                        <option value="user">User</option>
+                        <option value="manager">Manager</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Information */}
+                <div>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginBottom: '1rem', gridColumn: 'span 2' }}>
+                    Additional Information
+                  </h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Date of Birth *
+                      </label>
+                      <input
+                        type="date"
+                        name="dateOfBirth"
+                        value={formData.dateOfBirth}
+                        onChange={handleInputChange}
+                        required
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Date of Joining *
+                      </label>
+                      <input
+                        type="date"
+                        name="dateOfJoining"
+                        value={formData.dateOfJoining}
+                        onChange={handleInputChange}
+                        required
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Education *
+                      </label>
+                      <select
+                        name="education"
+                        value={formData.education}
+                        onChange={handleInputChange}
+                        required
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        <option value="">Select Education</option>
+                        {educationOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                <div>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginBottom: '1rem', gridColumn: 'span 2' }}>
+                    Contact Information
+                  </h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Marital Status *
+                      </label>
+                      <select
+                        name="maritalStatus"
+                        value={formData.maritalStatus}
+                        onChange={handleInputChange}
+                        required
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        <option value="">Select Status</option>
+                        <option value="single">Single</option>
+                        <option value="married">Married</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Gender *
+                      </label>
+                      <select
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleInputChange}
+                        required
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem'
+                        }}
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Address Information */}
+                <div>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginBottom: '1rem', gridColumn: 'span 2' }}>
+                    Address Information
+                  </h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Permanent Address *
+                      </label>
+                      <textarea
+                        name="addressPermanent"
+                        value={formData.addressPermanent}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Enter your permanent address"
+                        rows={3}
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem',
+                          resize: 'vertical'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Current Address *
+                      </label>
+                      <textarea
+                        name="addressCurrent"
+                        value={formData.addressCurrent}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Enter your current address"
+                        rows={3}
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem',
+                          resize: 'vertical'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* PIN Codes */}
+                <div>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginBottom: '1rem', gridColumn: 'span 2' }}>
+                    PIN Codes
+                  </h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Permanent Address PIN *
+                      </label>
+                      <input
+                        type="text"
+                        name="pinCodePermanent"
+                        value={formData.pinCodePermanent}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Enter 6-digit PIN"
+                        maxLength={6}
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Current Address PIN *
+                      </label>
+                      <input
+                        type="text"
+                        name="pinCodeCurrent"
+                        value={formData.pinCodeCurrent}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Enter 6-digit PIN"
+                        maxLength={6}
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Guardian Information */}
+                <div>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginBottom: '1rem', gridColumn: 'span 2' }}>
+                    Guardian Information (Mumbai)
+                  </h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Guardian Name *
+                      </label>
+                      <input
+                        type="text"
+                        name="guardianName"
+                        value={formData.guardianInMumbai.name}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Enter guardian name"
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Guardian Address *
+                      </label>
+                      <textarea
+                        name="guardianAddress"
+                        value={formData.guardianInMumbai.address}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Enter guardian address"
+                        rows={3}
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem',
+                          resize: 'vertical'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Guardian Contact Number *
+                      </label>
+                      <input
+                        type="tel"
+                        name="guardianNumber"
+                        value={formData.guardianInMumbai.number}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Enter contact number"
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Self Information */}
+                <div>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginBottom: '1rem', gridColumn: 'span 2' }}>
+                    Self Information
+                  </h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Self Email ID *
+                      </label>
+                      <input
+                        type="email"
+                        name="selfEmailId"
+                        value={formData.selfEmailId}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Enter your email ID"
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Self Mobile Number *
+                      </label>
+                      <input
+                        type="tel"
+                        name="selfMobileNumber"
+                        value={formData.selfMobileNumber}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Enter your mobile number"
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Government IDs */}
+                <div>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginBottom: '1rem', gridColumn: 'span 2' }}>
+                    Government IDs
+                  </h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        PAN *
+                      </label>
+                      <input
+                        type="text"
+                        name="pan"
+                        value={formData.pan}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Enter your PAN number"
+                        maxLength={10}
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem',
+                          textTransform: 'uppercase'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                        Aadhaar *
+                      </label>
+                      <input
+                        type="text"
+                        name="aadhaar"
+                        value={formData.aadhaar}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Enter your Aadhaar number"
+                        maxLength={12}
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.5rem', 
+                          border: '1px solid #d1d5db', 
+                          borderRadius: '0.25rem',
+                          fontSize: '0.875rem'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Attachments */}
+                <div>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#111827', marginBottom: '1rem', gridColumn: 'span 2' }}>
+                    Attachments
+                  </h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#374151' }}>
+                        <input
+                          type="checkbox"
+                          name="attachPan"
+                          checked={formData.attachPan}
+                          onChange={handleInputChange}
+                          style={{ width: '1rem', height: '1rem' }}
+                        />
+                        <span style={{ marginLeft: '0.5rem' }}>Attach PAN Card</span>
+                      </label>
+                    </div>
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#374151' }}>
+                        <input
+                          type="checkbox"
+                          name="attachAadhaar"
+                          checked={formData.attachAadhaar}
+                          onChange={handleInputChange}
+                          style={{ width: '1rem', height: '1rem' }}
+                        />
+                        <span style={{ marginLeft: '0.5rem' }}>Attach Aadhaar Card</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <div style={{ marginTop: '2rem' }}>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    style={{ 
+                      padding: '0.75rem 1rem', 
+                      backgroundColor: isLoading ? '#9ca3af' : '#4f46e5', 
+                      color: 'white', 
+                      borderRadius: '0.375rem', 
+                      border: 'none',
+                      fontSize: '1rem',
+                      fontWeight: '500',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      width: '100%'
+                    }}
+                  >
+                    {isLoading ? 'Creating Account...' : 'Create Account'}
+                  </button>
+                </div>
+
+                {/* Login Link */}
+                <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => navigate('/login')}
+                      style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        color: '#4f46e5', 
+                        fontSize: '0.875rem',
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      Sign In
+                    </button>
+                  </p>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default UserRegistration;

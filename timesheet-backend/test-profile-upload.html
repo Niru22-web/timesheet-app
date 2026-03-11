@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile Photo Upload Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .token-section { background: #e9ecef; padding: 20px; border-radius: 5px; margin: 20px 0; }
+        .token { word-break: break-all; background: #f8f9fa; padding: 10px; border-radius: 3px; font-family: monospace; font-size: 11px; border: 1px solid #dee2e6; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .file-input { margin: 10px 0; padding: 10px; border: 2px dashed #ccc; border-radius: 5px; display: block; width: 100%; }
+        .file-input:hover { border-color: #007bff; }
+        .result { margin: 20px 0; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 12px; white-space: pre-wrap; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        h1 { color: #333; text-align: center; }
+        h2 { color: #555; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>📸 Profile Photo Upload Test</h1>
+    
+    <div class="container">
+        <h2>Step 1: Choose User</h2>
+        <div class="token-section">
+            <h3>👨‍💼 Niranjan Mulam (Admin)</h3>
+            <p><strong>ID:</strong> 9d8fa7a7-0a8b-4e19-84f9-3127748ddaf3</p>
+            <div class="token">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjlkOGZhN2E3LTBhOGItNGUxOS04NGY5LTMxMjc3NDhkZGFmMyIsInJvbGUiOiJBZG1pbiIsImlhdCI6MTc3Mjg4MTkzMCwiZXhwIjoxNzcyOTY4MzMwfQ.ftLlDdQijYVRicZSdDfyCC3dp5uIyXbjckdH8zQaVoog</div>
+            <button onclick="setToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjlkOGZhN2E3LTBhOGItNGUxOS04NGY5LTMxMjc3NDhkZGFmMyIsInJvbGUiOiJBZG1pbiIsImlhdCI6MTc3Mjg4MTkzMCwiZXhwIjoxNzcyOTY4MzMwfQ.ftLlDdQijYVRicZSdDfyCC3dp5uIyXbjckdH8zQaVoog', 'Niranjan Mulam')">Use This Token</button>
+        </div>
+        
+        <div class="token-section">
+            <h3>👩‍💼 Lisa Wilson (Employee)</h3>
+            <p><strong>ID:</strong> 5a7859ac-b521-47de-80a4-aef4e4144ad5</p>
+            <div class="token">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVhNzg1OWFjLWI1MjEtNDdkZS04MGE0LWFlZjRlNDE0NGFkNSIsInJvbGUiOiJFbXBsb3llZSIsImlhdCI6MTc3Mjg4MTkzMCwiZXhwIjoxNzcyOTY4MzMwfQ.7yFc3utxVdd20MbwLLWm6isWdp9YAB20YQRqbcb41sT0</div>
+            <button onclick="setToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVhNzg1OWFjLWI1MjEtNDdkZS04MGE0LWFlZjRlNDE0NGFkNSIsInJvbGUiOiJFbXBsb3llZSIsImlhdCI6MTc3Mjg4MTkzMCwiZXhwIjoxNzcyOTY4MzMwfQ.7yFc3utxVdd20MbwLLWm6isWdp9YAB20YQRqbcb41sT0', 'Lisa Wilson')">Use This Token</button>
+        </div>
+        
+        <div id="authStatus"></div>
+    </div>
+
+    <div class="container">
+        <h2>Step 2: Upload Profile Photo</h2>
+        <input type="file" id="profilePhoto" class="file-input" accept=".jpg,.jpeg,.png">
+        <button onclick="uploadPhoto()">📤 Upload Profile Photo</button>
+        <button onclick="clearAuth()">🗑️ Clear Auth</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        let currentToken = '';
+        let currentUser = '';
+
+        function setToken(token, userName) {
+            currentToken = token;
+            currentUser = userName;
+            localStorage.setItem('authToken', token);
+            
+            document.getElementById('authStatus').innerHTML = '<div class="success">✅ Authenticated as ' + userName + '</div>';
+            document.getElementById('result').innerHTML = '<div class="info">📝 Token set. Now select a photo and upload.</div>';
+        }
+        
+        function clearAuth() {
+            currentToken = '';
+            currentUser = '';
+            localStorage.removeItem('authToken');
+            document.getElementById('authStatus').innerHTML = '<div class="error">🗑️ Authentication cleared</div>';
+            document.getElementById('result').innerHTML = '';
+        }
+        
+        function uploadPhoto() {
+            const file = document.getElementById('profilePhoto').files[0];
+            if (!file) {
+                document.getElementById('result').innerHTML = '<div class="error">❌ Please select a photo file</div>';
+                return;
+            }
+            
+            if (!currentToken) {
+                document.getElementById('result').innerHTML = '<div class="error">❌ Please authenticate first by selecting a user</div>';
+                return;
+            }
+            
+            // Validate file
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!allowedTypes.includes(file.type)) {
+                document.getElementById('result').innerHTML = '<div class="error">❌ Only JPEG, JPG, and PNG files are allowed</div>';
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                document.getElementById('result').innerHTML = '<div class="error">❌ File size must be less than 5MB</div>';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('profilePhoto', file);
+            
+            document.getElementById('result').innerHTML = '<div class="info">📤 Uploading photo for ' + currentUser + '...</div>';
+            
+            fetch('http://localhost:5000/api/employees/profile-photo', {
+                method: 'PUT',
+                headers: { 
+                    'Authorization': 'Bearer ' + currentToken
+                },
+                body: formData
+            })
+            .then(res => {
+                console.log('Response status:', res.status);
+                return res.json();
+            })
+            .then(data => {
+                if (data.message) {
+                    document.getElementById('result').innerHTML = '<div class="success">✅ Upload Successful!\\n\\n' + JSON.stringify(data, null, 2) + '</div>';
+                } else {
+                    document.getElementById('result').innerHTML = '<div class="error">❌ Upload Failed:\\n\\n' + JSON.stringify(data, null, 2) + '</div>';
+                }
+            })
+            .catch(err => {
+                console.error('Upload error:', err);
+                document.getElementById('result').innerHTML = '<div class="error">💥 Network Error:\\n\\n' + err.message + '</div>';
+            });
+        }
+        
+        // Check if there's a token in localStorage on load
+        window.onload = function() {
+            const storedToken = localStorage.getItem('authToken');
+            if (storedToken) {
+                // Try to decode and show current user
+                try {
+                    const parts = storedToken.split('.');
+                    if (parts.length === 3) {
+                        const payload = JSON.parse(atob(parts[1]));
+                        currentToken = storedToken;
+                        currentUser = payload.id;
+                        document.getElementById('authStatus').innerHTML = '<div class="info">ℹ️ Found existing token for user ID: ' + payload.id + '</div>';
+                    }
+                } catch (e) {
+                    console.log('Invalid stored token');
+                }
+            }
+        };
+    </script>
+</body>
+</html>
