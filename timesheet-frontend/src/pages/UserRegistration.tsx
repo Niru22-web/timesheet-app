@@ -11,6 +11,7 @@ import {
   UserIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
+import { APP_CONFIG } from '../config/appConfig';
 
 // UI Components
 import Card from '../components/ui/Card';
@@ -102,7 +103,7 @@ const UserRegistration: React.FC = () => {
               <span className="text-white text-3xl font-extrabold">+</span>
             </div>
             <h1 className="text-3xl font-extrabold text-secondary-900 tracking-tight">Create New Account</h1>
-            <p className="text-secondary-500 font-medium mt-2">Join ashish shah & associate to manage your workspace efficiently.</p>
+            <p className="text-secondary-500 font-medium mt-2">Join {APP_CONFIG.COMPANY_NAME} to manage your workspace efficiently.</p>
           </div>
 
           <form onSubmit={handleRegister} className="space-y-8">

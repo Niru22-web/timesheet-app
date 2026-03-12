@@ -48,8 +48,29 @@ const upload = multer({
 
 export const getTimelogs = async (req: Request, res: Response) => {
   try {
+    console.log('Fetching timelogs - API request received');
+    
     const user = (req as any).user;
     const { employeeId, clientId, projectId, jobId, dateFrom, dateTo } = req.query;
+    
+    // Check if user exists
+    if (!user) {
+      console.error('No user found in request - authentication failed');
+      return res.status(401).json({ 
+        message: 'Unauthorized - User not authenticated' 
+      });
+    }
+    
+    // Check if user has required properties
+    if (!user.id || !user.role) {
+      console.error('Invalid user object - missing id or role:', user);
+      return res.status(401).json({ 
+        message: 'Unauthorized - Invalid user credentials' 
+      });
+    }
+    
+    console.log('User:', { id: user.id, email: user.email, role: user.role });
+    console.log('Filters:', { employeeId, clientId, projectId, jobId, dateFrom, dateTo });
     
     const filters = {
       employeeId: employeeId as string,
@@ -64,18 +85,29 @@ export const getTimelogs = async (req: Request, res: Response) => {
 
     // Role-based access control
     if (['Admin', 'Partner', 'Owner'].includes(user.role)) {
+      console.log('Fetching all timelogs (Admin/Partner/Owner role)');
       timelogs = await timelogService.getAllTimelogs(filters);
     } else if (['Manager'].includes(user.role)) {
+      console.log('Fetching timelogs for manager:', user.email);
       timelogs = await timelogService.getTimelogsForManager(user.email, filters);
     } else {
       // Regular users can only see their own timelogs
+      console.log('Fetching timelogs for user:', user.id);
       timelogs = await timelogService.getTimelogsByUser(user.id, filters);
     }
 
-    res.json(timelogs);
+    console.log('Timelogs fetched successfully, count:', Array.isArray(timelogs) ? timelogs.length : 'not an array');
+    
+    // Ensure we always return an array
+    const response = Array.isArray(timelogs) ? timelogs : [];
+    res.json(response);
   } catch (error) {
     console.error('Error fetching timelogs:', error);
-    res.status(500).json({ error: 'Failed to fetch timelogs' });
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    res.status(500).json({ 
+      message: 'Failed to fetch timelogs',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
 

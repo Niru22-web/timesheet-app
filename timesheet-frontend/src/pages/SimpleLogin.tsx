@@ -8,6 +8,7 @@ import {
   GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
+import { APP_CONFIG } from '../config/appConfig';
 
 // UI Components
 import Card from '../components/ui/Card';
@@ -77,7 +78,7 @@ const SimpleLogin: React.FC = () => {
             <span className="text-white text-3xl font-extrabold">A</span>
           </div>
           <div className="space-y-1">
-            <h1 className="text-3xl font-extrabold text-secondary-900 tracking-tight">ashish shah & associate</h1>
+            <h1 className="text-3xl font-extrabold text-secondary-900 tracking-tight">{APP_CONFIG.COMPANY_NAME}</h1>
             <p className="text-secondary-500 font-medium tracking-wide italic">Employee Management Portal</p>
           </div>
         </div>

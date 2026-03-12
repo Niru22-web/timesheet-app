@@ -11,6 +11,7 @@ import leaveRoutes from "./modules/leave/leave.routes";
 import emailRoutes from "./modules/email/email.routes";
 import emailConnectorRoutes from "./modules/email/email-connector.routes";
 import emailOAuthRoutes from "./routes/emailOAuthRoutes";
+import userPermissionsRoutes from "./modules/userPermissions/userPermissions.routes";
 import { validateRegistrationToken } from "./modules/employee/registrationToken.controller";
 import { prisma } from "./config/prisma";
 
@@ -99,6 +100,9 @@ app.use("/api/timelogs", timelogWeeklyRoutes);
 
 // Leave routes
 app.use("/api/leaves", leaveRoutes);
+
+// User permissions routes
+app.use("/api/admin", userPermissionsRoutes);
 
 // Registration token routes
 app.get("/api/registration/validate", validateRegistrationToken);

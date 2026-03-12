@@ -27,7 +27,7 @@ interface EmailTemplate {
   body: string;
   category: string;
   variables: string[];
-  isActive: boolean;
+  status: string; // 'active' or 'inactive'
   createdAt: string;
   updatedAt: string;
 }
@@ -42,12 +42,13 @@ const EmailTemplates: React.FC = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [previewData, setPreviewData] = useState<{ subject: string; body: string } | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Editor state
   const [editorData, setEditorData] = useState({
     subject: '',
     body: '',
-    isActive: true
+    status: 'active' as 'active' | 'inactive'
   });
 
   // Check if user is admin, if not redirect to dashboard
@@ -64,10 +65,24 @@ const EmailTemplates: React.FC = () => {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
-      const response = await API.get('/admin/email-templates');
-      setTemplates(response.data || getDefaultTemplates());
+      console.log('🔍 Fetching email templates...');
+      const response = await API.get('/email/templates');
+      console.log('📊 Email templates response:', response.data);
+      
+      // Handle the new API response format
+      if (response.data?.success && response.data?.templates) {
+        const templatesData = Array.isArray(response.data.templates) ? response.data.templates : [];
+        console.log('✅ Setting templates array:', templatesData);
+        setTemplates(templatesData);
+      } else {
+        // Fallback for old format or direct array
+        const templatesData = Array.isArray(response.data) ? response.data : [];
+        console.log('🔄 Using fallback format:', templatesData);
+        setTemplates(templatesData);
+      }
     } catch (err) {
-      console.error('Failed to fetch email templates:', err);
+      console.error('❌ Failed to fetch email templates:', err);
+      console.log('🔄 Using default templates as fallback');
       setTemplates(getDefaultTemplates());
     } finally {
       setLoading(false);
@@ -186,7 +201,7 @@ const EmailTemplates: React.FC = () => {
 
   const categories = ['All', 'Registration', 'Leave', 'Timesheet', 'Reimbursement', 'Security'];
 
-  const filteredTemplates = templates.filter(template => {
+  const filteredTemplates = (templates || []).filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          template.subject.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || template.category === selectedCategory;
@@ -198,7 +213,7 @@ const EmailTemplates: React.FC = () => {
     setEditorData({
       subject: template.subject,
       body: template.body,
-      isActive: template.isActive
+      status: template.status as 'active' | 'inactive'
     });
     setShowEditorModal(true);
   };
@@ -244,21 +259,40 @@ const EmailTemplates: React.FC = () => {
     if (!selectedTemplate) return;
 
     try {
-      const updatedTemplate = {
-        ...selectedTemplate,
+      setSaving(true);
+      console.log('💾 Saving template:', selectedTemplate.id);
+      console.log('📝 Template data:', {
         subject: editorData.subject,
         body: editorData.body,
-        isActive: editorData.isActive,
-        updatedAt: new Date().toISOString()
+        status: editorData.status
+      });
+
+      const updatedTemplate = {
+        name: selectedTemplate.name,
+        category: selectedTemplate.category,
+        subject: editorData.subject,
+        body: editorData.body,
+        status: editorData.status
       };
 
-      await API.put(`/api/admin/email-templates/${selectedTemplate.id}`, updatedTemplate);
+      const response = await API.put(`/email/templates/${selectedTemplate.id}`, updatedTemplate);
       
-      setTemplates(templates.map(t => t.id === selectedTemplate.id ? updatedTemplate : t));
+      console.log('✅ Template saved successfully:', response.data);
+      
+      // Show success message
+      alert('Template updated successfully!');
+      
+      // Refresh templates from server
+      await fetchTemplates();
+      
+      // Close modal and reset state
       setShowEditorModal(false);
       setSelectedTemplate(null);
     } catch (err) {
-      console.error('Failed to save template:', err);
+      console.error('❌ Failed to save template:', err);
+      alert('Failed to save template. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -270,7 +304,7 @@ const EmailTemplates: React.FC = () => {
       setEditorData({
         subject: defaultTemplate.subject,
         body: defaultTemplate.body,
-        isActive: defaultTemplate.isActive
+        status: 'active'
       });
     }
   };
@@ -382,7 +416,7 @@ const EmailTemplates: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <StatusBadge status={template.isActive ? 'active' : 'inactive'} />
+                    <StatusBadge status={template.status} />
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
@@ -444,8 +478,8 @@ const EmailTemplates: React.FC = () => {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={editorData.isActive}
-                  onChange={(e) => setEditorData(prev => ({ ...prev, isActive: e.target.checked }))}
+                  checked={editorData.status === 'active'}
+                  onChange={(e) => setEditorData(prev => ({ ...prev, status: e.target.checked ? 'active' : 'inactive' }))}
                   className="w-4 h-4 text-primary-600 focus:ring-primary-500 rounded"
                 />
                 <span className="text-sm font-medium text-secondary-700">Template Active</span>
@@ -483,8 +517,10 @@ const EmailTemplates: React.FC = () => {
                   variant="primary"
                   size="sm"
                   onClick={handleSaveTemplate}
+                  isLoading={saving}
+                  disabled={saving}
                 >
-                  Save Template
+                  {saving ? 'Saving...' : 'Save Template'}
                 </Button>
               </div>
             </div>

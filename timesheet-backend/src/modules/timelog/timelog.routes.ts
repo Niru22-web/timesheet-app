@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { authenticate } from '../../middleware/auth.middleware';
 import {
   getTimelogs,
   createTimelog,
@@ -18,23 +19,23 @@ import {
 const router = Router();
 
 // Timelog CRUD operations
-router.get('/', getTimelogs);
-router.post('/', createTimelog);
-router.put('/:id', updateTimelog);
-router.delete('/:id', deleteTimelog);
+router.get('/', authenticate, getTimelogs);
+router.post('/', authenticate, createTimelog);
+router.put('/:id', authenticate, updateTimelog);
+router.delete('/:id', authenticate, deleteTimelog);
 
 // Hierarchical data access
-router.get('/accessible/clients', getAccessibleClients);
-router.get('/accessible/projects', getAccessibleProjects);
-router.get('/accessible/jobs', getAccessibleJobs);
+router.get('/accessible/clients', authenticate, getAccessibleClients);
+router.get('/accessible/projects', authenticate, getAccessibleProjects);
+router.get('/accessible/jobs', authenticate, getAccessibleJobs);
 
 // Excel operations
-router.get('/export', exportTimelogsToExcel);
-router.post('/import', uploadTimelogFile, importTimelogsFromExcel);
-router.get('/template', downloadTimelogTemplate);
+router.get('/export', authenticate, exportTimelogsToExcel);
+router.post('/import', authenticate, uploadTimelogFile, importTimelogsFromExcel);
+router.get('/template', authenticate, downloadTimelogTemplate);
 
 // Dashboard and Reports
-router.get('/reports', getTimesheetReports);
-router.get('/missing-timesheets', getMissingTimesheets);
+router.get('/reports', authenticate, getTimesheetReports);
+router.get('/missing-timesheets', authenticate, getMissingTimesheets);
 
 export default router;

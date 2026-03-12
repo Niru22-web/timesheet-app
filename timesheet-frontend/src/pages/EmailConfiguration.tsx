@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import API from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -62,6 +62,9 @@ const EmailConfiguration: React.FC = () => {
   const [oauthConnection, setOAuthConnection] = useState<OAuthConnection | null>(null);
   const [oauthLoading, setOAuthLoading] = useState(false);
 
+  // Ref to prevent duplicate API calls in StrictMode
+  const hasFetched = useRef(false);
+
   // Check if user is admin, if not redirect to dashboard
   useEffect(() => {
     if (user && user.role !== 'admin' && user.role !== 'Admin') {
@@ -79,6 +82,10 @@ const EmailConfiguration: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
+    // Prevent duplicate calls in React StrictMode
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
     fetchEmailConfig();
     fetchProviderConfigs();
     checkOAuthStatus();
@@ -91,8 +98,25 @@ const EmailConfiguration: React.FC = () => {
     const provider = urlParams.get('provider');
     const email = urlParams.get('email');
     const error = urlParams.get('error');
+    const outlookConnected = urlParams.get('outlook');
 
-    if (success === 'true' && provider && email) {
+    // Handle OAuth callback result - new format
+    if (outlookConnected === 'connected') {
+      setTestResult({
+        success: true,
+        message: 'Outlook account connected successfully!',
+        details: { provider: 'outlook', connectedAt: new Date().toISOString() }
+      });
+      setShowTestModal(true);
+      
+      // Clear URL params
+      window.history.replaceState({}, '', window.location.pathname);
+      
+      // Refresh OAuth status
+      checkOAuthStatus();
+    }
+    // Handle OAuth callback result - legacy format
+    else if (success === 'true' && provider && email) {
       setTestResult({
         success: true,
         message: `${provider === 'gmail' ? 'Gmail' : 'Outlook'} account ${email} connected successfully!`,
@@ -120,14 +144,27 @@ const EmailConfiguration: React.FC = () => {
 
   const checkOAuthStatus = async () => {
     try {
-      const response = await API.get('/admin/oauth/status');
-      if (response?.data?.success && response.data.connected) {
-        setOAuthConnection(response.data.connection);
+      console.log('🔍 Checking OAuth status...');
+      const response = await API.get('/email/status');
+      console.log('📊 OAuth status response:', response.data);
+      
+      if (response?.data?.success) {
+        // Update connection status based on the response
+        if (response.data.outlookConnected) {
+          setOAuthConnection({
+            provider: 'outlook',
+            email: response.data.providers?.outlook?.email || 'Connected',
+            isActive: true,
+            createdAt: new Date().toISOString()
+          });
+        } else {
+          setOAuthConnection(null);
+        }
       } else {
         setOAuthConnection(null);
       }
     } catch (err) {
-      console.error('Failed to check OAuth status:', err);
+      console.error('❌ Failed to check OAuth status:', err);
       setOAuthConnection(null);
     }
   };
@@ -186,68 +223,33 @@ const EmailConfiguration: React.FC = () => {
       console.log('Outlook OAuth response:', response);
       
       if (response?.data?.success && response.data.url) {
-        // Store state in sessionStorage for verification
-        sessionStorage.setItem('oauth_state', response.data.state);
-        sessionStorage.setItem('oauth_provider', 'outlook-365');
-        
-        // Open popup window for OAuth authentication
-        const popup = window.open(
-          response.data.url,
-          'oauthLogin',
-          'width=600,height=700,scrollbars=yes,resizable=yes'
-        );
-        
-        // Listen for popup close and handle callback
-        const checkClosed = setInterval(() => {
-          if (popup?.closed) {
-            clearInterval(checkClosed);
-            setOAuthLoading(false);
-          }
-        }, 1000);
-        
-        // Listen for messages from popup
-        const messageHandler = (event: MessageEvent) => {
-          if (event.data.type === 'OAUTH_SUCCESS') {
-            clearInterval(checkClosed);
-            window.close();
-            setOAuthLoading(false);
-            // Refresh OAuth status after successful connection
-            checkOAuthStatus();
-          }
-        };
-        
-        window.addEventListener('message', messageHandler);
+        // Redirect to OAuth URL directly
+        window.location.href = response.data.url;
       } else {
         const errorMessage = response?.data?.message || 'Failed to generate Outlook OAuth authorization URL';
         const isConfigError = errorMessage.includes('not configured') || errorMessage.includes('Missing required environment variables');
         
         setTestResult({
           success: false,
-          message: errorMessage,
+          message: isConfigError 
+            ? 'Outlook OAuth is not configured. Please contact your administrator.'
+            : errorMessage,
           details: { 
-            error: isConfigError ? 'Configuration Error' : 'Server Error',
-            provider: 'outlook-365',
-            suggestion: isConfigError 
-              ? 'Please configure OAuth credentials in backend environment variables'
-              : 'Please check the server logs and try again',
-            response: response?.data
+            provider: 'outlook',
+            error: errorMessage,
+            needsConfiguration: isConfigError
           }
         });
         setShowTestModal(true);
       }
     } catch (err: any) {
       console.error('Outlook OAuth connection error:', err);
-      console.error('Error response:', err.response);
-      
       setTestResult({
         success: false,
         message: err?.response?.data?.message || 'Failed to initiate Outlook OAuth connection',
         details: { 
-          error: err.message || 'Network error',
-          provider: 'outlook-365',
-          status: err?.response?.status,
-          statusText: err?.response?.statusText,
-          suggestion: 'Please check your internet connection and ensure the backend server is running'
+          provider: 'outlook', 
+          error: err?.response?.data?.message || err?.message || 'Unknown error'
         }
       });
       setShowTestModal(true);
@@ -263,10 +265,13 @@ const EmailConfiguration: React.FC = () => {
 
     try {
       setOAuthLoading(true);
-      await API.post('/admin/oauth/disconnect', {
+      console.log('🔌 Disconnecting Outlook account...');
+      
+      await API.post('/email/oauth/admin/oauth/disconnect', {
         provider: 'outlook'
       });
       
+      console.log('✅ Outlook account disconnected successfully');
       setOAuthConnection(null);
       setTestResult({
         success: true,
@@ -275,6 +280,7 @@ const EmailConfiguration: React.FC = () => {
       });
       setShowTestModal(true);
     } catch (err: any) {
+      console.error('❌ Failed to disconnect Outlook:', err);
       setTestResult({
         success: false,
         message: err?.response?.data?.message || 'Failed to disconnect Outlook account',

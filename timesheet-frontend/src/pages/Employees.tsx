@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { APP_CONFIG } from '../config/appConfig';
 import API from '../api';
 import {
   UsersIcon,
@@ -291,7 +292,7 @@ const Employees: React.FC = () => {
       {/* Top Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 flex-none">
         <div>
-          <h1 className="text-2xl font-bold text-secondary-900 tracking-tight">ashish shah & associate</h1>
+          <h1 className="text-2xl font-bold text-secondary-900 tracking-tight">{APP_CONFIG.COMPANY_NAME}</h1>
           <p className="text-sm text-secondary-500 font-medium">Employee Management</p>
         </div>
 

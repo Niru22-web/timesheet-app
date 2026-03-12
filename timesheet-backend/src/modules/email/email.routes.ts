@@ -19,7 +19,8 @@ import {
   testEmailConfiguration,
   getEmailTemplates,
   updateEmailTemplate,
-  sendEmailFromTemplate
+  sendEmailFromTemplate,
+  getPendingApprovals
 } from './email.controller';
 
 const router = Router();
@@ -59,6 +60,10 @@ router.get('/health', (req, res) => {
 router.get('/oauth/google', getGoogleOAuthAuth);
 router.get('/oauth/outlook', getOutlookOAuthAuth);
 router.post('/oauth/callback', handleOAuthCallback);
+router.get('/oauth/outlook/callback', handleMicrosoftCallback);
+
+// Email connection status route
+router.get('/status', checkAdminRole, getConnectionStatus);
 
 // Admin-only OAuth routes
 router.get('/admin/oauth/auth-url', checkAdminRole, getAuthUrls);
@@ -73,10 +78,14 @@ router.post('/test-email-configuration', checkAdminRole, sendTestEmail);
 router.get('/provider-configurations', checkAdminRole, getAllConnections);
 
 // Email Templates routes (Admin only)
-router.get('/email-templates', checkAdminRole, getAllConnections);
-router.put('/email-templates/:id', checkAdminRole, sendTestEmail);
+router.get('/templates', checkAdminRole, getEmailTemplates);
+router.put('/templates/:id', checkAdminRole, updateEmailTemplate);
+router.post('/send-from-template', checkAdminRole, sendEmailFromTemplate);
 
 // Send email route (can be used by other services)
 router.post('/send-email', sendTestEmail);
+
+// Admin approval routes
+router.get('/pending-approvals', checkAdminRole, getPendingApprovals);
 
 export default router;

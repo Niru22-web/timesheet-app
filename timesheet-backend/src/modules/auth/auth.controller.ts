@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { prisma } from "../../config/prisma";
 import { generateToken } from "../../config/jwt";
 import { sendPasswordResetEmail } from "../../services/email.service";
+import EmailService from "../email/email.service";
 
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
@@ -33,6 +34,7 @@ export const login = async (req: Request, res: Response) => {
 
   const token = generateToken({
     id: user.id,
+    employeeId: user.employeeId,
     role: user.role,
   });
 
@@ -168,6 +170,111 @@ export const register = async (req: Request, res: Response) => {
           aadhaar: aadhaar || '',
         },
       });
+    }
+
+    // Send registration email
+    try {
+      console.log("Attempting to send registration email to:", employee.officeEmail);
+      
+      // Check if Outlook is connected before sending email
+      const emailService = new EmailService();
+      const connections = await emailService.getAllEmailConnections();
+      const outlookConnection = connections.find(conn => conn.provider === 'outlook' && conn.accessToken);
+      
+      if (!outlookConnection) {
+        console.warn("⚠️ Outlook not connected - registration email not sent");
+        console.warn("Please connect an Outlook account in Email Configuration to send registration emails");
+        // Don't fail registration, just skip email
+      } else {
+        console.log("✅ Outlook connection found, sending registration email");
+        
+        // Create registration email content
+        const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+        const subject = 'Welcome to Timesheet System - Your Account is Ready';
+        
+        const html = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Welcome to Timesheet System</title>
+          </head>
+          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center;">
+                <h1 style="margin: 0; font-size: 28px;">Welcome to Timesheet System</h1>
+              </div>
+              <div style="padding: 30px;">
+                <h2 style="color: #333; margin-top: 0;">Hello ${employee.firstName} ${employee.lastName},</h2>
+                <p style="color: #666; line-height: 1.6;">Your account has been successfully created in the Timesheet System. You can now log in and start using the system.</p>
+                
+                <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0;">
+                  <h3 style="color: #333; margin-top: 0;">Your Account Details:</h3>
+                  <p style="margin: 5px 0;"><strong>Email:</strong> ${employee.officeEmail}</p>
+                  <p style="margin: 5px 0;"><strong>Employee ID:</strong> ${employee.employeeId}</p>
+                  <p style="margin: 5px 0;"><strong>Role:</strong> ${employee.role}</p>
+                  <p style="margin: 5px 0;"><strong>Designation:</strong> ${employee.designation}</p>
+                </div>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                    Login to Your Account
+                  </a>
+                </div>
+                
+                <div style="background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                  <p style="margin: 0;"><strong>Note:</strong> If you haven't received your password or have trouble logging in, please contact your system administrator.</p>
+                </div>
+                
+                <p style="color: #666; margin-top: 30px;">If you have any questions or need assistance, please don't hesitate to reach out to your administrator.</p>
+                
+                <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;">
+                  <p>Best regards,<br>Timesheet System Team</p>
+                </div>
+              </div>
+            </div>
+          </body>
+          </html>
+        `;
+        
+        const text = `
+Welcome to Timesheet System
+
+Hello ${employee.firstName} ${employee.lastName},
+
+Your account has been successfully created in the Timesheet System.
+
+Account Details:
+Email: ${employee.officeEmail}
+Employee ID: ${employee.employeeId}
+Role: ${employee.role}
+Designation: ${employee.designation}
+
+You can log in to your account at: ${loginUrl}
+
+If you haven't received your password or have trouble logging in, please contact your system administrator.
+
+Best regards,
+Timesheet System Team
+        `;
+        
+        const emailSent = await sendEmail({
+          to: employee.officeEmail,
+          subject,
+          html,
+          text
+        });
+        
+        if (emailSent) {
+          console.log("✅ Registration email sent successfully to:", employee.officeEmail);
+        } else {
+          console.warn("⚠️ Registration email failed to send to:", employee.officeEmail);
+        }
+      }
+    } catch (emailError) {
+      console.error("❌ Failed to send registration email:", emailError);
+      // Don't fail the registration if email fails, but log the error
     }
 
     res.status(201).json({

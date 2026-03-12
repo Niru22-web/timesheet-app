@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
   EnvelopeIcon, 
@@ -41,6 +41,9 @@ const EmailConnector: React.FC = () => {
     text: 'This is a test email sent from your Timesheet Pro application.'
   });
 
+  // Ref to prevent duplicate API calls in StrictMode
+  const hasFetched = useRef(false);
+
   // Check for OAuth callback success/failure
   useEffect(() => {
     const success = searchParams.get('success');
@@ -68,6 +71,10 @@ const EmailConnector: React.FC = () => {
   }, [searchParams]);
 
   useEffect(() => {
+    // Prevent duplicate calls in React StrictMode
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
     fetchEmailStatus();
     fetchAuthUrls();
   }, []);
@@ -75,10 +82,41 @@ const EmailConnector: React.FC = () => {
   const fetchEmailStatus = async () => {
     try {
       setLoading(true);
+      console.log('🔍 Fetching email status...');
       const response = await API.get('/email/status');
-      setEmailStatus(response.data.data);
+      console.log('📊 Email status response:', response?.data);
+      
+      if (response?.data?.success) {
+        // Update status based on the response
+        const newStatus = {
+          gmail: { 
+            connected: response.data.gmailConnected || false, 
+            provider: 'gmail',
+            email: response.data.providers?.gmail?.email,
+            connectedAt: response.data.providers?.gmail?.connectedAt
+          },
+          outlook: { 
+            connected: response.data.outlookConnected || false, 
+            provider: 'outlook',
+            email: response.data.providers?.outlook?.email,
+            connectedAt: response.data.providers?.outlook?.connectedAt
+          }
+        };
+        setEmailStatus(newStatus);
+      } else {
+        // Fallback to disconnected status
+        setEmailStatus({
+          gmail: { connected: false, provider: 'gmail' },
+          outlook: { connected: false, provider: 'outlook' }
+        });
+      }
     } catch (error) {
-      console.error('Failed to fetch email status:', error);
+      console.error('❌ Failed to fetch email status:', error);
+      // Fallback to disconnected status
+      setEmailStatus({
+        gmail: { connected: false, provider: 'gmail' },
+        outlook: { connected: false, provider: 'outlook' }
+      });
     } finally {
       setLoading(false);
     }

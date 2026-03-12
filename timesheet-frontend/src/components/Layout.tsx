@@ -17,6 +17,7 @@ import {
   UserCircleIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
+import { APP_CONFIG } from '../config/appConfig';
 import Header from './layout/Header';
 
 const Layout: React.FC = () => {
@@ -52,7 +53,7 @@ const Layout: React.FC = () => {
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-secondary-200 sticky top-0 z-50">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold">A</div>
-          <span className="font-bold text-secondary-900 tracking-tight">ashish shah & associate</span>
+          <span className="font-bold text-secondary-900 tracking-tight">{APP_CONFIG.COMPANY_NAME}</span>
         </div>
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -81,8 +82,8 @@ const Layout: React.FC = () => {
           <div className="p-6 md:p-8 flex items-center gap-3">
             <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-sm">A</div>
             <div>
-              <h1 className="font-bold text-secondary-900 leading-none">ashish shah</h1>
-              <p className="text-[10px] font-bold text-secondary-500 mt-1.5 uppercase tracking-widest">& associate</p>
+              <h1 className="font-bold text-secondary-900 leading-none">{APP_CONFIG.COMPANY_NAME}</h1>
+              <p className="text-[10px] font-bold text-secondary-500 mt-1.5 uppercase tracking-widest">Timesheet Management</p>
             </div>
           </div>
 
@@ -176,7 +177,7 @@ const Layout: React.FC = () => {
           <footer className="mt-20 py-10 border-t border-secondary-200/50 flex flex-col md:flex-row items-center justify-between gap-6 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-1000">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-secondary-200 rounded-lg flex items-center justify-center text-secondary-500 font-bold">A</div>
-              <p className="text-[10px] font-bold text-secondary-500 uppercase tracking-[0.2em] italic">ashish shah & associate <span className="mx-2 opacity-30">/</span> Management Systems v4.9.2</p>
+              <p className="text-[10px] font-bold text-secondary-500 uppercase tracking-[0.2em] italic">{APP_CONFIG.COMPANY_NAME} <span className="mx-2 opacity-30">/</span> {APP_CONFIG.APP_NAME}</p>
             </div>
             <div className="flex items-center gap-8">
               <span className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">© 2026 EnterpriseCore Solutions</span>

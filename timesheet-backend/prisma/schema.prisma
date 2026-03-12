@@ -1,159 +1,166 @@
-model Employee {
-  id               String   @id @default(uuid())
-  employeeId       String   @unique
-  firstName        String
-  lastName         String
-  officeEmail      String   @unique
-  designation      String
-  department       String   @default("General")
-  role             String
-  status           String   @default("pending")
-  password         String?
-  reportingManager String?
-  reportingPartner String?
-  createdAt        DateTime @default(now())
+generator client {
+  provider = "prisma-client-js"
+}
 
-  profile          EmployeeProfile?
-  timelogs         Timelog[]
-  managedTimelogs   Timelog[] @relation("TimelogReportingManager")
-  partnerTimelogs   Timelog[] @relation("TimelogReportingPartner")
-  approvedTimelogs  Timelog[] @relation("TimelogApprover")
-  projects         ProjectUser[]
-  reimbursements   Reimbursement[]
-  leaves           Leave[]
-  leaveBalance     LeaveBalance?
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id                 String              @id @default(uuid())
+  employeeId         String              @unique
+  firstName          String
+  lastName           String
+  officeEmail        String              @unique
+  designation        String
+  role               String
+  status             String              @default("pending")
+  password           String?
+  createdAt          DateTime            @default(now())
+  department         String              @default("General")
+  reportingManager   String?
+  reportingPartner   String?
+  emailConnections   EmailConnection[]
+  profile            EmployeeProfile?
+  leaves             Leave[]
+  leaveBalance       LeaveBalance?
+  projects           ProjectUser[]
   registrationTokens RegistrationToken[]
-  emailConnections  EmailConnection[]
+  reimbursements     Reimbursement[]
+  approvedTimelogs   Timelog[]           @relation("TimelogApprover")
+  timelogs           Timelog[]
+  managedTimelogs    Timelog[]           @relation("TimelogReportingManager")
+  partnerTimelogs    Timelog[]           @relation("TimelogReportingPartner")
 }
 
 model EmployeeProfile {
-  id                    String  @id @default(uuid())
-  employeeId            String  @unique
-  dob                   DateTime
-  doj                   DateTime
-  education             String
-  maritalStatus         String
-  gender                String
-  permanentAddress      String
-  currentAddress        String
-  currentPinCode        String?
-  guardianName          String?
-  guardianAddress       String?
-  guardianNumber        String?
-  personalEmail         String?
-  personalMobile        String?
-  pan                   String
-  aadhaar               String
-  panFileUrl            String?
-  aadhaarFileUrl        String?
-  employeePhotoUrl      String?
-  bankStatementFileUrl  String?
-  bankName              String?
-  accountHolderName      String?
-  bankAccountNumber      String?
-  ifscCode              String?
-  branchName            String?
-
-  employee              Employee @relation(fields: [employeeId], references: [id])
+  id                       String   @id @default(uuid())
+  employeeId               String   @unique
+  dob                      DateTime
+  doj                      DateTime
+  education                String
+  maritalStatus            String
+  gender                   String
+  permanentAddress         String
+  currentAddress           String
+  pan                      String
+  aadhaar                  String
+  panFileUrl               String?
+  aadhaarFileUrl           String?
+  currentPinCode           String?
+  guardianAddress          String?
+  guardianName             String?
+  guardianNumber           String?
+  personalEmail            String?
+  personalMobile           String?
+  employeePhotoUrl         String?
+  accountHolderName        String?
+  bankAccountNumber        String?
+  bankName                 String?
+  branchName               String?
+  ifscCode                 String?
+  bankStatementFileUrl     String?
+  emergencyContactName     String?
+  emergencyContactPhone    String?
+  emergencyContactRelation String?
+  employee                 Employee @relation(fields: [employeeId], references: [id])
 }
 
 model Client {
-  id         String   @id @default(uuid())
-  clientId   String   @unique
-  name       String
-  alias      String
-  address    String?
-  pin        String?
-  state      String?
-  country    String?
-  gstStatus  String
-  gstin      String?
-  pan        String
-  projects   Project[]
+  id        String    @id @default(uuid())
+  clientId  String    @unique
+  name      String
+  alias     String
+  gstStatus String
+  gstin     String?
+  pan       String
+  address   String?
+  country   String?
+  pin       String?
+  state     String?
+  projects  Project[]
 }
 
 model Project {
-  id            String   @id @default(uuid())
-  projectId     String   @unique
+  id            String              @id @default(uuid())
+  projectId     String              @unique
   name          String
   status        String
   startDate     DateTime
-  endDate       DateTime?
   billable      Boolean
+  clientId      String
   contactPerson String?
   createdBy     String?
-  clientId      String
-  client        Client   @relation(fields: [clientId], references: [id])
+  endDate       DateTime?
   jobs          Job[]
-  users         ProjectUser[]
+  client        Client              @relation(fields: [clientId], references: [id])
   attachments   ProjectAttachment[]
+  users         ProjectUser[]
 }
 
 model ProjectAttachment {
-  id        String   @id @default(uuid())
-  projectId String
-  fileName  String
-  filePath  String
-  fileSize  Int
-  mimeType  String
+  id         String   @id @default(uuid())
+  projectId  String
+  fileName   String
+  filePath   String
+  fileSize   Int
+  mimeType   String
   uploadedAt DateTime @default(now())
   uploadedBy String?
-  
-  project   Project  @relation(fields: [projectId], references: [id])
+  project    Project  @relation(fields: [projectId], references: [id])
 }
 
 model ProjectUser {
-  id         String @id @default(uuid())
+  id         String   @id @default(uuid())
   projectId  String
   employeeId String
-
-  project    Project  @relation(fields: [projectId], references: [id])
   employee   Employee @relation(fields: [employeeId], references: [id])
+  project    Project  @relation(fields: [projectId], references: [id])
 }
 
 model Job {
-  id            String   @id @default(uuid())
-  jobId         String   @unique
-  combinedId    String   @unique // Client + Project + Job combination
-  name          String
-  description   String?
-  status        String
-  startDate     DateTime?
-  endDate       DateTime?
-  billable      Boolean
-  createdBy     String?
-  projectId     String
-  project       Project   @relation(fields: [projectId], references: [id])
-  timelogs      Timelog[]
+  id          String    @id @default(uuid())
+  jobId       String    @unique
+  name        String
+  status      String
+  billable    Boolean
+  projectId   String
+  description String?
+  endDate     DateTime?
+  startDate   DateTime?
+  combinedId  String    @unique
+  createdBy   String?
+  project     Project   @relation(fields: [projectId], references: [id])
+  timelogs    Timelog[]
 }
 
 model Timelog {
-  id                  String    @id @default(uuid())
-  hours               Float
-  description         String
-  workItem            String?
-  date                DateTime
-  billableStatus      String    @default("billable") // billable, non-billable
-  submissionStatus    String    @default("not_submitted") // not_submitted, submitted, approved, rejected
-  weekStart           DateTime  // Start of the week this entry belongs to
-  employeeId          String
-  jobId               String
-  clientId            String
-  projectId           String
-  combinedJobCode     String
-  reportingManagerId  String?
-  reportingPartnerId  String?
-  submittedAt         DateTime?
-  approvedBy          String?
-  approvedAt          DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  employee          Employee @relation(fields: [employeeId], references: [id])
-  job               Job      @relation(fields: [jobId], references: [id])
-  reportingManager  Employee? @relation("TimelogReportingManager", fields: [reportingManagerId], references: [id])
-  reportingPartner  Employee? @relation("TimelogReportingPartner", fields: [reportingPartnerId], references: [id])
-  approver          Employee? @relation("TimelogApprover", fields: [approvedBy], references: [id])
+  id                 String    @id @default(uuid())
+  hours              Float
+  description        String
+  date               DateTime
+  employeeId         String
+  jobId              String
+  reportingManagerId String?
+  reportingPartnerId String?
+  approvedAt         DateTime?
+  approvedBy         String?
+  billableStatus     String    @default("billable")
+  clientId           String
+  combinedJobCode    String
+  createdAt          DateTime  @default(now())
+  projectId          String
+  submissionStatus   String    @default("not_submitted")
+  submittedAt        DateTime?
+  updatedAt          DateTime  @updatedAt
+  weekStart          DateTime
+  workItem           String?
+  approver           Employee? @relation("TimelogApprover", fields: [approvedBy], references: [id])
+  employee           Employee  @relation(fields: [employeeId], references: [id])
+  job                Job       @relation(fields: [jobId], references: [id])
+  reportingManager   Employee? @relation("TimelogReportingManager", fields: [reportingManagerId], references: [id])
+  reportingPartner   Employee? @relation("TimelogReportingPartner", fields: [reportingPartnerId], references: [id])
 }
 
 model Reimbursement {
@@ -169,59 +176,73 @@ model Reimbursement {
 }
 
 model RegistrationToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  email     String
+  id         String   @id @default(uuid())
+  token      String   @unique
+  email      String
   employeeId String
-  expiresAt DateTime
-  isUsed    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  employee  Employee @relation(fields: [employeeId], references: [id])
+  expiresAt  DateTime
+  isUsed     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  employee   Employee @relation(fields: [employeeId], references: [id])
 }
 
 model Leave {
-  id           String   @id @default(uuid())
-  leaveId      String   @unique
+  id           String    @id @default(uuid())
+  leaveId      String    @unique
   type         String
   fromDate     DateTime
   toDate       DateTime
   duration     String
   totalDays    Float
   reason       String
-  status       String   @default("pending")
-  appliedDate  DateTime @default(now())
+  status       String    @default("pending")
+  appliedDate  DateTime  @default(now())
   approvedBy   String?
   approvedDate DateTime?
   employeeId   String
-  employee     Employee @relation(fields: [employeeId], references: [id])
+  employee     Employee  @relation(fields: [employeeId], references: [id])
 }
 
 model LeaveBalance {
-  id             String   @id @default(uuid())
-  employeeId     String   @unique
-  totalLeaves    Int      @default(21)
-  usedLeaves     Int      @default(0)
+  id              String   @id @default(uuid())
+  employeeId      String   @unique
+  createdAt       DateTime @default(now())
   remainingLeaves Int      @default(21)
-  year           Int
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  employee       Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+  totalLeaves     Int      @default(21)
+  updatedAt       DateTime @updatedAt
+  usedLeaves      Int      @default(0)
+  year            Int
+  employee        Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
 }
 
 model EmailConnection {
   id           String   @id @default(uuid())
   employeeId   String
-  provider     String   // 'gmail' or 'outlook'
+  provider     String
   email        String
-  accessToken  String   @db.Text
-  refreshToken String   @db.Text
+  accessToken  String
+  refreshToken String
   tokenExpiry  DateTime
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   employee     Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
-  
+
   @@unique([employeeId, provider])
+}
+
+model EmailTemplate {
+  id        String   @id @default(uuid())
+  name      String
+  category  String
+  subject   String
+  body      String
+  variables String[] @default([])
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("email_templates")
 }
 
 model PasswordReset {
@@ -231,15 +252,23 @@ model PasswordReset {
   token     String
   expiresAt DateTime
   createdAt DateTime @default(now())
-  
+
   @@map("password_resets")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
+model UserPermission {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  dashboard      Boolean  @default(true)
+  timesheet      Boolean  @default(true)
+  projects       Boolean  @default(true)
+  reports        Boolean  @default(true)
+  adminPanel     Boolean  @default(false)
+  emailTemplates Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  user           Employee @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_permissions")
 }

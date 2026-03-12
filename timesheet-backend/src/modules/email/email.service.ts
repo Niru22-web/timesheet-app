@@ -1,4 +1,3 @@
-import nodemailer from 'nodemailer';
 import { prisma } from '../../config/prisma';
 import crypto from 'crypto';
 import { google } from 'googleapis';
@@ -29,7 +28,7 @@ const GOOGLE_OAUTH_CONFIG = {
 const MICROSOFT_OAUTH_CONFIG = {
   clientId: process.env.OUTLOOK_CLIENT_ID || '',
   clientSecret: process.env.OUTLOOK_CLIENT_SECRET || '',
-  redirectUri: process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:5000/api/email/callback/outlook',
+  redirectUri: process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:5000/api/email/oauth/outlook/callback',
   scope: 'https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read offline_access'
 };
 
@@ -55,7 +54,7 @@ class EmailService {
   }
 
   // Microsoft OAuth2
-  getMicrosoftAuthUrl(): string {
+  getMicrosoftAuthUrl(state?: string): string {
     const params = new URLSearchParams({
       client_id: MICROSOFT_OAUTH_CONFIG.clientId,
       response_type: 'code',
@@ -64,6 +63,10 @@ class EmailService {
       response_mode: 'query',
       prompt: 'consent'
     });
+
+    if (state) {
+      params.append('state', state);
+    }
 
     return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`;
   }
@@ -107,47 +110,81 @@ class EmailService {
   // Handle Microsoft OAuth callback
   async handleMicrosoftCallback(code: string, employeeId: string) {
     try {
-      // Exchange code for tokens
-      const tokenResponse = await axios.post('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+      console.log('🔐 Microsoft OAuth: Starting token exchange for employee:', employeeId);
+      
+      // Exchange code for tokens using form-encoded data
+      const tokenData = new URLSearchParams({
         client_id: MICROSOFT_OAUTH_CONFIG.clientId,
         client_secret: MICROSOFT_OAUTH_CONFIG.clientSecret,
         code,
         redirect_uri: MICROSOFT_OAUTH_CONFIG.redirectUri,
-        grant_type: 'authorization_code'
+        grant_type: 'authorization_code',
+        scope: 'https://graph.microsoft.com/.default offline_access'
+      });
+
+      console.log('📤 Microsoft OAuth: Sending token request...');
+      const tokenResponse = await axios.post(
+        'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+        tokenData,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        }
+      );
+
+      console.log('📥 Microsoft OAuth: Token response received:', {
+        hasAccessToken: !!tokenResponse.data.access_token,
+        hasRefreshToken: !!tokenResponse.data.refresh_token,
+        expiresIn: tokenResponse.data.expires_in
       });
 
       const { access_token, refresh_token, expires_in } = tokenResponse.data;
 
       // Get user info
+      console.log('👤 Microsoft OAuth: Fetching user profile...');
       const userResponse = await axios.get('https://graph.microsoft.com/v1.0/me', {
         headers: {
           Authorization: `Bearer ${access_token}`
         }
       });
 
+      const email = userResponse.data.mail || userResponse.data.userPrincipalName;
+      console.log('✅ Microsoft OAuth: Got user email:', email);
+
       // Store tokens in database
+      console.log('💾 Microsoft OAuth: Storing tokens in database...');
       await this.storeEmailConnection({
         employeeId,
         provider: 'outlook',
-        email: userResponse.data.mail || userResponse.data.userPrincipalName,
+        email: email,
         accessToken: access_token,
-        refreshToken: refresh_token,
+        refreshToken: refresh_token || '',
         tokenExpiry: new Date(Date.now() + (expires_in * 1000))
       });
 
+      console.log('✅ Microsoft OAuth: Connection completed successfully for:', email);
+
       return {
         success: true,
-        email: userResponse.data.mail || userResponse.data.userPrincipalName,
+        email: email,
         provider: 'outlook'
       };
     } catch (error) {
-      console.error('Microsoft OAuth callback error:', error);
+      console.error('❌ Microsoft OAuth callback error:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('❌ Axios error details:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          headers: error.response?.headers
+        });
+      }
       throw new Error('Failed to connect Outlook account');
     }
   }
 
   // Store email connection in database
-  private async storeEmailConnection(data: {
+  async storeEmailConnection(data: {
     employeeId: string;
     provider: string;
     email: string;
@@ -170,7 +207,15 @@ class EmailService {
         isActive: true,
         updatedAt: new Date()
       },
-      create: data
+      create: {
+        employeeId: data.employeeId,
+        provider: data.provider,
+        email: data.email,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        tokenExpiry: data.tokenExpiry,
+        isActive: true
+      }
     });
   }
 
@@ -237,14 +282,28 @@ class EmailService {
 
   private async refreshMicrosoftToken(connection: any) {
     try {
-      const response = await axios.post('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+      console.log('🔄 Microsoft OAuth: Refreshing access token...');
+      
+      const tokenData = new URLSearchParams({
         client_id: MICROSOFT_OAUTH_CONFIG.clientId,
         client_secret: MICROSOFT_OAUTH_CONFIG.clientSecret,
         refresh_token: connection.refreshToken,
-        grant_type: 'refresh_token'
+        grant_type: 'refresh_token',
+        scope: 'https://graph.microsoft.com/.default offline_access'
       });
 
+      const response = await axios.post(
+        'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+        tokenData,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        }
+      );
+
       const { access_token, expires_in } = response.data;
+      console.log('✅ Microsoft OAuth: Token refreshed successfully');
 
       // Update tokens in database
       await prisma.emailConnection.update({
@@ -258,39 +317,76 @@ class EmailService {
 
       return access_token;
     } catch (error) {
-      console.error('Failed to refresh Microsoft token:', error);
+      console.error('❌ Failed to refresh Microsoft token:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('❌ Refresh token error details:', {
+          status: error.response?.status,
+          data: error.response?.data
+        });
+      }
       throw new Error('Failed to refresh Outlook access token');
     }
   }
 
-  // Send email using connected account
+  // Send email using connected Outlook account
   async sendEmail(employeeId: string, options: {
     to: string | string[];
     subject: string;
     text?: string;
     html?: string;
   }) {
-    const connection = await this.getEmailConnection(employeeId);
+    // Get Outlook connection from database
+    const connection = await this.getOutlookConnection(employeeId);
     
     if (!connection) {
-      throw new Error('No email account connected');
+      throw new Error('Outlook not connected. Please connect your Outlook account first.');
     }
 
     // Check if token needs refresh
     if (new Date() > connection.tokenExpiry) {
+      console.log('🔄 Access token expired, refreshing...');
       await this.refreshAccessToken(connection);
-      // Refresh connection data
-      const refreshedConnection = await this.getEmailConnection(employeeId, connection.provider);
-      connection.accessToken = refreshedConnection?.accessToken;
+      // Get refreshed connection
+      const refreshedConnection = await this.getOutlookConnection(employeeId);
+      if (!refreshedConnection) {
+        throw new Error('Failed to refresh Outlook connection');
+      }
+      connection.accessToken = refreshedConnection.accessToken;
     }
 
-    if (connection.provider === 'gmail') {
-      return this.sendGmailEmail(connection, options);
-    } else if (connection.provider === 'outlook') {
-      return this.sendOutlookEmail(connection, options);
-    }
+    // Send email via Microsoft Graph API
+    return this.sendOutlookEmail(connection, options);
+  }
 
-    throw new Error('Unsupported email provider');
+  // Get only Outlook connection from database
+  private async getOutlookConnection(employeeId: string) {
+    try {
+      const connector = await prisma.emailConnection.findFirst({
+        where: {
+          employeeId: employeeId,
+          provider: 'outlook',
+          accessToken: { not: null }
+        }
+      });
+
+      if (!connector) {
+        console.log('❌ No Outlook connection found for employee:', employeeId);
+        return null;
+      }
+
+      console.log('✅ Found Outlook connection for:', connector.email);
+      return {
+        employeeId: connector.employeeId,
+        provider: connector.provider,
+        email: connector.email,
+        accessToken: connector.accessToken,
+        refreshToken: connector.refreshToken,
+        tokenExpiry: connector.tokenExpiry
+      };
+    } catch (error) {
+      console.error('❌ Error fetching Outlook connection:', error);
+      return null;
+    }
   }
 
   private async sendGmailEmail(connection: any, options: any) {
@@ -338,7 +434,7 @@ class EmailService {
           content: options.html || options.text
         },
         toRecipients: Array.isArray(options.to) 
-          ? options.to.map(email => ({ emailAddress: { address: email } }))
+          ? options.to.map((email: string) => ({ emailAddress: { address: email } }))
           : [{ emailAddress: { address: options.to } }]
       }
     };
@@ -393,6 +489,160 @@ class EmailService {
     });
 
     return connections;
+  }
+
+  // Check email service configuration
+  async checkEmailConfiguration() {
+    try {
+      // Check if any email provider is configured
+      const outlookConnection = await this.getEmailConnection('admin', 'outlook'); // Check admin's connection
+      const gmailConnection = await this.getEmailConnection('admin', 'gmail');
+      
+      return {
+        configured: !!(outlookConnection || gmailConnection),
+        outlookConnected: !!outlookConnection,
+        gmailConnected: !!gmailConnection
+      };
+    } catch (error) {
+      console.error('Error checking email configuration:', error);
+      return { configured: false };
+    }
+  }
+
+  // Send registration email using template
+  async sendRegistrationEmail(data: {
+    to: string;
+    employeeName: string;
+    employeeId: string;
+    department: string;
+    designation: string;
+    registrationLink: string;
+    companyName: string;
+  }) {
+    try {
+      console.log('📧 Sending registration email using template...');
+      
+      // Get registration template from database (only active ones)
+      const template = await prisma.emailTemplate.findFirst({
+        where: {
+          category: 'Registration',
+          status: 'active'
+        }
+      });
+
+      if (!template) {
+        console.warn('⚠️ No registration template found, using fallback');
+        return this.sendFallbackRegistrationEmail(data);
+      }
+
+      // Replace template variables
+      const subject = this.replaceTemplateVariables(template.subject, {
+        employee_name: data.employeeName,
+        company_name: data.companyName,
+        employee_email: data.to,
+        employee_id: data.employeeId,
+        department: data.department,
+        designation: data.designation,
+        login_url: data.registrationLink
+      });
+
+      const body = this.replaceTemplateVariables(template.body, {
+        employee_name: data.employeeName,
+        company_name: data.companyName,
+        employee_email: data.to,
+        employee_id: data.employeeId,
+        department: data.department,
+        designation: data.designation,
+        login_url: data.registrationLink
+      });
+
+      // Send email using configured provider
+      await this.sendEmail({
+        to: data.to,
+        subject: subject,
+        html: body
+      });
+
+      console.log('✅ Registration email sent successfully');
+    } catch (error) {
+      console.error('❌ Failed to send registration email:', error);
+      throw error;
+    }
+  }
+
+  // Fallback registration email if template not found
+  private async sendFallbackRegistrationEmail(data: {
+    to: string;
+    employeeName: string;
+    employeeId: string;
+    department: string;
+    designation: string;
+    registrationLink: string;
+    companyName: string;
+  }) {
+    const subject = `Welcome to ${data.companyName}`;
+    const body = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4f46e5;">Welcome to ${data.companyName}</h2>
+        <p>Dear ${data.employeeName},</p>
+        <p>Your account has been created successfully. Please complete your registration by clicking the link below:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${data.registrationLink}" style="background-color: #4f46e5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Complete Registration
+          </a>
+        </div>
+        <p><strong>Important:</strong> This registration link will expire in 24 hours.</p>
+        <p>Your login details:</p>
+        <ul>
+          <li><strong>Email:</strong> ${data.to}</li>
+          <li><strong>Employee ID:</strong> ${data.employeeId}</li>
+          <li><strong>Department:</strong> ${data.department}</li>
+          <li><strong>Designation:</strong> ${data.designation}</li>
+        </ul>
+        <p>If you have any questions, please contact your administrator.</p>
+        <p>Best regards,<br>${data.companyName} Team</p>
+      </div>
+    `;
+
+    await this.sendEmail({
+      to: data.to,
+      subject: subject,
+      html: body
+    });
+  }
+
+  // Replace template variables
+  private replaceTemplateVariables(template: string, variables: Record<string, string>): string {
+    let result = template;
+    
+    for (const [key, value] of Object.entries(variables)) {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      result = result.replace(regex, value);
+    }
+    
+    return result;
+  }
+
+  // Send email using configured provider
+  private async sendEmail(data: { to: string; subject: string; html: string }) {
+    try {
+      // Try to use Outlook first
+      const outlookConnection = await this.getEmailConnection('admin', 'outlook');
+      if (outlookConnection) {
+        return this.sendOutlookEmail(data, outlookConnection);
+      }
+
+      // Try Gmail
+      const gmailConnection = await this.getEmailConnection('admin', 'gmail');
+      if (gmailConnection) {
+        return this.sendGmailEmail(data, gmailConnection);
+      }
+
+      throw new Error('No email provider configured');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      throw error;
+    }
   }
 }
 

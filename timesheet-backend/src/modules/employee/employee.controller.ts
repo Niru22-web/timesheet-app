@@ -2,18 +2,9 @@ import { Request, Response } from "express";
 import { prisma } from "../../config/prisma";
 import { generateId } from "../../utils/generateId";
 import { generateRegistrationToken, createTokenExpiry } from "../../utils/registrationToken";
-import nodemailer from "nodemailer";
+import EmailService from "../email/email.service";
 
-// Email configuration
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT || '587'),
-  secure: process.env.EMAIL_SECURE === 'true',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+const emailService = EmailService;
 
 export const createEmployee = async (req: any, res: Response) => {
   try {
@@ -35,70 +26,49 @@ export const createEmployee = async (req: any, res: Response) => {
       },
     });
 
-    // Send registration email to employee
+    // Send registration email to employee using email service and templates
     if (employee.officeEmail) {
-      // Generate secure registration token
-      const registrationToken = generateRegistrationToken();
-      const expiresAt = createTokenExpiry();
-
-      // Store registration token in database
-      await prisma.registrationToken.create({
-        data: {
-          token: registrationToken,
-          email: employee.officeEmail,
-          employeeId: employee.id,
-          expiresAt: expiresAt
-        }
-      });
-
-      const registrationLink = `http://localhost:5173/complete-registration?token=${registrationToken}`;
-
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: employee.officeEmail,
-        subject: 'Welcome to Timesheet System - Please Complete Your Registration',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #4f46e5;">Welcome to Timesheet Management System</h2>
-            <p>Dear ${employee.firstName} ${employee.lastName},</p>
-            <p>Your account has been created in the Timesheet Management System. Please complete your registration by clicking the link below:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${registrationLink}" style="background-color: #4f46e5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                Complete Registration
-              </a>
-            </div>
-            <p><strong>Important:</strong> This registration link will expire in 24 hours.</p>
-            <p>Your login details:</p>
-            <ul>
-              <li><strong>Email:</strong> ${employee.officeEmail}</li>
-              <li><strong>Employee ID:</strong> ${employee.employeeId}</li>
-              <li><strong>Department:</strong> ${employee.department}</li>
-              <li><strong>Designation:</strong> ${employee.designation}</li>
-            </ul>
-            <p>If you have any questions, please contact your administrator.</p>
-            <p>Best regards,<br>Timesheet Management Team</p>
-          </div>
-        `
-      };
-
       try {
-        console.log('Attempting to send email to:', employee.officeEmail);
-        console.log('Email config:', {
-          user: process.env.EMAIL_USER,
-          host: process.env.EMAIL_HOST,
-          port: process.env.EMAIL_PORT,
-          secure: process.env.EMAIL_SECURE === 'true'
+        console.log('📧 Sending registration email to:', employee.officeEmail);
+        
+        // Generate secure registration token
+        const registrationToken = generateRegistrationToken();
+        const expiresAt = createTokenExpiry();
+
+        // Store registration token in database
+        await prisma.registrationToken.create({
+          data: {
+            token: registrationToken,
+            email: employee.officeEmail,
+            employeeId: employee.id,
+            expiresAt: expiresAt
+          }
         });
 
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Email sent successfully!');
-        console.log('Message ID:', info.messageId);
-        console.log('Response:', info.response);
+        const registrationLink = `http://localhost:5173/complete-registration?token=${registrationToken}`;
+
+        // Check email service configuration
+        const emailStatus = await emailService.checkEmailConfiguration();
+        if (!emailStatus.configured) {
+          console.warn('⚠️ Email service not configured, skipping registration email');
+        } else {
+          // Send registration email using email service
+          await emailService.sendRegistrationEmail({
+            to: employee.officeEmail,
+            employeeName: `${employee.firstName} ${employee.lastName}`,
+            employeeId: employee.employeeId,
+            department: employee.department,
+            designation: employee.designation,
+            registrationLink: registrationLink,
+            companyName: process.env.COMPANY_NAME || 'Timesheet Management System'
+          });
+          
+          console.log('✅ Registration email sent successfully to:', employee.officeEmail);
+        }
       } catch (emailError) {
-        console.error('Detailed email error:', {
+        console.error('❌ Failed to send registration email:', {
           message: emailError instanceof Error ? emailError.message : String(emailError),
-          code: emailError instanceof Error ? (emailError as any).code : undefined,
-          stack: emailError instanceof Error ? emailError.stack : undefined
+          employeeEmail: employee.officeEmail
         });
         // Continue with response even if email fails
       }

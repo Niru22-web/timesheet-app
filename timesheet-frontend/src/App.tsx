@@ -1,7 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { PermissionsProvider } from './contexts/PermissionsContext';
 import { LoadingProvider } from './contexts/LoadingContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import FrozenLayout from './components/FrozenLayout';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -30,6 +32,7 @@ import UserRegistration from './pages/UserRegistration';
 import EmployeeRegistration from './pages/EmployeeRegistration';
 import EmailConfiguration from './pages/EmailConfiguration';
 import EmailTemplates from './pages/EmailTemplates';
+import UserAccessControl from './pages/UserAccessControl';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { isAuthenticated } = useAuth();
@@ -41,8 +44,9 @@ const App: React.FC = () => {
     return (
         <LoadingProvider>
             <AuthProvider>
-                <Router>
-                    <Routes>
+                <PermissionsProvider>
+                    <Router>
+                        <Routes>
                         {/* Default Route - Redirect to login */}
                         <Route path="/" element={<Navigate to="/login" replace />} />
 
@@ -87,29 +91,35 @@ const App: React.FC = () => {
                         } />
                         <Route path="/employees" element={
                             <PrivateRoute>
-                                <FrozenLayout>
-                                    <ErrorBoundary>
-                                        <Employees />
-                                    </ErrorBoundary>
-                                </FrozenLayout>
+                                <ProtectedRoute moduleName="employees">
+                                    <FrozenLayout>
+                                        <ErrorBoundary>
+                                            <Employees />
+                                        </ErrorBoundary>
+                                    </FrozenLayout>
+                                </ProtectedRoute>
                             </PrivateRoute>
                         } />
                         <Route path="/projects" element={
                             <PrivateRoute>
-                                <FrozenLayout>
-                                    <ErrorBoundary>
-                                        <Projects />
-                                    </ErrorBoundary>
-                                </FrozenLayout>
+                                <ProtectedRoute moduleName="projects">
+                                    <FrozenLayout>
+                                        <ErrorBoundary>
+                                            <Projects />
+                                        </ErrorBoundary>
+                                    </FrozenLayout>
+                                </ProtectedRoute>
                             </PrivateRoute>
                         } />
                         <Route path="/reports" element={
                             <PrivateRoute>
-                                <FrozenLayout>
-                                    <ErrorBoundary>
-                                        <Reports />
-                                    </ErrorBoundary>
-                                </FrozenLayout>
+                                <ProtectedRoute moduleName="reports">
+                                    <FrozenLayout>
+                                        <ErrorBoundary>
+                                            <Reports />
+                                        </ErrorBoundary>
+                                    </FrozenLayout>
+                                </ProtectedRoute>
                             </PrivateRoute>
                         } />
                         <Route path="/clients" element={
@@ -184,13 +194,23 @@ const App: React.FC = () => {
                                 </FrozenLayout>
                             </PrivateRoute>
                         } />
+                        <Route path="/admin/user-access" element={
+                            <PrivateRoute>
+                                <FrozenLayout>
+                                    <ErrorBoundary>
+                                        <UserAccessControl />
+                                    </ErrorBoundary>
+                                </FrozenLayout>
+                            </PrivateRoute>
+                        } />
 
                         {/* Catch-all route */}
                         <Route path="*" element={<Navigate to="/login" replace />} />
                     </Routes>
                 </Router>
-            </AuthProvider>
-        </LoadingProvider>
+            </PermissionsProvider>
+        </AuthProvider>
+    </LoadingProvider>
     );
 };
 

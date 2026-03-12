@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import EmailService from './email.service';
 import { authenticate } from '../../middleware/auth.middleware';
+import { prisma } from '../../config/prisma';
+import axios from 'axios';
 
 const emailService = EmailService;
 
@@ -63,22 +65,88 @@ export const handleGoogleCallback = async (req: Request, res: Response) => {
 export const handleMicrosoftCallback = async (req: Request, res: Response) => {
   try {
     const { code, state } = req.query;
-    const user = (req as any).user;
+
+    console.log('Microsoft OAuth callback received');
+    console.log('Code parameter:', code ? 'Present' : 'Missing');
+    console.log('State parameter (userId):', state);
 
     if (!code) {
-      return res.status(400).json({
-        success: false,
-        message: 'Authorization code is required'
+      console.error('No authorization code received from Microsoft OAuth');
+      return res.status(400).json({ 
+        message: 'Authorization code missing' 
       });
     }
 
-    const result = await emailService.handleMicrosoftCallback(code as string, user.employeeId);
+    if (!state) {
+      console.error('No state parameter received - cannot identify user');
+      return res.status(400).json({ 
+        message: 'State parameter missing - cannot identify user' 
+      });
+    }
 
-    // Redirect to frontend with success
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/email-configuration?success=true&provider=outlook&email=${result.email}`);
+    const employeeId = state as string;
+    console.log('Processing OAuth for employeeId:', employeeId);
+
+    // Exchange code for access token using form-encoded data
+    console.log('Exchanging authorization code for access token...');
+    
+    const tokenData = new URLSearchParams({
+      client_id: process.env.OUTLOOK_CLIENT_ID!,
+      client_secret: process.env.OUTLOOK_CLIENT_SECRET!,
+      code: code as string,
+      redirect_uri: process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:5000/api/email/oauth/outlook/callback',
+      grant_type: 'authorization_code',
+      scope: 'https://graph.microsoft.com/.default offline_access'
+    });
+
+    console.log('Sending token request to Microsoft...');
+    const tokenResponse = await axios.post(
+      'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+      tokenData,
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
+    console.log('Token response received:', {
+      hasAccessToken: !!tokenResponse.data.access_token,
+      hasRefreshToken: !!tokenResponse.data.refresh_token,
+      expiresIn: tokenResponse.data.expires_in
+    });
+
+    const { access_token, refresh_token, expires_in } = tokenResponse.data;
+
+    // Get user info
+    const userResponse = await axios.get('https://graph.microsoft.com/v1.0/me', {
+      headers: {
+        Authorization: `Bearer ${access_token}`
+      }
+    });
+
+    const email = userResponse.data.mail || userResponse.data.userPrincipalName;
+    console.log('Microsoft OAuth connection successful for email:', email);
+
+    // Store tokens in database for the user
+    await emailService.storeEmailConnection({
+      employeeId: employeeId,
+      provider: 'outlook',
+      email: email,
+      accessToken: access_token,
+      refreshToken: refresh_token || '',
+      tokenExpiry: new Date(Date.now() + (expires_in * 1000))
+    });
+
+    console.log('Tokens stored successfully for employeeId:', employeeId);
+
+    // Redirect to frontend email configuration page
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/email-configuration?outlook=connected`);
   } catch (error) {
     console.error('Microsoft callback error:', error);
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/email-configuration?success=false&provider=outlook&error=Failed to connect Outlook`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/email-configuration?success=false&provider=outlook&error=Failed to connect Outlook`);
   }
 };
 
@@ -89,7 +157,7 @@ export const getConnectionStatus = async (req: Request, res: Response) => {
     const user = (req as any).user;
     
     if (!user || !user.employeeId) {
-      console.error('No user or employeeId found in request');
+      console.error('No user or user.employeeId found in request');
       return res.status(401).json({
         success: false,
         message: 'User not authenticated'
@@ -105,6 +173,8 @@ export const getConnectionStatus = async (req: Request, res: Response) => {
     const response: any = {
       success: true,
       connected: false,
+      outlookConnected: false,
+      gmailConnected: false,
       providers: {}
     };
 
@@ -115,6 +185,7 @@ export const getConnectionStatus = async (req: Request, res: Response) => {
         provider: 'gmail'
       };
       response.connected = true;
+      response.gmailConnected = true;
     }
 
     if (outlookConnection) {
@@ -124,7 +195,14 @@ export const getConnectionStatus = async (req: Request, res: Response) => {
         provider: 'outlook'
       };
       response.connected = true;
+      response.outlookConnected = true;
     }
+
+    console.log('Final connection status:', {
+      connected: response.connected,
+      outlookConnected: response.outlookConnected,
+      gmailConnected: response.gmailConnected
+    });
 
     res.json(response);
   } catch (error) {
@@ -327,13 +405,27 @@ export const getGoogleOAuthAuth = async (req: Request, res: Response) => {
 export const getOutlookOAuthAuth = async (req: Request, res: Response) => {
   try {
     console.log('Generating Outlook OAuth URL...');
-    const authUrl = emailService.getMicrosoftAuthUrl();
+    const user = (req as any).user;
     
-    console.log('Outlook OAuth URL generated successfully');
+    if (!user || !user.id) {
+      console.error('No authenticated user found for OAuth');
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated'
+      });
+    }
+    
+    // Use employeeId as state to identify the user after OAuth callback
+    const state = user.employeeId;
+    console.log('Using employeeId as state:', state);
+    
+    const authUrl = emailService.getMicrosoftAuthUrl(state);
+    
+    console.log('Outlook OAuth URL generated successfully for user:', user.id);
     res.json({
       success: true,
       url: authUrl,
-      state: Math.random().toString(36).substring(7)
+      state: state
     });
   } catch (error) {
     console.error('Get Outlook OAuth URL error:', error);
@@ -418,27 +510,173 @@ export const testEmailConfiguration = async (req: Request, res: Response) => {
 
 export const getEmailTemplates = async (req: Request, res: Response) => {
   try {
-    const templates = [
-      {
-        id: '1',
-        name: 'Employee Registration',
-        subject: 'Welcome to Timesheet Pro',
-        type: 'registration'
+    console.log('🔍 Fetching email templates from database...');
+    
+    // Fetch templates from database (only active ones)
+    const templates = await prisma.emailTemplate.findMany({
+      where: {
+        status: 'active'
       },
-      {
-        id: '2',
-        name: 'Leave Approval',
-        subject: 'Leave Request Update',
-        type: 'leave'
-      }
-    ];
+      orderBy: { createdAt: 'desc' }
+    });
 
-    res.json(templates);
+    console.log('📊 Templates found in database:', templates.length);
+
+    // If no templates exist, create default ones
+    if (templates.length === 0) {
+      console.log('📝 No templates found, creating default templates...');
+      
+      const defaultTemplates = [
+        {
+          name: 'Employee Registration',
+          category: 'Registration',
+          subject: 'Welcome to {{company_name}}',
+          body: `Hello {{employee_name}},
+
+Welcome to {{company_name}}!
+
+Your account has been created successfully. You can now access the Timesheet Management System.
+
+Login Details:
+- Email: {{employee_email}}
+- Your temporary password will be sent separately
+
+Please login here: {{login_url}}
+
+Best regards,
+{{company_name}} Team`,
+          variables: ['employee_name', 'company_name', 'employee_email', 'login_url']
+        },
+        {
+          name: 'Leave Approval',
+          category: 'Leave',
+          subject: 'Leave Request {{status}} - {{employee_name}}',
+          body: `Hello {{manager_name}},
+
+The leave request for {{employee_name}} has been {{status}}.
+
+Leave Details:
+- Type: {{leave_type}}
+- From: {{start_date}}
+- To: {{end_date}}
+- Days: {{total_days}}
+- Reason: {{reason}}
+
+{{#if approved}}
+Please update your records accordingly.
+{{else}}
+Please review the leave request and take appropriate action.
+{{/if}}
+
+Best regards,
+Timesheet System`,
+          variables: ['manager_name', 'employee_name', 'status', 'leave_type', 'start_date', 'end_date', 'total_days', 'reason']
+        },
+        {
+          name: 'Timesheet Reminder',
+          category: 'Timesheet',
+          subject: 'Timesheet Reminder - {{date}}',
+          body: `Hello {{employee_name}},
+
+This is a friendly reminder to submit your timesheet for {{date}}.
+
+Current Status:
+- Hours Logged: {{hours_logged}}
+- Pending Entries: {{pending_entries}}
+
+Please ensure your timesheet is submitted by the deadline: {{deadline}}
+
+Login here: {{login_url}}
+
+Best regards,
+{{company_name}} Team`,
+          variables: ['employee_name', 'date', 'hours_logged', 'pending_entries', 'deadline', 'login_url', 'company_name']
+        },
+        {
+          name: 'Password Reset',
+          category: 'Security',
+          subject: 'Password Reset Request - {{company_name}}',
+          body: `Hello {{employee_name}},
+
+We received a request to reset your password for {{company_name}} Timesheet System.
+
+If you made this request, please click the link below to reset your password:
+{{reset_url}}
+
+This link will expire in {{expiry_hours}} hours.
+
+If you didn't request this password reset, please ignore this email or contact your administrator.
+
+Best regards,
+{{company_name}} Team`,
+          variables: ['employee_name', 'company_name', 'reset_url', 'expiry_hours']
+        }
+      ];
+
+      // Insert default templates
+      await prisma.emailTemplate.createMany({
+        data: defaultTemplates
+      });
+
+      console.log('✅ Default templates created successfully');
+
+      // Fetch the newly created templates
+      const newTemplates = await prisma.emailTemplate.findMany({
+        orderBy: { createdAt: 'desc' }
+      });
+
+      return res.json({
+        success: true,
+        templates: newTemplates,
+        message: 'Default templates created'
+      });
+    }
+
+    res.json({
+      success: true,
+      templates: templates
+    });
   } catch (error) {
-    console.error('Get email templates error:', error);
+    console.error('❌ Get email templates error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get email templates'
+      message: 'Failed to get email templates',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
+// Get pending employee approvals
+export const getPendingApprovals = async (req: Request, res: Response) => {
+  try {
+    console.log('Fetching pending approvals for admin');
+    
+    const pendingEmployees = await prisma.employee.findMany({
+      where: {
+        status: 'pending_approval'
+      },
+      select: {
+        id: true,
+        employeeId: true,
+        firstName: true,
+        lastName: true,
+        officeEmail: true,
+        designation: true,
+        role: true,
+        createdAt: true
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    console.log(`Found ${pendingEmployees.length} pending approvals`);
+    res.json(pendingEmployees);
+  } catch (error) {
+    console.error('Error fetching pending approvals:', error);
+    res.status(500).json({ 
+      message: 'Failed to fetch pending approvals',
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };
@@ -446,17 +684,53 @@ export const getEmailTemplates = async (req: Request, res: Response) => {
 export const updateEmailTemplate = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, subject, content } = req.body;
+    const { name, category, subject, body, status } = req.body;
+    
+    console.log('🔄 Updating email template:', id);
+    console.log('📝 Update data:', { name, category, subject, status });
+    
+    // Validate required fields
+    if (!subject || !body) {
+      return res.status(400).json({
+        success: false,
+        message: 'Subject and body are required'
+      });
+    }
+    
+    // Update the template in database
+    const updatedTemplate = await prisma.emailTemplate.update({
+      where: { id },
+      data: {
+        name: name || undefined,
+        category: category || undefined,
+        subject,
+        body,
+        status: status || 'active',
+        updatedAt: new Date()
+      }
+    });
+    
+    console.log('✅ Template updated successfully:', updatedTemplate.name);
     
     res.json({
       success: true,
+      template: updatedTemplate,
       message: 'Email template updated successfully'
     });
   } catch (error) {
-    console.error('Update email template error:', error);
+    console.error('❌ Update email template error:', error);
+    
+    if (error instanceof Error && error.message.includes('Record to update not found')) {
+      return res.status(404).json({
+        success: false,
+        message: 'Template not found'
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      message: 'Failed to update email template'
+      message: 'Failed to update email template',
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };

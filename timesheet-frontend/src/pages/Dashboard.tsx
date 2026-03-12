@@ -7,6 +7,7 @@ import {
   RevenueMetricCard,
   ReportsMetricCard
 } from '../components/ui/MetricCard';
+import { APP_CONFIG } from '../config/appConfig';
 import Card from '../components/ui/Card';
 import { useAuth } from '../contexts/AuthContext';
 import API from '../api';
@@ -161,7 +162,7 @@ const Dashboard: React.FC = () => {
              'Employee Dashboard'}
           </h1>
           <p className="text-sm font-medium text-secondary-500 mt-1">
-            Welcome back, {user?.name || 'User'}! Here's what's happening today at ashish shah & associate.
+            Welcome back, {user?.name || 'User'}! Here's what's happening today at {APP_CONFIG.COMPANY_NAME}.
           </p>
         </div>
         <div className="flex items-center gap-3">

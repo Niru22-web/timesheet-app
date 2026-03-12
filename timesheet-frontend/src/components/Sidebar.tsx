@@ -107,6 +107,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
       badge: 'Admin'
     },
     {
+      name: 'User Access Control',
+      href: '/admin/user-access',
+      icon: UsersIcon,
+      show: isAdmin,
+      badge: null
+    },
+    {
       name: 'Email Configuration',
       href: '/email-configuration',
       icon: EnvelopeIcon,

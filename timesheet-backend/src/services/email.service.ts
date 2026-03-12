@@ -10,12 +10,48 @@ interface DirectEmailOptions {
 
 export const sendEmail = async (options: DirectEmailOptions): Promise<boolean> => {
   try {
-    // For now, we'll use a simple implementation
-    // In a real scenario, you'd need to pass the employeeId to sendEmail
-    console.log('Email sending requested:', options);
+    console.log('📧 Attempting to send email via Outlook OAuth:', options);
+    
+    // Use the EmailService with Outlook OAuth
+    const emailService = new EmailService();
+    
+    // Find any active Outlook connection in the system
+    const connections = await emailService.getAllEmailConnections();
+    console.log('📋 Available email connections:', connections.length);
+    
+    // Find an active Outlook connection
+    const outlookConnection = connections.find(conn => conn.provider === 'outlook' && conn.accessToken);
+    if (!outlookConnection) {
+      console.error('❌ No active Outlook connection found. Please connect Outlook account first.');
+      console.log('📋 Email content (not sent - no Outlook connection):');
+      console.log('To:', options.to);
+      console.log('Subject:', options.subject);
+      return false;
+    }
+    
+    console.log('✅ Using Outlook connection for:', outlookConnection.email);
+    
+    // Send email using the connected Outlook account
+    await emailService.sendEmail(outlookConnection.employeeId, {
+      to: options.to,
+      subject: options.subject,
+      html: options.html,
+      text: options.text
+    });
+    
+    console.log('✅ Email sent successfully via Outlook OAuth to:', options.to);
     return true;
+    
   } catch (error) {
-    console.error('❌ Failed to send email:', error);
+    console.error('❌ Failed to send email via Outlook OAuth:', error);
+    console.error('Email service error details:', error instanceof Error ? error.message : 'Unknown error');
+    
+    // Log the email content for debugging
+    console.log('📋 Email content (not sent due to error):');
+    console.log('To:', options.to);
+    console.log('Subject:', options.subject);
+    console.log('HTML:', options.html);
+    
     return false;
   }
 };

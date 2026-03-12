@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { APP_CONFIG } from '../config/appConfig';
 import API from '../api';
 import {
   UsersIcon,
@@ -58,7 +59,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 A
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Ashish Shah & Associate</h1>
+                <h1 className="text-xl font-bold text-gray-900">{APP_CONFIG.COMPANY_NAME}</h1>
                 <p className="text-sm text-gray-500 font-medium">Timesheet Management System</p>
               </div>
             </div>

@@ -57,7 +57,7 @@ const Profile: React.FC = () => {
         if (!user?.email) return;
         try {
             setLoading(true);
-            const res = await API.get(`/api/employees/by-email?email=${user.email}`);
+            const res = await API.get(`/employees/by-email?email=${user.email}`);
             setProfileData(res.data);
             // Initialize form data with existing profile data
             const profile = res.data.profile || {};

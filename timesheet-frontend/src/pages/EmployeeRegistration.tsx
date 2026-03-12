@@ -109,7 +109,7 @@ const EmployeeRegistration: React.FC = () => {
   const fetchEmployeeInfoByEmail = async () => {
     try {
       setIsFetchingInfo(true);
-      const response = await API.get(`/api/employees/by-email?email=${emailParam}`);
+      const response = await API.get(`/employees/by-email?email=${emailParam}`);
       setEmployeeInfo(response.data);
       setFormData(prev => ({ ...prev, email: response.data.officeEmail }));
     } catch (err: any) {
@@ -421,25 +421,25 @@ const EmployeeRegistration: React.FC = () => {
               />
               <Input
                 label="First Name"
-                value={employeeInfo.firstName}
+                value={employeeInfo.firstName || ''}
                 disabled
                 leftIcon={<UserIcon />}
               />
               <Input
                 label="Last Name"
-                value={employeeInfo.lastName}
+                value={employeeInfo.lastName || ''}
                 disabled
                 leftIcon={<UserIcon />}
               />
               <Input
                 label="Email ID"
-                value={employeeInfo.officeEmail}
+                value={employeeInfo.officeEmail || ''}
                 disabled
                 leftIcon={<EnvelopeIcon />}
               />
               <Input
                 label="Designation"
-                value={employeeInfo.designation}
+                value={employeeInfo.designation || ''}
                 disabled
                 leftIcon={<BriefcaseIcon />}
               />
