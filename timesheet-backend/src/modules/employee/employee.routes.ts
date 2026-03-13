@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { createEmployee, deleteEmployee, getEmployees, getEmployeesByDepartment, updateEmployee, resendRegistrationEmail, getEmployeeById, downloadAttachment } from "./employee.controller";
+import { createEmployee, deleteEmployee, getEmployees, getEmployeesByDepartment, updateEmployee, resendRegistrationEmail, getEmployeeById, downloadAttachment, getPartners } from "./employee.controller";
 import { completeEmployeeProfile, getEmployeeByEmail, uploadProfileDocuments, updateProfilePhoto, uploadProfilePhoto } from "./employeeProfile.controller";
 import { prisma } from "../../config/prisma";
 
@@ -59,9 +59,10 @@ const checkManagerRole = (req: any, res: any, next: any) => {
 // Employee management routes
 router.post("/", authenticate, createEmployee);
 router.get("/", authenticate, getEmployees);
-router.get("/:id", authenticate, checkManagerRole, getEmployeeById);
-router.get("/department", authenticate, getEmployeesByDepartment);
+router.get("/:id", authenticate, getEmployeeById);
 router.get("/by-email", authenticate, getEmployeeByEmail);
+router.get("/department", authenticate, getEmployeesByDepartment);
+router.get("/partners", authenticate, getPartners);
 router.put("/:id", authenticate, updateEmployee);
 router.delete("/:id", authenticate, deleteEmployee);
 

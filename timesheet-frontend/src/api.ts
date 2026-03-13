@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from "axios";
 import { loadingManager } from "./utils/loadingManager";
 
 const API: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5002/api",
   withCredentials: true
 });
 

@@ -12,6 +12,85 @@ export const createEmployee = async (req: any, res: Response) => {
   try {
     console.log('🚀 Creating new employee...');
     
+    // Validate required fields
+    const requiredFields = [
+      'firstName',
+      'lastName', 
+      'officeEmail',
+      'department',
+      'designation',
+      'role'
+    ];
+    
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        details: `Missing: ${missingFields.join(', ')}`
+      });
+    }
+
+    // Validate role logic
+    const { role, reportingPartner, reportingManager } = req.body;
+    
+    if (role === 'Partner') {
+      // Partner role should not have reporting hierarchy
+      if (reportingPartner || reportingManager) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid role configuration',
+          details: 'Partner role cannot have reporting partner or manager'
+        });
+      }
+    } else if (role === 'Manager') {
+      // Manager role must have a reporting partner
+      if (!reportingPartner) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required field',
+          details: 'Manager role requires a reporting partner'
+        });
+      }
+      
+      // Validate that reporting partner is actually a Partner
+      const partnerValidation = await prisma.employee.findUnique({
+        where: { id: reportingPartner },
+        select: { role: true }
+      });
+      
+      if (!partnerValidation || partnerValidation.role !== 'Partner') {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid reporting partner',
+          details: 'Reporting partner must have Partner role'
+        });
+      }
+    } else if (role === 'Employee') {
+      // Employee role must have both reporting partner and manager
+      if (!reportingPartner || !reportingManager) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields',
+          details: 'Employee role requires both reporting partner and manager'
+        });
+      }
+      
+      // Validate that reporting partner is actually a Partner
+      const partnerValidation = await prisma.employee.findUnique({
+        where: { id: reportingPartner },
+        select: { role: true }
+      });
+      
+      if (!partnerValidation || partnerValidation.role !== 'Partner') {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid reporting partner',
+          details: 'Reporting partner must have Partner role'
+        });
+      }
+    }
+
     // Use provided employeeId or generate new one
     const employeeId = req.body.employeeId || await generateId("EMP");
 
@@ -252,108 +331,156 @@ export const getEmployeesByDepartment = async (req: any, res: Response) => {
   }
 };
 
+export const getPartners = async (req: any, res: Response) => {
+  try {
+    console.log('🔍 Fetching partners for dropdown...');
+    
+    const partners = await prisma.employee.findMany({
+      where: { 
+        role: { 
+          equals: 'Partner' 
+        } 
+      },
+      select: {
+        id: true,
+        employeeId: true,
+        firstName: true,
+        lastName: true,
+        officeEmail: true,
+        role: true,
+        status: true
+      },
+      orderBy: { firstName: 'asc' }
+    });
+    
+    console.log(`✅ Found ${partners.length} partners`);
+    
+    res.json(partners);
+  } catch (error) {
+    console.error('Error fetching partners:', error);
+    res.status(500).json({ error: 'Failed to fetch partners' });
+  }
+};
+
 // Get full employee details by ID
 export const getEmployeeById = async (req: any, res: Response) => {
   try {
     const { id } = req.params;
     
+    console.log(`🔍 Fetching employee details for ID: ${id}`);
+    
     const employee = await prisma.employee.findUnique({
       where: { id },
       include: {
-        profile: true,
-        userPermission: true,
-        registrationTokens: {
-          where: { isUsed: false },
-          orderBy: { createdAt: 'desc' },
-          take: 1
-        }
+        profile: true
       }
     });
 
     if (!employee) {
       return res.status(404).json({ 
-        success: false,
-        error: 'Employee not found' 
+        error: 'Employee not found',
+        success: false 
       });
     }
 
-    // Transform the data to include all registration details and exclude password
-    const transformedEmployee = {
-      ...employee,
-      // Exclude password field completely
-      password: undefined,
-      // Include phone from profile if available
-      phone: employee.profile?.personalMobile || null,
-      // Include joining date from profile if available
-      joining_date: employee.profile?.doj || employee.createdAt,
-      // Format all personal details
-      personalDetails: {
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        email: employee.officeEmail,
-        phone: employee.profile?.personalMobile || null,
-        address: employee.profile?.currentAddress || null,
-        date_of_birth: employee.profile?.dob || null,
-        gender: employee.profile?.gender || null
-      },
-      // Identity details
-      identityDetails: {
-        pan_number: employee.profile?.pan || null,
-        aadhaar_number: employee.profile?.aadhaar || null
-      },
-      // Guardian details
-      guardianDetails: {
-        guardian_name: employee.profile?.guardianName || null,
-        guardian_phone: employee.profile?.guardianNumber || null,
-        guardian_relation: employee.profile?.guardianAddress || null // Using guardianAddress as relation field
-      },
-      // Education details (basic info from profile)
-      educationDetails: {
-        qualification: employee.profile?.education || null,
-        university: null, // Not in current schema
-        passing_year: null, // Not in current schema  
-        grade: null // Not in current schema
-      },
-      // Bank details
-      bankDetails: {
-        bank_name: employee.profile?.bankName || null,
-        account_number: employee.profile?.bankAccountNumber || null,
-        ifsc_code: employee.profile?.ifscCode || null,
-        branch_name: employee.profile?.branchName || null
-      },
-      // Employment details
-      employmentDetails: {
-        employee_id: employee.employeeId,
-        department: employee.department,
-        designation: employee.designation,
-        joining_date: employee.profile?.doj || employee.createdAt,
-        role: employee.role,
-        status: employee.status
-      },
-      // Attachments
-      attachments: {
-        pan_card_file: employee.profile?.panFileUrl || null,
-        aadhaar_card_file: employee.profile?.aadhaarFileUrl || null,
-        education_certificate: null, // Not in current schema
-        profile_photo: employee.profile?.employeePhotoUrl || null,
-        other_documents: employee.profile?.bankStatementFileUrl || null
-      },
-      // Registration token status
-      hasActiveRegistrationToken: employee.registrationTokens.length > 0,
-      registrationTokenExpiry: employee.registrationTokens.length > 0 ? employee.registrationTokens[0].expiresAt : null
+    // Get reporting partner and manager details
+    let reportingPartnerDetails = null;
+    let reportingManagerDetails = null;
+
+    if (employee.reportingPartner) {
+      reportingPartnerDetails = await prisma.employee.findUnique({
+        where: { id: employee.reportingPartner },
+        select: {
+          id: true,
+          employeeId: true,
+          firstName: true,
+          lastName: true,
+          officeEmail: true,
+          role: true
+        }
+      });
+    }
+
+    if (employee.reportingManager) {
+      reportingManagerDetails = await prisma.employee.findUnique({
+        where: { id: employee.reportingManager },
+        select: {
+          id: true,
+          employeeId: true,
+          firstName: true,
+          lastName: true,
+          officeEmail: true,
+          role: true
+        }
+      });
+    }
+
+    // Construct full employee response
+    const fullEmployeeDetails = {
+      // Basic Employee Details
+      id: employee.id,
+      employeeId: employee.employeeId,
+      firstName: employee.firstName,
+      lastName: employee.lastName,
+      officeEmail: employee.officeEmail,
+      designation: employee.designation,
+      role: employee.role,
+      department: employee.department,
+      status: employee.status,
+      reportingPartner: employee.reportingPartner,
+      reportingManager: employee.reportingManager,
+      createdAt: employee.createdAt,
+      
+      // Profile Details (from EmployeeProfile)
+      profile: employee.profile ? {
+        dob: employee.profile.dob,
+        doj: employee.profile.doj,
+        education: employee.profile.education,
+        maritalStatus: employee.profile.maritalStatus,
+        gender: employee.profile.gender,
+        permanentAddress: employee.profile.permanentAddress,
+        currentAddress: employee.profile.currentAddress,
+        pan: employee.profile.pan,
+        aadhaar: employee.profile.aadhaar,
+        panFileUrl: employee.profile.panFileUrl,
+        aadhaarFileUrl: employee.profile.aadhaarFileUrl,
+        currentPinCode: employee.profile.currentPinCode,
+        guardianAddress: employee.profile.guardianAddress,
+        guardianName: employee.profile.guardianName,
+        guardianNumber: employee.profile.guardianNumber,
+        personalEmail: employee.profile.personalEmail,
+        personalMobile: employee.profile.personalMobile,
+        employeePhotoUrl: employee.profile.employeePhotoUrl,
+        accountHolderName: employee.profile.accountHolderName,
+        bankAccountNumber: employee.profile.bankAccountNumber,
+        bankName: employee.profile.bankName,
+        branchName: employee.profile.branchName,
+        ifscCode: employee.profile.ifscCode,
+        bankStatementFileUrl: employee.profile.bankStatementFileUrl,
+        emergencyContactName: employee.profile.emergencyContactName,
+        emergencyContactPhone: employee.profile.emergencyContactPhone,
+        emergencyContactRelation: employee.profile.emergencyContactRelation
+      } : null,
+      
+      // Reporting details
+      reportingPartnerDetails,
+      reportingManagerDetails
     };
+
+    console.log(`✅ Employee details fetched successfully for: ${employee.firstName} ${employee.lastName}`);
     
-    res.json({
+    res.status(200).json({
       success: true,
-      data: transformedEmployee
+      data: fullEmployeeDetails,
+      message: 'Employee details retrieved successfully'
     });
-    
-  } catch (error) {
-    console.error('Error fetching employee details:', error);
-    res.status(500).json({ 
-      success: false,
+
+  } catch (error: any) {
+    console.error('❌ Error fetching employee details:', error);
+    res.status(500).json({
       error: 'Failed to fetch employee details',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error.message,
+      success: false
     });
   }
 };

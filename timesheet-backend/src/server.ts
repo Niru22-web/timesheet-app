@@ -27,7 +27,9 @@ const app = express();
 
 app.use(cors({
   origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176"],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
@@ -38,6 +40,16 @@ app.use('/uploads', express.static('uploads'));
 
 app.get("/api/test", (req, res) => {
   res.json({ message: "Backend working!" });
+});
+
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+  res.json({ 
+    status: "Server is running",
+    timestamp: new Date().toISOString(),
+    port: process.env.PORT || 5000,
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Middleware to authenticate any user

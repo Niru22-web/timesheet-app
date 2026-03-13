@@ -17,6 +17,7 @@ import EmployeeDashboard from './pages/NewEmployeeDashboard';
 import TestComponent from './pages/TestComponent';
 import Timesheet from './pages/Timesheet';
 import Employees from './pages/Employees';
+import EditEmployee from './pages/EditEmployee';
 import Projects from './pages/Projects';
 import Reports from './pages/Reports';
 import Admin from './pages/Admin';
@@ -95,6 +96,17 @@ const App: React.FC = () => {
                                     <FrozenLayout>
                                         <ErrorBoundary>
                                             <Employees />
+                                        </ErrorBoundary>
+                                    </FrozenLayout>
+                                </ProtectedRoute>
+                            </PrivateRoute>
+                        } />
+                        <Route path="/employees/edit/:id" element={
+                            <PrivateRoute>
+                                <ProtectedRoute moduleName="employees">
+                                    <FrozenLayout>
+                                        <ErrorBoundary>
+                                            <EditEmployee />
                                         </ErrorBoundary>
                                     </FrozenLayout>
                                 </ProtectedRoute>

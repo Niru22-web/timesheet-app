@@ -140,16 +140,23 @@ const LeaveManagement: React.FC = () => {
 
   const fetchLeaveBalance = async () => {
     try {
+      console.log('Fetching leave balance...');
       const res = await API.get('/leaves/balance');
+      console.log('Leave balance response:', res.data);
       setLeaveBalance(res.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch leave balance:', err);
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
       // Set default balance if API fails
       setLeaveBalance({
-        openingBalance: 12,
+        openingBalance: 21,
         leavesEarned: 0,
         leavesTaken: 0,
-        closingBalance: 12
+        closingBalance: 21
       });
     }
   };

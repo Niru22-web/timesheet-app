@@ -252,7 +252,7 @@ const UserAccessControl: React.FC = () => {
             <Button
               onClick={handleSavePermissions}
               disabled={saving}
-              loading={saving}
+              isLoading={saving}
               variant="primary"
             >
               {saving ? 'Saving...' : 'Update Permissions'}

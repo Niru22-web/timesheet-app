@@ -328,7 +328,7 @@ const EmailConnector: React.FC = () => {
                 </label>
                 <input
                   type="email"
-                  value={testEmailData.to}
+                  value={testEmailData.to || ''}
                   onChange={(e) => setTestEmailData({ ...testEmailData, to: e.target.value })}
                   placeholder="Enter recipient email address"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -341,7 +341,7 @@ const EmailConnector: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  value={testEmailData.subject}
+                  value={testEmailData.subject || ''}
                   onChange={(e) => setTestEmailData({ ...testEmailData, subject: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -352,7 +352,7 @@ const EmailConnector: React.FC = () => {
                   Message
                 </label>
                 <textarea
-                  value={testEmailData.text}
+                  value={testEmailData.text || ''}
                   onChange={(e) => setTestEmailData({ ...testEmailData, text: e.target.value })}
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

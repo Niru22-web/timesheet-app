@@ -188,36 +188,68 @@ export const deleteLeave = async (req: any, res: any) => {
 export const getLeaveBalance = async (req: any, res: any) => {
   try {
     const user = req.user;
+    
+    console.log('Leave balance request - User ID:', user.id);
+    console.log('Leave balance request - User email:', user.email);
 
+    const currentYear = new Date().getFullYear();
+    
     let leaveBalance = await prisma.leaveBalance.findUnique({
-      where: { employeeId: user.id }
+      where: { 
+        employeeId: user.id,
+        year: currentYear 
+      }
     });
+
+    console.log('Found leave balance:', leaveBalance);
 
     // If no balance exists, create one with default values
     if (!leaveBalance) {
+      console.log('Creating new leave balance for user:', user.id, 'year:', currentYear);
       leaveBalance = await prisma.leaveBalance.create({
         data: {
           employeeId: user.id,
-          openingBalance: 12, // Default 12 days per year
-          leavesEarned: 0,
-          leavesTaken: 0,
-          closingBalance: 12
+          year: currentYear,
+          totalLeaves: 21, // Default 21 days per year
+          usedLeaves: 0,
+          remainingLeaves: 21
         }
       });
+      console.log('Created new leave balance:', leaveBalance);
     }
 
-    res.json(leaveBalance);
-  } catch (error) {
+    // Transform to match frontend expectations
+    const transformedBalance = {
+      openingBalance: leaveBalance.totalLeaves,
+      leavesEarned: 0,
+      leavesTaken: leaveBalance.usedLeaves,
+      closingBalance: leaveBalance.remainingLeaves
+    };
+
+    res.json(transformedBalance);
+  } catch (error: any) {
     console.error('Error fetching leave balance:', error);
-    res.status(500).json({ error: 'Failed to fetch leave balance' });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      user: req.user ? { id: req.user.id, email: req.user.email } : 'No user'
+    });
+    res.status(500).json({ 
+      message: 'Failed to fetch leave balance',
+      error: error.message 
+    });
   }
 };
 
 // Update leave balance when leave is approved
 const updateLeaveBalance = async (employeeId: string, daysTaken: number) => {
   try {
+    const currentYear = new Date().getFullYear();
     const balance = await prisma.leaveBalance.findUnique({
-      where: { employeeId }
+      where: { 
+        employeeId,
+        year: currentYear 
+      }
     });
 
     if (!balance) {
@@ -225,31 +257,41 @@ const updateLeaveBalance = async (employeeId: string, daysTaken: number) => {
       await prisma.leaveBalance.create({
         data: {
           employeeId,
-          openingBalance: 12,
-          leavesEarned: 0,
-          leavesTaken: daysTaken,
-          closingBalance: 12 - daysTaken
+          year: currentYear,
+          totalLeaves: 21,
+          usedLeaves: daysTaken,
+          remainingLeaves: 21 - daysTaken
         }
       });
     } else {
       // Update existing balance
       await prisma.leaveBalance.update({
-        where: { employeeId },
+        where: { 
+          employeeId,
+          year: currentYear 
+        },
         data: {
-          leavesTaken: balance.leavesTaken + daysTaken,
-          closingBalance: balance.closingBalance - daysTaken,
-          lastUpdated: new Date()
+          usedLeaves: balance.usedLeaves + daysTaken,
+          remainingLeaves: balance.remainingLeaves - daysTaken,
+          updatedAt: new Date()
         }
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating leave balance:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      employeeId,
+      daysTaken
+    });
   }
 };
 
 // Initialize leave balance for all employees (utility function)
 export const initializeLeaveBalances = async () => {
   try {
+    const currentYear = new Date().getFullYear();
     const employees = await prisma.employee.findMany({
       where: {
         leaveBalance: null
@@ -260,16 +302,20 @@ export const initializeLeaveBalances = async () => {
       await prisma.leaveBalance.create({
         data: {
           employeeId: employee.id,
-          openingBalance: 12,
-          leavesEarned: 0,
-          leavesTaken: 0,
-          closingBalance: 12
+          year: currentYear,
+          totalLeaves: 21,
+          usedLeaves: 0,
+          remainingLeaves: 21
         }
       });
     }
 
     console.log(`Initialized leave balances for ${employees.length} employees`);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error initializing leave balances:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack
+    });
   }
 };

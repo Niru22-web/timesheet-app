@@ -15,6 +15,7 @@ import {
   FolderOpenIcon,
   ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 // UI Components
@@ -40,6 +41,8 @@ interface Employee {
   joinDate: string;
   joining_date?: string;
   createdAt: string;
+  reportingPartner?: string;
+  reportingManager?: string;
   profile?: {
     employeePhotoUrl?: string;
     dob?: string;
@@ -124,6 +127,7 @@ interface EnhancedEmployeeDetails {
 
 const Employees: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('All Roles');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -165,14 +169,23 @@ const Employees: React.FC = () => {
   const [reportingManager, setReportingManager] = useState('');
   const [employeeCode, setEmployeeCode] = useState('');
 
-  // Auto-populate Reporting Manager when Role changes to Manager
+  // Auto-populate fields when Role changes
   useEffect(() => {
-    if (role === 'Manager' && reportingPartner) {
+    if (role === 'Partner') {
+      // Partner role: hide both reporting fields
+      setReportingPartner('');
+      setReportingManager('');
+    } else if (role === 'Manager' && reportingPartner) {
+      // Manager role: auto-populate manager with selected partner
       const selectedPartner = partners.find(p => p.id === reportingPartner);
       if (selectedPartner) {
         setReportingManager(selectedPartner.id);
       }
-    } else if (role !== 'Manager') {
+    } else if (role === 'Employee' && reportingPartner) {
+      // Employee role: clear manager if partner changes
+      setReportingManager('');
+    } else {
+      // Clear reporting fields for other roles
       setReportingManager('');
     }
   }, [role, reportingPartner, partners]);
@@ -186,12 +199,29 @@ const Employees: React.FC = () => {
       setEmail(editingEmployee.email);
       setRole(editingEmployee.role);
       setDesignation(editingEmployee.designation);
-      setDepartment('Accounting'); // Default
-      setDateOfJoining(editingEmployee.joinDate);
-      setEmployeeCode(editingEmployee.employeeId);
-      setShowEditModal(true);
+      setDepartment(editingEmployee.department || 'Accounting');
+      setReportingPartner(editingEmployee.reportingPartner || '');
+      setReportingManager(editingEmployee.reportingManager || '');
+      setEmployeeCode(editingEmployee.employeeId || '');
     }
   }, [editingEmployee]);
+
+  // Fetch partners for dropdown
+  const fetchPartners = async () => {
+    try {
+      const response = await API.get('/employees/partners');
+      if (response.data.success) {
+        setPartners(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching partners:', error);
+    }
+  };
+
+  // Fetch partners on component mount
+  useEffect(() => {
+    fetchPartners();
+  }, []);
 
   useEffect(() => {
     fetchEmployees();
@@ -400,6 +430,57 @@ const Employees: React.FC = () => {
   const handleViewDetails = (employee: Employee) => {
     setSelectedEmployee(employee);
     setShowDetailsModal(true);
+  };
+
+  const handleEditEmployee = (employeeId: string) => {
+    navigate(`/employees/edit/${employeeId}`);
+  };
+
+  const handleDownloadAllAttachments = (employee: Employee) => {
+    if (!employee.attachments) {
+      alert('No attachments available for this employee');
+      return;
+    }
+
+    const attachments = [];
+    
+    if (employee.attachments.panFile) {
+      attachments.push({
+        name: 'PAN Card',
+        filename: employee.attachments.panFile.split('/').pop() || 'pan-card.pdf'
+      });
+    }
+    
+    if (employee.attachments.aadhaarFile) {
+      attachments.push({
+        name: 'Aadhaar Card',
+        filename: employee.attachments.aadhaarFile.split('/').pop() || 'aadhaar-card.pdf'
+      });
+    }
+    
+    if (employee.attachments.employeePhoto) {
+      attachments.push({
+        name: 'Employee Photo',
+        filename: employee.attachments.employeePhoto.split('/').pop() || 'employee-photo.jpg'
+      });
+    }
+    
+    if (employee.attachments.bankStatement) {
+      attachments.push({
+        name: 'Bank Statement',
+        filename: employee.attachments.bankStatement.split('/').pop() || 'bank-statement.pdf'
+      });
+    }
+
+    if (attachments.length === 0) {
+      alert('No attachments available for this employee');
+      return;
+    }
+
+    // Download each attachment
+    attachments.forEach(attachment => {
+      handleDownloadAttachment(attachment.filename);
+    });
   };
 
   const handleResendRegistrationEmail = async (employeeId: string, employeeName: string) => {
@@ -702,18 +783,18 @@ const Employees: React.FC = () => {
               <thead className="sticky top-0 bg-secondary-50/80 backdrop-blur-sm z-10">
                 <tr className="border-b border-secondary-100/50">
                   <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Name</th>
-                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Email</th>
                   <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Role</th>
-                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Department</th>
-                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Attachments</th>
+                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Reporting Partner</th>
+                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Reporting Manager</th>
+                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Email</th>
                   <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Status</th>
-                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest text-right">Action</th>
+                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-secondary-50">
                 {filteredEmployees.map((emp) => (
                   <tr key={emp.id} className="hover:bg-primary-50/20 group transition-colors">
-                    <td className="px-6 py-2.5">
+                    <td className="px-6 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <Avatar 
                           name={emp.name} 
@@ -723,135 +804,60 @@ const Employees: React.FC = () => {
                         <span className="text-sm font-bold text-secondary-900">{emp.name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-2.5">
-                      <span className="text-sm text-secondary-600 font-medium">{emp.email}</span>
-                    </td>
-                    <td className="px-6 py-2.5">
+                    <td className="px-6 py-3 whitespace-nowrap">
                       <span className="text-xs font-bold px-2 py-0.5 bg-secondary-100 text-secondary-700 rounded-full border border-secondary-200 uppercase tracking-tight">
                         {emp.role}
                       </span>
                     </td>
-                    <td className="px-6 py-2.5">
-                      <span className="text-sm text-secondary-600">{emp.designation}</span>
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <span className="text-sm text-secondary-600">
+                        {emp.reportingPartner ? partners.find(p => p.id === emp.reportingPartner)?.firstName + ' ' + partners.find(p => p.id === emp.reportingPartner)?.lastName : 'None'}
+                      </span>
                     </td>
-                    <td className="px-6 py-2.5">
-                      <span className="text-sm text-secondary-600">{emp.department}</span>
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <span className="text-sm text-secondary-600">
+                        {emp.reportingManager ? partners.find(p => p.id === emp.reportingManager)?.firstName + ' ' + partners.find(p => p.id === emp.reportingManager)?.lastName : 'None'}
+                      </span>
                     </td>
-                    <td className="px-6 py-2.5">
-                      <div className="flex items-center gap-2">
-                        {emp.attachments?.panFile && (
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => handleViewAttachment(emp.attachments!.panFile!, 'PAN Card')}
-                              className="p-1 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-all"
-                              title="View PAN Card"
-                            >
-                              <EyeIcon className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDownloadAttachment(emp.attachments!.panFile!.split('/').pop() || 'pan-card.pdf')}
-                              className="p-1 text-secondary-400 hover:text-success-600 hover:bg-success-50 rounded transition-all"
-                              title="Download PAN Card"
-                            >
-                              <ArrowDownTrayIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
-                        {emp.attachments?.aadhaarFile && (
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => handleViewAttachment(emp.attachments!.aadhaarFile!, 'Aadhaar Card')}
-                              className="p-1 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-all"
-                              title="View Aadhaar Card"
-                            >
-                              <EyeIcon className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDownloadAttachment(emp.attachments!.aadhaarFile!.split('/').pop() || 'aadhaar-card.pdf')}
-                              className="p-1 text-secondary-400 hover:text-success-600 hover:bg-success-50 rounded transition-all"
-                              title="Download Aadhaar Card"
-                            >
-                              <ArrowDownTrayIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
-                        {emp.attachments?.employeePhoto && (
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => handleViewAttachment(emp.attachments!.employeePhoto!, 'Employee Photo')}
-                              className="p-1 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-all"
-                              title="View Employee Photo"
-                            >
-                              <EyeIcon className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDownloadAttachment(emp.attachments!.employeePhoto!.split('/').pop() || 'employee-photo.jpg')}
-                              className="p-1 text-secondary-400 hover:text-success-600 hover:bg-success-50 rounded transition-all"
-                              title="Download Employee Photo"
-                            >
-                              <ArrowDownTrayIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
-                        {emp.attachments?.bankStatement && (
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => handleViewAttachment(emp.attachments!.bankStatement!, 'Bank Statement')}
-                              className="p-1 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-all"
-                              title="View Bank Statement"
-                            >
-                              <EyeIcon className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDownloadAttachment(emp.attachments!.bankStatement!.split('/').pop() || 'bank-statement.pdf')}
-                              className="p-1 text-secondary-400 hover:text-success-600 hover:bg-success-50 rounded transition-all"
-                              title="Download Bank Statement"
-                            >
-                              <ArrowDownTrayIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
-                        {!emp.attachments?.panFile && !emp.attachments?.aadhaarFile && !emp.attachments?.employeePhoto && !emp.attachments?.bankStatement && (
-                          <span className="text-xs text-secondary-400">None</span>
-                        )}
-                      </div>
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <span className="text-sm text-secondary-600">{emp.email}</span>
                     </td>
-                    <td className="px-6 py-2.5">
+                    <td className="px-6 py-3 whitespace-nowrap">
                       <StatusBadge status={emp.status} className="h-6" />
                     </td>
-                    <td className="px-6 py-2.5 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => handleViewFullProfile(emp.id)}
-                          className="p-1.5 text-secondary-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
-                          title="View Full Profile"
-                        >
-                          <UsersIcon className="w-4 h-4" />
-                        </button>
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleViewDetails(emp)}
-                          className="p-1.5 text-secondary-400 hover:text-info-600 hover:bg-info-50 rounded-lg transition-all"
-                          title="View Details"
+                          className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                          title="View Employee"
                         >
                           <EyeIcon className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleResendRegistrationEmail(emp.id, emp.name)}
-                          className="p-1.5 text-secondary-400 hover:text-warning-600 hover:bg-warning-50 rounded-lg transition-all"
-                          title="Resend Registration Email"
-                        >
-                          <PaperAirplaneIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setEditingEmployee(emp)}
-                          className="p-1.5 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
+                          onClick={() => handleEditEmployee(emp.id)}
+                          className="text-yellow-600 hover:text-yellow-800 p-1 rounded hover:bg-yellow-50 transition-colors"
                           title="Edit Employee"
                         >
                           <PencilSquareIcon className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => handleDownloadAllAttachments(emp)}
+                          className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors"
+                          title="Download All Attachments"
+                        >
+                          <ArrowDownTrayIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleResendRegistrationEmail(emp.id, emp.name)}
+                          className="text-purple-600 hover:text-purple-800 p-1 rounded hover:bg-purple-50 transition-colors"
+                          title="Resend Registration Email"
+                        >
+                          <PaperAirplaneIcon className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                          className="p-1.5 text-secondary-400 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-all"
+                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
                           title="Delete Employee"
                         >
                           <TrashIcon className="w-4 h-4" />
@@ -972,9 +978,10 @@ const Employees: React.FC = () => {
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-secondary-700 block ml-0.5">Reporting Partner</label>
               <select
-                className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-lg outline-none transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-secondary-300 text-sm font-medium"
+                className={`w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-lg outline-none transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-secondary-300 text-sm font-medium ${role === 'Partner' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 value={reportingPartner}
                 onChange={(e) => setReportingPartner(e.target.value)}
+                disabled={role === 'Partner' || (editingEmployee && (editingEmployee.reportingPartner !== undefined))}
               >
                 <option value="">Select Partner...</option>
                 {partners.map(partner => (
@@ -983,21 +990,30 @@ const Employees: React.FC = () => {
                   </option>
                 ))}
               </select>
+              {role === 'Partner' && (
+                <p className="text-xs text-gray-500 mt-1">Partners cannot have reporting structure</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-secondary-700 block ml-0.5">Reporting Manager</label>
               <select
-                className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-lg outline-none transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-secondary-300 text-sm font-medium"
+                className={`w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-lg outline-none transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-secondary-300 text-sm font-medium ${role === 'Partner' || role === 'Manager' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 value={reportingManager}
                 onChange={(e) => setReportingManager(e.target.value)}
+                disabled={role === 'Partner' || role === 'Manager' || (editingEmployee && (editingEmployee.reportingManager !== undefined))}
               >
                 <option value="">Select Manager...</option>
-                {managers.map(manager => (
-                  <option key={manager.id} value={manager.id}>
-                    {manager.firstName} {manager.lastName}
+                {role === 'Employee' && partners.map(partner => (
+                  <option key={partner.id} value={partner.id}>
+                    {partner.firstName} {partner.lastName}
                   </option>
                 ))}
               </select>
+              {(role === 'Partner' || role === 'Manager') && (
+                <p className="text-xs text-gray-500 mt-1">
+                  {role === 'Partner' ? 'Partners cannot have reporting structure' : 'Managers report to selected Partner'}
+                </p>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
