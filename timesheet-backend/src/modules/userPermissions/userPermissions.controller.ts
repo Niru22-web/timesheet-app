@@ -171,7 +171,11 @@ const getFieldNameForModule = (moduleName: string): string | null => {
 // Get current user's permissions (for frontend route guards)
 export const getCurrentUserPermissions = async (req: any, res: Response) => {
   try {
+    console.log('🔍 getCurrentUserPermissions called');
+    console.log('User from token:', req.user);
+    
     const userId = req.user.id;
+    console.log('Looking up permissions for userId:', userId);
 
     const permission = await prisma.userPermission.findUnique({
       where: { userId },
@@ -184,6 +188,8 @@ export const getCurrentUserPermissions = async (req: any, res: Response) => {
         emailTemplates: true
       }
     });
+
+    console.log('Found permission record:', permission);
 
     // Convert to object for easier access
     const permissionMap: any = {};
@@ -200,6 +206,22 @@ export const getCurrentUserPermissions = async (req: any, res: Response) => {
           };
         }
       });
+    } else {
+      // Return default permissions if user has no permission record
+      const defaultModules = ['dashboard', 'timesheet', 'projects', 'reports', 'adminPanel', 'emailTemplates'];
+      defaultModules.forEach(key => {
+        const moduleName = getModuleNameForField(key);
+        if (moduleName) {
+          // Default to true for basic modules, false for admin modules
+          const isBasic = ['dashboard', 'timesheet', 'projects', 'reports'].includes(key);
+          permissionMap[moduleName] = {
+            canView: isBasic,
+            canCreate: isBasic,
+            canEdit: isBasic,
+            canDelete: isBasic
+          };
+        }
+      });
     }
 
     res.json({
@@ -210,7 +232,8 @@ export const getCurrentUserPermissions = async (req: any, res: Response) => {
     console.error("Error fetching current user permissions:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch current user permissions"
+      message: "Failed to fetch current user permissions",
+      error: error instanceof Error ? error.message : String(error)
     });
   }
 };

@@ -30,6 +30,7 @@ model Employee {
   reimbursements     Reimbursement[]
   approvedTimelogs   Timelog[]           @relation("TimelogApprover")
   timelogs           Timelog[]
+  userPermission     UserPermission?
   managedTimelogs    Timelog[]           @relation("TimelogReportingManager")
   partnerTimelogs    Timelog[]           @relation("TimelogReportingPartner")
 }
@@ -271,4 +272,18 @@ model UserPermission {
   user           Employee @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_permissions")
+}
+
+model EmailLog {
+  id           String   @id @default(uuid())
+  recipient    String
+  subject      String
+  status       String   @default("pending") // pending, sent, failed
+  errorMessage String?  @db.Text
+  sentAt       DateTime @default(now())
+  provider     String   @default("outlook") // outlook, gmail
+  category     String   @default("registration") // registration, notification, etc.
+  employeeId   String?
+
+  @@map("email_logs")
 }

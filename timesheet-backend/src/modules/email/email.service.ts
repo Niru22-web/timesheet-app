@@ -289,7 +289,7 @@ class EmailService {
         client_secret: MICROSOFT_OAUTH_CONFIG.clientSecret,
         refresh_token: connection.refreshToken,
         grant_type: 'refresh_token',
-        scope: 'https://graph.microsoft.com/.default offline_access'
+        scope: 'https://graph.microsoft.com/.default'
       });
 
       const response = await axios.post(
@@ -324,7 +324,7 @@ class EmailService {
           data: error.response?.data
         });
       }
-      throw new Error('Failed to refresh Outlook access token');
+      throw new Error('Outlook connection expired. Please reconnect email account.');
     }
   }
 
@@ -365,7 +365,7 @@ class EmailService {
         where: {
           employeeId: employeeId,
           provider: 'outlook',
-          accessToken: { not: null }
+          accessToken: { not: '' }
         }
       });
 
@@ -439,38 +439,51 @@ class EmailService {
       }
     };
 
-    const response = await axios.post(
-      'https://graph.microsoft.com/v1.0/me/sendMail',
-      emailData,
-      {
-        headers: {
-          Authorization: `Bearer ${connection.accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    console.log("Using access token:", connection.accessToken);
+    console.log("Sending email to:", Array.isArray(options.to) ? options.to.join(', ') : options.to);
 
-    return {
-      success: true,
-      messageId: response.headers['X-Message-Id'] || 'sent',
-      provider: 'outlook'
-    };
+    try {
+      const response = await axios.post(
+        'https://graph.microsoft.com/v1.0/me/sendMail',
+        emailData,
+        {
+          headers: {
+            Authorization: `Bearer ${connection.accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      return {
+        success: true,
+        messageId: response.headers['X-Message-Id'] || 'sent',
+        provider: 'outlook'
+      };
+    } catch (error: any) {
+      if (error.response?.data) {
+        console.error("Graph API error:", error.response.data);
+      }
+      if (error.response?.status === 401) {
+        throw new Error("Request failed with status code 401: Outlook connection expired. Please reconnect email account.");
+      }
+      throw error;
+    }
   }
 
   // Disconnect email account
   async disconnectEmail(employeeId: string, provider: string) {
-    await prisma.emailConnection.updateMany({
+    console.log(`Disconnect request for user: ${employeeId}, provider: ${provider}`);
+    
+    // Delete the email connection record completely
+    const result = await prisma.emailConnection.deleteMany({
       where: {
         employeeId,
         provider
-      },
-      data: {
-        isActive: false,
-        updatedAt: new Date()
       }
     });
 
-    return { success: true };
+    console.log(`Deleted ${result.count} email connections for ${provider}`);
+    return { success: true, deleted: result.count };
   }
 
   // Get all email connections for admin
@@ -494,14 +507,54 @@ class EmailService {
   // Check email service configuration
   async checkEmailConfiguration() {
     try {
-      // Check if any email provider is configured
-      const outlookConnection = await this.getEmailConnection('admin', 'outlook'); // Check admin's connection
-      const gmailConnection = await this.getEmailConnection('admin', 'gmail');
+      console.log('🔍 Checking email configuration...');
+      
+      // Check if any email provider is configured (look for any active connection)
+      const outlookConnection = await prisma.emailConnection.findFirst({
+        where: {
+          provider: 'outlook',
+          isActive: true
+        },
+        include: {
+          employee: {
+            select: {
+              firstName: true,
+              lastName: true,
+              officeEmail: true
+            }
+          }
+        }
+      });
+      
+      const gmailConnection = await prisma.emailConnection.findFirst({
+        where: {
+          provider: 'gmail',
+          isActive: true
+        },
+        include: {
+          employee: {
+            select: {
+              firstName: true,
+              lastName: true,
+              officeEmail: true
+            }
+          }
+        }
+      });
+      
+      console.log('📊 Email connections found:', {
+        outlook: !!outlookConnection,
+        gmail: !!gmailConnection,
+        outlookEmail: outlookConnection?.employee?.officeEmail,
+        gmailEmail: gmailConnection?.employee?.officeEmail
+      });
       
       return {
         configured: !!(outlookConnection || gmailConnection),
         outlookConnected: !!outlookConnection,
-        gmailConnected: !!gmailConnection
+        gmailConnected: !!gmailConnection,
+        outlookConnection,
+        gmailConnection
       };
     } catch (error) {
       console.error('Error checking email configuration:', error);
@@ -519,8 +572,16 @@ class EmailService {
     registrationLink: string;
     companyName: string;
   }) {
+    const emailLogId = await this.createEmailLog({
+      recipient: data.to,
+      subject: `Welcome to ${data.companyName}`,
+      category: 'registration',
+      provider: 'outlook',
+      employeeId: data.employeeId
+    });
+
     try {
-      console.log('📧 Sending registration email using template...');
+      console.log('📧 Sending registration email to:', data.to);
       
       // Get registration template from database (only active ones)
       const template = await prisma.emailTemplate.findFirst({
@@ -532,7 +593,9 @@ class EmailService {
 
       if (!template) {
         console.warn('⚠️ No registration template found, using fallback');
-        return this.sendFallbackRegistrationEmail(data);
+        await this.sendFallbackRegistrationEmail(data);
+        await this.updateEmailLog(emailLogId, 'sent', null);
+        return;
       }
 
       // Replace template variables
@@ -557,16 +620,63 @@ class EmailService {
       });
 
       // Send email using configured provider
-      await this.sendEmail({
+      await this.sendSystemEmail({
         to: data.to,
         subject: subject,
         html: body
       });
 
-      console.log('✅ Registration email sent successfully');
+      console.log('✅ Registration email sent successfully to:', data.to);
+      await this.updateEmailLog(emailLogId, 'sent', null);
     } catch (error) {
       console.error('❌ Failed to send registration email:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await this.updateEmailLog(emailLogId, 'failed', errorMessage);
       throw error;
+    }
+  }
+
+  // Create email log entry
+  private async createEmailLog(data: {
+    recipient: string;
+    subject: string;
+    category: string;
+    provider: string;
+    employeeId?: string;
+  }): Promise<string> {
+    try {
+      const emailLog = await prisma.emailLog.create({
+        data: {
+          recipient: data.recipient,
+          subject: data.subject,
+          category: data.category,
+          provider: data.provider,
+          employeeId: data.employeeId,
+          status: 'pending'
+        }
+      });
+      return emailLog.id;
+    } catch (error) {
+      console.error('Failed to create email log:', error);
+      // Return a dummy ID if logging fails
+      return 'dummy-log-id';
+    }
+  }
+
+  // Update email log status
+  private async updateEmailLog(id: string, status: string, errorMessage: string | null): Promise<void> {
+    try {
+      await prisma.emailLog.update({
+        where: { id },
+        data: {
+          status,
+          errorMessage,
+          sentAt: status === 'sent' ? new Date() : undefined
+        }
+      });
+    } catch (error) {
+      console.error('Failed to update email log:', error);
+      // Don't throw error here to avoid breaking the main flow
     }
   }
 
@@ -604,7 +714,7 @@ class EmailService {
       </div>
     `;
 
-    await this.sendEmail({
+    await this.sendSystemEmail({
       to: data.to,
       subject: subject,
       html: body
@@ -624,21 +734,69 @@ class EmailService {
   }
 
   // Send email using configured provider
-  private async sendEmail(data: { to: string; subject: string; html: string }) {
+  private async sendSystemEmail(data: { to: string; subject: string; html: string }) {
     try {
-      // Try to use Outlook first
-      const outlookConnection = await this.getEmailConnection('admin', 'outlook');
+      console.log('📧 Attempting to send email to:', data.to);
+      
+      // Try to use Outlook first - look for any active Outlook connection
+      const outlookConnection = await prisma.emailConnection.findFirst({
+        where: {
+          provider: 'outlook',
+          isActive: true
+        },
+        include: {
+          employee: {
+            select: {
+              firstName: true,
+              lastName: true,
+              officeEmail: true
+            }
+          }
+        }
+      });
+      
       if (outlookConnection) {
-        return this.sendOutlookEmail(data, outlookConnection);
+        console.log('🔗 Using Outlook connection from:', outlookConnection.employee.officeEmail);
+        
+        // Check if token needs refresh
+        if (new Date() > outlookConnection.tokenExpiry) {
+          console.log('🔄 Access token expired, refreshing...');
+          outlookConnection.accessToken = await this.refreshMicrosoftToken(outlookConnection);
+        }
+
+        return this.sendOutlookEmail(outlookConnection, data);
       }
 
-      // Try Gmail
-      const gmailConnection = await this.getEmailConnection('admin', 'gmail');
+      // Try Gmail - look for any active Gmail connection
+      const gmailConnection = await prisma.emailConnection.findFirst({
+        where: {
+          provider: 'gmail',
+          isActive: true
+        },
+        include: {
+          employee: {
+            select: {
+              firstName: true,
+              lastName: true,
+              officeEmail: true
+            }
+          }
+        }
+      });
+      
       if (gmailConnection) {
-        return this.sendGmailEmail(data, gmailConnection);
+        console.log('🔗 Using Gmail connection from:', gmailConnection.employee.officeEmail);
+        
+        // Check if Gmail token needs refresh
+        if (new Date() > gmailConnection.tokenExpiry) {
+           console.log('🔄 Access token expired, refreshing...');
+           gmailConnection.accessToken = await this.refreshGoogleToken(gmailConnection);
+        }
+
+        return this.sendGmailEmail(gmailConnection, data);
       }
 
-      throw new Error('No email provider configured');
+      throw new Error('No email provider configured. Please connect an email account in the Email Configuration page.');
     } catch (error) {
       console.error('Error sending email:', error);
       throw error;

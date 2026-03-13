@@ -267,9 +267,7 @@ const EmailConfiguration: React.FC = () => {
       setOAuthLoading(true);
       console.log('🔌 Disconnecting Outlook account...');
       
-      await API.post('/email/oauth/admin/oauth/disconnect', {
-        provider: 'outlook'
-      });
+      await API.delete('/email/disconnect/outlook');
       
       console.log('✅ Outlook account disconnected successfully');
       setOAuthConnection(null);
@@ -279,6 +277,9 @@ const EmailConfiguration: React.FC = () => {
         details: null
       });
       setShowTestModal(true);
+      
+      // Refresh OAuth status after disconnect
+      await checkOAuthStatus();
     } catch (err: any) {
       console.error('❌ Failed to disconnect Outlook:', err);
       setTestResult({

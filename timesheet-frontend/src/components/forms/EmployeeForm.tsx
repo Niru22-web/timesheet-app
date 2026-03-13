@@ -27,8 +27,22 @@ export default function EmployeeForm() {
 
     try {
       setLoading(true);
-      await api.post("/employees", form);
-      alert("Employee Created Successfully");
+      const response = await api.post("/employees", form);
+      
+      if (response.data?.emailStatus === "failed") {
+        if (
+          response.data.message?.includes("401") || 
+          response.data.message?.includes("Outlook connection expired") ||
+          response.data.message?.includes("reconnect email account")
+        ) {
+          alert("Email connection expired. Please reconnect Outlook in Email Configuration.");
+        } else {
+          alert(response.data.message || "Employee created, but failed to send email.");
+        }
+      } else {
+        alert("Employee Created Successfully");
+      }
+
       setForm({
         firstName: "",
         lastName: "",

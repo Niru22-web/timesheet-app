@@ -125,6 +125,8 @@ class EmailConnectorController {
       const { provider } = req.params;
       const user = (req as any).user;
 
+      console.log(`Disconnect request for user: ${user?.employeeId}, provider: ${provider}`);
+
       if (!['gmail', 'outlook'].includes(provider)) {
         return res.status(400).json({
           success: false,
@@ -132,11 +134,14 @@ class EmailConnectorController {
         });
       }
 
-      await emailService.disconnectEmail(user.employeeId, provider);
+      const result = await emailService.disconnectEmail(user.employeeId, provider);
+
+      console.log(`Disconnect successful for ${provider}:`, result);
 
       res.json({
         success: true,
-        message: `${provider === 'gmail' ? 'Gmail' : 'Outlook'} account disconnected successfully`
+        message: `${provider === 'gmail' ? 'Gmail' : 'Outlook'} account disconnected successfully`,
+        data: result
       });
     } catch (error) {
       console.error('Disconnect email error:', error);

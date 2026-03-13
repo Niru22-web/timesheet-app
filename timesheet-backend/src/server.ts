@@ -1,5 +1,13 @@
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
+
+console.log('🔧 Environment variables loaded:');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'SET' : 'NOT SET');
+
 import authRoutes from "./modules/auth/auth.routes";
 import employeeRoutes from "./modules/employee/employee.routes";
 import clientRoutes from "./modules/client/client.routes";
@@ -84,6 +92,7 @@ app.use("/api/admin", emailRoutes);
 // Email OAuth and connector routes
 app.use("/api/email/oauth", emailOAuthRoutes);
 app.use("/api/email", emailRoutes);
+app.use("/api/email", emailConnectorRoutes);
 
 // Client routes
 app.use("/api/clients", clientRoutes);

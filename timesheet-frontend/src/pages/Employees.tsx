@@ -179,7 +179,7 @@ const Employees: React.FC = () => {
       const employeeCount = employees.length;
       const generatedCode = `EMP${String(employeeCount + 1).padStart(4, '0')}`;
       
-      await API.post('/employees', {
+      const response = await API.post('/employees', {
         firstName,
         lastName,
         officeEmail: email,
@@ -191,6 +191,23 @@ const Employees: React.FC = () => {
         reportingManager: reportingManager || null,
         employeeId: generatedCode
       });
+      
+      // Handle response based on email status
+      if (response.data.success) {
+        const { emailStatus, message } = response.data;
+        
+        if (emailStatus === 'sent') {
+          alert(`✅ ${message}`);
+        } else if (emailStatus === 'skipped') {
+          alert(`⚠️ ${message}\n\nPlease configure email settings to send registration emails.`);
+        } else if (emailStatus === 'failed') {
+          alert(`⚠️ ${message}\n\nPlease check email configuration and try again.`);
+        } else {
+          alert(`✅ Employee created successfully!`);
+        }
+      } else {
+        alert('Employee created but there might be an issue with email sending.');
+      }
       
       setShowAddModal(false);
       // Reset form
@@ -207,9 +224,11 @@ const Employees: React.FC = () => {
       
       // Refresh employee list
       fetchEmployees();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create employee:', err);
-      setError('Failed to create employee');
+      const errorMessage = err?.response?.data?.error || err?.response?.data?.message || 'Failed to create employee';
+      setError(errorMessage);
+      alert(`❌ ${errorMessage}`);
     }
   };
 

@@ -8,6 +8,8 @@ const emailService = EmailService;
 
 export const createEmployee = async (req: any, res: Response) => {
   try {
+    console.log('🚀 Creating new employee...');
+    
     // Use provided employeeId or generate new one
     const employeeId = req.body.employeeId || await generateId("EMP");
 
@@ -26,10 +28,21 @@ export const createEmployee = async (req: any, res: Response) => {
       },
     });
 
+    console.log('✅ Employee created successfully:', {
+      id: employee.id,
+      employeeId: employee.employeeId,
+      email: employee.officeEmail,
+      name: `${employee.firstName} ${employee.lastName}`
+    });
+
     // Send registration email to employee using email service and templates
+    let emailStatus = 'not_attempted';
+    let emailMessage = '';
+    
     if (employee.officeEmail) {
       try {
-        console.log('📧 Sending registration email to:', employee.officeEmail);
+        console.log('📧 Initiating registration email to:', employee.officeEmail);
+        emailStatus = 'sending';
         
         // Generate secure registration token
         const registrationToken = generateRegistrationToken();
@@ -45,12 +58,16 @@ export const createEmployee = async (req: any, res: Response) => {
           }
         });
 
-        const registrationLink = `http://localhost:5173/complete-registration?token=${registrationToken}`;
+        const registrationLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/complete-registration?token=${registrationToken}`;
 
         // Check email service configuration
-        const emailStatus = await emailService.checkEmailConfiguration();
-        if (!emailStatus.configured) {
+        const emailConfig = await emailService.checkEmailConfiguration();
+        console.log('📊 Email configuration status:', emailConfig);
+        
+        if (!emailConfig.configured) {
           console.warn('⚠️ Email service not configured, skipping registration email');
+          emailStatus = 'skipped';
+          emailMessage = 'Email service not configured - registration email not sent';
         } else {
           // Send registration email using email service
           await emailService.sendRegistrationEmail({
@@ -64,21 +81,53 @@ export const createEmployee = async (req: any, res: Response) => {
           });
           
           console.log('✅ Registration email sent successfully to:', employee.officeEmail);
+          emailStatus = 'sent';
+          emailMessage = 'Registration email sent successfully';
         }
       } catch (emailError) {
         console.error('❌ Failed to send registration email:', {
           message: emailError instanceof Error ? emailError.message : String(emailError),
-          employeeEmail: employee.officeEmail
+          employeeEmail: employee.officeEmail,
+          stack: emailError instanceof Error ? emailError.stack : undefined
         });
+        emailStatus = 'failed';
+        emailMessage = emailError instanceof Error ? emailError.message : 'Failed to send registration email';
         // Continue with response even if email fails
       }
     }
 
-    console.log('Employee created successfully:', employee);
-    res.json(employee);
+    // Prepare response with email status
+    const response = {
+      success: true,
+      data: employee,
+      emailStatus: emailStatus,
+      message: emailStatus === 'sent' 
+        ? 'Employee created and registration email sent successfully'
+        : emailStatus === 'skipped'
+        ? 'Employee created successfully (email not configured)'
+        : emailStatus === 'failed'
+        ? `Employee created but email failed: ${emailMessage}`
+        : 'Employee created successfully'
+    };
+
+    console.log('📤 Sending response:', {
+      employeeId: employee.employeeId,
+      emailStatus: response.emailStatus,
+      message: response.message
+    });
+
+    res.json(response);
   } catch (error) {
-    console.error('Error creating employee:', error);
-    res.status(500).json({ error: 'Failed to create employee' });
+    console.error('❌ Error creating employee:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      requestBody: req.body
+    });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to create employee',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
 
@@ -180,7 +229,10 @@ export const getEmployees = async (req: any, res: Response) => {
     res.json(employees);
   } catch (error) {
     console.error('Error fetching employees:', error);
-    res.status(500).json({ error: 'Failed to fetch employees' });
+    res.status(500).json({ 
+      error: 'Failed to fetch employees',
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 };
 
