@@ -653,7 +653,9 @@ export const getPendingApprovals = async (req: Request, res: Response) => {
     
     const pendingEmployees = await prisma.employee.findMany({
       where: {
-        status: 'pending_approval'
+        status: {
+          in: ['pending_approval', 'pending']
+        }
       },
       select: {
         id: true,

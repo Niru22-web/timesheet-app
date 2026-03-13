@@ -205,7 +205,7 @@ const Timesheet: React.FC = () => {
     }
 
     try {
-      await API.put(`/api/timelogs/${editingEntry.id}`, formData);
+      await API.put(`/timelogs/${editingEntry.id}`, formData);
       setShowEditModal(false);
       setEditingEntry(null);
       setFormData({
@@ -230,7 +230,7 @@ const Timesheet: React.FC = () => {
   const handleDeleteEntry = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this timelog entry? This action cannot be undone.')) {
       try {
-        await API.delete(`/api/timelogs/${id}`);
+        await API.delete(`/timelogs/${id}`);
         fetchLogs();
       } catch (err) {
         console.error('Failed to delete timelog:', err);

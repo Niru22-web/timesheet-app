@@ -220,7 +220,7 @@ const LeaveManagement: React.FC = () => {
     }
 
     try {
-      await API.put(`/api/leaves/${leaveId}`, { status });
+      await API.put(`/leaves/${leaveId}`, { status });
       fetchLeaveRecords();
       fetchLeaveBalance();
     } catch (err) {
@@ -235,7 +235,7 @@ const LeaveManagement: React.FC = () => {
     }
 
     try {
-      await API.delete(`/api/leaves/${leaveId}`);
+      await API.delete(`/leaves/${leaveId}`);
       fetchLeaveRecords();
       fetchLeaveBalance();
     } catch (err) {

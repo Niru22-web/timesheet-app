@@ -264,6 +264,7 @@ model UserPermission {
   timesheet      Boolean  @default(true)
   projects       Boolean  @default(true)
   reports        Boolean  @default(true)
+  employees      Boolean  @default(false)
   adminPanel     Boolean  @default(false)
   emailTemplates Boolean  @default(false)
   createdAt      DateTime @default(now())

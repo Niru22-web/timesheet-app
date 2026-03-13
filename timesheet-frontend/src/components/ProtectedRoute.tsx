@@ -38,7 +38,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // Admin role bypasses permission checks
-  if (user?.role === 'admin') {
+  if (user?.role?.toLowerCase() === 'admin') {
     return <>{children}</>;
   }
 

@@ -14,13 +14,13 @@ const router = Router();
 router.use(authenticate);
 
 // Get all users (admin only)
-router.get("/users", authorize(["admin"]), getAllUsers);
+router.get("/users", authorize(["admin", "manager", "partner", "owner"]), getAllUsers);
 
 // Get permissions for a specific user (admin only)
-router.get("/user-permissions/:userId", authorize(["admin"]), getUserPermissions);
+router.get("/user-permissions/:userId", authorize(["admin", "manager", "partner", "owner"]), getUserPermissions);
 
 // Save permissions for a user (admin only)
-router.post("/user-permissions", authorize(["admin"]), saveUserPermissions);
+router.post("/user-permissions", authorize(["admin", "manager", "partner", "owner"]), saveUserPermissions);
 
 // Get current user's permissions (for route guards)
 router.get("/my-permissions", getCurrentUserPermissions);

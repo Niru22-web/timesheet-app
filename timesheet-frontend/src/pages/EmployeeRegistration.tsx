@@ -91,7 +91,7 @@ const EmployeeRegistration: React.FC = () => {
   const fetchEmployeeInfoByToken = async () => {
     try {
       setIsFetchingInfo(true);
-      const response = await API.get(`/api/registration/validate?token=${tokenParam}`);
+      const response = await API.get(`/registration/validate?token=${tokenParam}`);
       setEmployeeInfo(response.data.employee);
       setFormData(prev => ({ 
         ...prev, 

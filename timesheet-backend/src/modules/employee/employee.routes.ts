@@ -62,7 +62,11 @@ router.put("/profile-photo", authenticate, uploadProfilePhoto, updateProfilePhot
 router.get("/pending-approvals", authenticate, checkManagerRole, async (req: any, res: any) => {
   try {
     const pendingEmployees = await prisma.employee.findMany({
-      where: { status: 'pending_approval' },
+      where: { 
+        status: { 
+          in: ['pending_approval', 'pending'] 
+        } 
+      },
       include: {
         profile: true
       },

@@ -136,7 +136,7 @@ const Clients: React.FC = () => {
     const handleEditClient = async (client: Client) => {
         try {
             // Fetch complete client details
-            const response = await API.get(`/api/clients/${client.id}`);
+            const response = await API.get(`/clients/${client.id}`);
             const fullClient = response.data;
             
             setEditingClient(fullClient);
@@ -174,7 +174,7 @@ const Clients: React.FC = () => {
         }
 
         try {
-            await API.put(`/api/clients/${editingClient.id}`, formData);
+            await API.put(`/clients/${editingClient.id}`, formData);
             setShowEditModal(false);
             setEditingClient(null);
             resetForm();
@@ -194,7 +194,7 @@ const Clients: React.FC = () => {
         if (!isManager || !deletingClient) return;
 
         try {
-            await API.delete(`/api/clients/${deletingClient.id}`);
+            await API.delete(`/clients/${deletingClient.id}`);
             setShowDeleteModal(false);
             setDeletingClient(null);
             fetchClients();

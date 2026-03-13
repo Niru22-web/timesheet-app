@@ -55,6 +55,7 @@ export const getUserPermissions = async (req: Request, res: Response) => {
         timesheet: true,
         projects: true,
         reports: true,
+        employees: true,
         adminPanel: true,
         emailTemplates: true
       }
@@ -66,6 +67,7 @@ export const getUserPermissions = async (req: Request, res: Response) => {
       { moduleName: 'timesheet', fieldName: 'timesheet' },
       { moduleName: 'projects', fieldName: 'projects' },
       { moduleName: 'reports', fieldName: 'reports' },
+      { moduleName: 'employees', fieldName: 'employees' },
       { moduleName: 'admin_panel', fieldName: 'adminPanel' },
       { moduleName: 'email_templates', fieldName: 'emailTemplates' }
     ];
@@ -161,6 +163,7 @@ const getFieldNameForModule = (moduleName: string): string | null => {
     'timesheet': 'timesheet',
     'projects': 'projects',
     'reports': 'reports',
+    'employees': 'employees',
     'admin_panel': 'adminPanel',
     'email_templates': 'emailTemplates'
   };
@@ -184,6 +187,7 @@ export const getCurrentUserPermissions = async (req: any, res: Response) => {
         timesheet: true,
         projects: true,
         reports: true,
+        employees: true,
         adminPanel: true,
         emailTemplates: true
       }
@@ -208,17 +212,20 @@ export const getCurrentUserPermissions = async (req: any, res: Response) => {
       });
     } else {
       // Return default permissions if user has no permission record
-      const defaultModules = ['dashboard', 'timesheet', 'projects', 'reports', 'adminPanel', 'emailTemplates'];
+      const defaultModules = ['dashboard', 'timesheet', 'projects', 'reports', 'employees', 'adminPanel', 'emailTemplates'];
       defaultModules.forEach(key => {
         const moduleName = getModuleNameForField(key);
         if (moduleName) {
           // Default to true for basic modules, false for admin modules
           const isBasic = ['dashboard', 'timesheet', 'projects', 'reports'].includes(key);
+          const isAdminModule = ['adminPanel', 'emailTemplates'].includes(key);
+          const isEmployeeModule = key === 'employees';
+          
           permissionMap[moduleName] = {
-            canView: isBasic,
-            canCreate: isBasic,
-            canEdit: isBasic,
-            canDelete: isBasic
+            canView: isBasic || isEmployeeModule,
+            canCreate: isBasic || isEmployeeModule,
+            canEdit: isBasic || isEmployeeModule,
+            canDelete: isBasic || isEmployeeModule
           };
         }
       });
@@ -245,6 +252,7 @@ const getModuleNameForField = (fieldName: string): string | null => {
     'timesheet': 'timesheet',
     'projects': 'projects',
     'reports': 'reports',
+    'employees': 'employees',
     'adminPanel': 'admin_panel',
     'emailTemplates': 'email_templates'
   };

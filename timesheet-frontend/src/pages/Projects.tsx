@@ -173,7 +173,7 @@ const Projects: React.FC = () => {
         ...formData,
         projectId: editingProject.projectId
       };
-      await API.put(`/api/projects/${editingProject.id}`, projectData);
+      await API.put(`/projects/${editingProject.id}`, projectData);
       setShowEditModal(false);
       setEditingProject(null);
       setFormData({
@@ -197,7 +197,7 @@ const Projects: React.FC = () => {
     
     if (window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
       try {
-        await API.delete(`/api/projects/${id}`);
+        await API.delete(`/projects/${id}`);
         fetchData(); // Refresh data immediately
       } catch (err) {
         console.error('Failed to delete project:', err);

@@ -82,7 +82,7 @@ const Profile: React.FC = () => {
 
     const handleSaveProfile = async () => {
         try {
-            await API.put(`/api/employees/${profileData.id}`, {
+            await API.put(`/employees/${profileData.id}`, {
                 profile: formData
             });
             await fetchProfile(); // Refresh data

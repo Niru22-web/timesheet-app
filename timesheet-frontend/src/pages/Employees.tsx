@@ -52,8 +52,12 @@ const Employees: React.FC = () => {
 
   // Check if user is admin or manager, if not redirect to dashboard
   useEffect(() => {
-    if (user && user.role !== 'admin' && user.role !== 'Admin' && user.role !== 'manager' && user.role !== 'Manager') {
-      window.location.href = '/dashboard';
+    if (user) {
+      const userRole = user.role.toLowerCase();
+      const allowedRoles = ['admin', 'manager', 'partner', 'owner'];
+      if (!allowedRoles.includes(userRole)) {
+        window.location.href = '/dashboard';
+      }
     }
   }, [user]);
 

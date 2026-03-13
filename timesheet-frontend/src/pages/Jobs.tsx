@@ -153,7 +153,7 @@ const Jobs: React.FC = () => {
         }
 
         try {
-            await API.put(`/api/jobs/${editingJob.id}`, formData);
+            await API.put(`/jobs/${editingJob.id}`, formData);
             setShowEditModal(false);
             setEditingJob(null);
             setFormData({
@@ -178,7 +178,7 @@ const Jobs: React.FC = () => {
         
         if (window.confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
             try {
-                await API.delete(`/api/jobs/${id}`);
+                await API.delete(`/jobs/${id}`);
                 fetchData();
             } catch (err) {
                 console.error('Failed to delete job:', err);
