@@ -1,7 +1,19 @@
-import { Router } from "express";
-import { createEmployee, deleteEmployee, getEmployees, getEmployeesByDepartment, updateEmployee } from "./employee.controller";
+import { Router, Request, Response } from "express";
+import { createEmployee, deleteEmployee, getEmployees, getEmployeesByDepartment, updateEmployee, resendRegistrationEmail, getEmployeeById, downloadAttachment } from "./employee.controller";
 import { completeEmployeeProfile, getEmployeeByEmail, uploadProfileDocuments, updateProfilePhoto, uploadProfilePhoto } from "./employeeProfile.controller";
 import { prisma } from "../../config/prisma";
+
+// Debug: Log all imported functions to ensure they exist
+console.log('🔍 Employee controller imports:', {
+  createEmployee: typeof createEmployee,
+  deleteEmployee: typeof deleteEmployee,
+  getEmployees: typeof getEmployees,
+  getEmployeesByDepartment: typeof getEmployeesByDepartment,
+  updateEmployee: typeof updateEmployee,
+  resendRegistrationEmail: typeof resendRegistrationEmail,
+  getEmployeeById: typeof getEmployeeById,
+  downloadAttachment: typeof downloadAttachment
+});
 
 const router = Router();
 
@@ -47,10 +59,17 @@ const checkManagerRole = (req: any, res: any, next: any) => {
 // Employee management routes
 router.post("/", authenticate, createEmployee);
 router.get("/", authenticate, getEmployees);
+router.get("/:id", authenticate, checkManagerRole, getEmployeeById);
 router.get("/department", authenticate, getEmployeesByDepartment);
 router.get("/by-email", authenticate, getEmployeeByEmail);
 router.put("/:id", authenticate, updateEmployee);
 router.delete("/:id", authenticate, deleteEmployee);
+
+// Attachment download route
+router.get("/download/:filename", authenticate, checkManagerRole, downloadAttachment);
+
+// Resend registration email route
+router.post("/resend-registration/:employeeId", authenticate, checkManagerRole, resendRegistrationEmail);
 
 // Employee profile completion routes
 router.post("/complete-profile", uploadProfileDocuments, completeEmployeeProfile);

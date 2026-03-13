@@ -8,7 +8,12 @@ import {
   TrashIcon,
   PlusIcon,
   FunnelIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  EyeIcon,
+  PaperAirplaneIcon,
+  DocumentIcon,
+  FolderOpenIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -23,15 +28,98 @@ import Avatar from '../components/ui/Avatar';
 interface Employee {
   id: string;
   employeeId: string;
+  firstName: string;
+  lastName: string;
   name: string;
   email: string;
+  phone?: string;
   role: string;
   designation: string;
-  status: 'Active' | 'Inactive' | 'On Leave' | 'active' | 'pending';
+  department: string;
+  status: 'Active' | 'Inactive' | 'On Leave' | 'active' | 'pending' | 'rejected';
   joinDate: string;
+  joining_date?: string;
+  createdAt: string;
   profile?: {
     employeePhotoUrl?: string;
+    dob?: string;
+    education?: string;
+    maritalStatus?: string;
+    gender?: string;
+    permanentAddress?: string;
+    currentAddress?: string;
+    pan?: string;
+    aadhaar?: string;
+    personalEmail?: string;
+    personalMobile?: string;
   };
+  attachments?: {
+    panFile?: string;
+    aadhaarFile?: string;
+    employeePhoto?: string;
+    bankStatement?: string;
+  };
+  hasActiveRegistrationToken?: boolean;
+  registrationTokenExpiry?: string;
+}
+
+interface EnhancedEmployeeDetails {
+  id: string;
+  employeeId: string;
+  firstName: string;
+  lastName: string;
+  officeEmail: string;
+  phone?: string;
+  address?: string;
+  date_of_birth?: string;
+  gender?: string;
+  personalDetails: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    address?: string;
+    date_of_birth?: string;
+    gender?: string;
+  };
+  identityDetails: {
+    pan_number?: string;
+    aadhaar_number?: string;
+  };
+  guardianDetails: {
+    guardian_name?: string;
+    guardian_phone?: string;
+    guardian_relation?: string;
+  };
+  educationDetails: {
+    qualification?: string;
+    university?: string;
+    passing_year?: string;
+    grade?: string;
+  };
+  bankDetails: {
+    bank_name?: string;
+    account_number?: string;
+    ifsc_code?: string;
+    branch_name?: string;
+  };
+  employmentDetails: {
+    employee_id: string;
+    department: string;
+    designation: string;
+    joining_date: string;
+    role: string;
+    status: string;
+  };
+  attachments: {
+    pan_card_file?: string;
+    aadhaar_card_file?: string;
+    education_certificate?: string;
+    profile_photo?: string;
+    other_documents?: string;
+  };
+  hasActiveRegistrationToken?: boolean;
+  registrationTokenExpiry?: string;
 }
 
 const Employees: React.FC = () => {
@@ -40,7 +128,11 @@ const Employees: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState('All Roles');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [enhancedEmployeeDetails, setEnhancedEmployeeDetails] = useState<EnhancedEmployeeDetails | null>(null);
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
@@ -146,13 +238,22 @@ const Employees: React.FC = () => {
       const mapped = res.data.map((emp: any) => ({
         id: emp.id,
         employeeId: emp.employeeId,
+        firstName: emp.firstName,
+        lastName: emp.lastName,
         name: `${emp.firstName} ${emp.lastName}`,
         email: emp.officeEmail,
+        phone: emp.phone || null,
         role: emp.role,
         designation: emp.designation,
-        status: (emp.status === 'active' || emp.status === 'Active') ? 'Active' : (emp.status === 'On Leave' ? 'On Leave' : 'Inactive'),
+        department: emp.department,
+        status: (emp.status === 'active' || emp.status === 'Active') ? 'Active' : (emp.status === 'On Leave' ? 'On Leave' : (emp.status === 'pending' ? 'Pending' : (emp.status === 'rejected' ? 'Rejected' : 'Inactive'))),
         joinDate: new Date(emp.createdAt).toISOString().split('T')[0],
-        profile: emp.profile // Include profile data for photo access
+        joining_date: emp.joining_date ? new Date(emp.joining_date).toISOString().split('T')[0] : new Date(emp.createdAt).toISOString().split('T')[0],
+        createdAt: emp.createdAt,
+        profile: emp.profile,
+        attachments: emp.attachments,
+        hasActiveRegistrationToken: emp.hasActiveRegistrationToken || false,
+        registrationTokenExpiry: emp.registrationTokenExpiry || null
       }));
       
       // Filter partners and managers
@@ -293,6 +394,100 @@ const Employees: React.FC = () => {
         const errorMessage = err.response?.data?.error || err.message || 'Failed to delete employee. Please try again.';
         alert(`Delete failed: ${errorMessage}`);
       }
+    }
+  };
+
+  const handleViewDetails = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setShowDetailsModal(true);
+  };
+
+  const handleResendRegistrationEmail = async (employeeId: string, employeeName: string) => {
+    if (window.confirm(`Are you sure you want to resend the registration email to ${employeeName}?`)) {
+      try {
+        const response = await API.post(`/employees/resend-registration/${employeeId}`);
+        if (response.data.success) {
+          alert('✅ Registration email sent successfully!');
+          fetchEmployees(); // Refresh to update token status
+        } else {
+          alert('❌ Failed to send registration email');
+        }
+      } catch (err: any) {
+        console.error('Error resending registration email:', err);
+        const errorMessage = err.response?.data?.error || err.message || 'Failed to resend registration email';
+        alert(`❌ ${errorMessage}`);
+      }
+    }
+  };
+
+  const handleViewAttachment = (attachmentUrl: string, fileName: string) => {
+    if (attachmentUrl) {
+      window.open(`http://localhost:3001${attachmentUrl}`, '_blank');
+    } else {
+      alert('No attachment available');
+    }
+  };
+
+  const handleViewFullProfile = async (employeeId: string) => {
+    try {
+      const response = await API.get(`/employees/${employeeId}`);
+      if (response.data.success) {
+        setEnhancedEmployeeDetails(response.data.data);
+        setShowProfileModal(true);
+      } else {
+        alert('Failed to fetch employee details');
+      }
+    } catch (err: any) {
+      console.error('Error fetching employee details:', err);
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to fetch employee details';
+      alert(`❌ ${errorMessage}`);
+    }
+  };
+
+  const handleDownloadAttachment = async (filename: string) => {
+    try {
+      // Create download URL
+      const downloadUrl = `http://localhost:5000/api/employees/download/${filename}`;
+      
+      // Create a temporary link element to trigger download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      link.style.display = 'none';
+      
+      // Add authorization header
+      const token = localStorage.getItem('token');
+      if (token) {
+        link.setAttribute('data-token', token);
+      }
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Alternative: Use fetch with blob
+      const response = await fetch(downloadUrl, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        throw new Error('Download failed');
+      }
+    } catch (err: any) {
+      console.error('Error downloading attachment:', err);
+      alert('Failed to download attachment');
     }
   };
 
@@ -509,7 +704,8 @@ const Employees: React.FC = () => {
                   <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Name</th>
                   <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Email</th>
                   <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Role</th>
-                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Designation</th>
+                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Department</th>
+                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Attachments</th>
                   <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Status</th>
                   <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest text-right">Action</th>
                 </tr>
@@ -539,19 +735,124 @@ const Employees: React.FC = () => {
                       <span className="text-sm text-secondary-600">{emp.designation}</span>
                     </td>
                     <td className="px-6 py-2.5">
+                      <span className="text-sm text-secondary-600">{emp.department}</span>
+                    </td>
+                    <td className="px-6 py-2.5">
+                      <div className="flex items-center gap-2">
+                        {emp.attachments?.panFile && (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleViewAttachment(emp.attachments!.panFile!, 'PAN Card')}
+                              className="p-1 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-all"
+                              title="View PAN Card"
+                            >
+                              <EyeIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDownloadAttachment(emp.attachments!.panFile!.split('/').pop() || 'pan-card.pdf')}
+                              className="p-1 text-secondary-400 hover:text-success-600 hover:bg-success-50 rounded transition-all"
+                              title="Download PAN Card"
+                            >
+                              <ArrowDownTrayIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                        {emp.attachments?.aadhaarFile && (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleViewAttachment(emp.attachments!.aadhaarFile!, 'Aadhaar Card')}
+                              className="p-1 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-all"
+                              title="View Aadhaar Card"
+                            >
+                              <EyeIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDownloadAttachment(emp.attachments!.aadhaarFile!.split('/').pop() || 'aadhaar-card.pdf')}
+                              className="p-1 text-secondary-400 hover:text-success-600 hover:bg-success-50 rounded transition-all"
+                              title="Download Aadhaar Card"
+                            >
+                              <ArrowDownTrayIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                        {emp.attachments?.employeePhoto && (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleViewAttachment(emp.attachments!.employeePhoto!, 'Employee Photo')}
+                              className="p-1 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-all"
+                              title="View Employee Photo"
+                            >
+                              <EyeIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDownloadAttachment(emp.attachments!.employeePhoto!.split('/').pop() || 'employee-photo.jpg')}
+                              className="p-1 text-secondary-400 hover:text-success-600 hover:bg-success-50 rounded transition-all"
+                              title="Download Employee Photo"
+                            >
+                              <ArrowDownTrayIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                        {emp.attachments?.bankStatement && (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleViewAttachment(emp.attachments!.bankStatement!, 'Bank Statement')}
+                              className="p-1 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-all"
+                              title="View Bank Statement"
+                            >
+                              <EyeIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDownloadAttachment(emp.attachments!.bankStatement!.split('/').pop() || 'bank-statement.pdf')}
+                              className="p-1 text-secondary-400 hover:text-success-600 hover:bg-success-50 rounded transition-all"
+                              title="Download Bank Statement"
+                            >
+                              <ArrowDownTrayIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                        {!emp.attachments?.panFile && !emp.attachments?.aadhaarFile && !emp.attachments?.employeePhoto && !emp.attachments?.bankStatement && (
+                          <span className="text-xs text-secondary-400">None</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-2.5">
                       <StatusBadge status={emp.status} className="h-6" />
                     </td>
                     <td className="px-6 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
+                          onClick={() => handleViewFullProfile(emp.id)}
+                          className="p-1.5 text-secondary-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all"
+                          title="View Full Profile"
+                        >
+                          <UsersIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleViewDetails(emp)}
+                          className="p-1.5 text-secondary-400 hover:text-info-600 hover:bg-info-50 rounded-lg transition-all"
+                          title="View Details"
+                        >
+                          <EyeIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleResendRegistrationEmail(emp.id, emp.name)}
+                          className="p-1.5 text-secondary-400 hover:text-warning-600 hover:bg-warning-50 rounded-lg transition-all"
+                          title="Resend Registration Email"
+                        >
+                          <PaperAirplaneIcon className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => setEditingEmployee(emp)}
                           className="p-1.5 text-secondary-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
+                          title="Edit Employee"
                         >
                           <PencilSquareIcon className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteEmployee(emp.id, emp.name)}
                           className="p-1.5 text-secondary-400 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-all"
+                          title="Delete Employee"
                         >
                           <TrashIcon className="w-4 h-4" />
                         </button>
@@ -561,7 +862,7 @@ const Employees: React.FC = () => {
                 ))}
                 {filteredEmployees.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-20 text-center">
+                    <td colSpan={7} className="px-6 py-20 text-center">
                       <div className="flex flex-col items-center gap-2 opacity-40">
                         <UsersIcon className="w-10 h-10 text-secondary-300" />
                         <p className="text-sm font-bold text-secondary-500">No employees found matching your search</p>
@@ -718,6 +1019,499 @@ const Employees: React.FC = () => {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Employee Details Modal */}
+      <Modal
+        isOpen={showDetailsModal}
+        onClose={() => {
+          setShowDetailsModal(false);
+          setSelectedEmployee(null);
+        }}
+        title="Employee Details"
+        size="xl"
+      >
+        {selectedEmployee && (
+          <div className="space-y-6">
+            {/* Basic Information */}
+            <div className="bg-secondary-50 rounded-lg p-4">
+              <h3 className="text-lg font-bold text-secondary-900 mb-4">Basic Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Employee ID:</span>
+                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.employeeId}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Full Name:</span>
+                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.name}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Office Email:</span>
+                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.email}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Phone:</span>
+                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.phone || 'Not provided'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Department:</span>
+                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.department}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Designation:</span>
+                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.designation}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Role:</span>
+                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.role}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Status:</span>
+                  <StatusBadge status={selectedEmployee.status} className="h-6" />
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Date of Joining:</span>
+                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.joining_date || selectedEmployee.joinDate}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Created At:</span>
+                  <p className="text-sm font-bold text-secondary-900">{new Date(selectedEmployee.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Profile Information */}
+            {selectedEmployee.profile && (
+              <div className="bg-secondary-50 rounded-lg p-4">
+                <h3 className="text-lg font-bold text-secondary-900 mb-4">Profile Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm font-medium text-secondary-500">Date of Birth:</span>
+                    <p className="text-sm font-bold text-secondary-900">
+                      {selectedEmployee.profile.dob ? new Date(selectedEmployee.profile.dob).toLocaleDateString() : 'Not provided'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-secondary-500">Education:</span>
+                    <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.education || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-secondary-500">Marital Status:</span>
+                    <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.maritalStatus || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-secondary-500">Gender:</span>
+                    <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.gender || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-secondary-500">Personal Email:</span>
+                    <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.personalEmail || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-secondary-500">Personal Mobile:</span>
+                    <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.personalMobile || 'Not provided'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-sm font-medium text-secondary-500">Permanent Address:</span>
+                    <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.permanentAddress || 'Not provided'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-sm font-medium text-secondary-500">Current Address:</span>
+                    <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.currentAddress || 'Not provided'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Attachments */}
+            <div className="bg-secondary-50 rounded-lg p-4">
+              <h3 className="text-lg font-bold text-secondary-900 mb-4">Attachments</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">PAN Card:</span>
+                  <div className="mt-1">
+                    {selectedEmployee.attachments?.panFile ? (
+                      <button
+                        onClick={() => handleViewAttachment(selectedEmployee.attachments!.panFile!, 'PAN Card')}
+                        className="text-primary-600 hover:text-primary-700 text-sm font-medium underline"
+                      >
+                        View PAN Card
+                      </button>
+                    ) : (
+                      <p className="text-sm text-secondary-400">Not uploaded</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Aadhaar Card:</span>
+                  <div className="mt-1">
+                    {selectedEmployee.attachments?.aadhaarFile ? (
+                      <button
+                        onClick={() => handleViewAttachment(selectedEmployee.attachments!.aadhaarFile!, 'Aadhaar Card')}
+                        className="text-primary-600 hover:text-primary-700 text-sm font-medium underline"
+                      >
+                        View Aadhaar Card
+                      </button>
+                    ) : (
+                      <p className="text-sm text-secondary-400">Not uploaded</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Employee Photo:</span>
+                  <div className="mt-1">
+                    {selectedEmployee.attachments?.employeePhoto ? (
+                      <button
+                        onClick={() => handleViewAttachment(selectedEmployee.attachments!.employeePhoto!, 'Employee Photo')}
+                        className="text-primary-600 hover:text-primary-700 text-sm font-medium underline"
+                      >
+                        View Employee Photo
+                      </button>
+                    ) : (
+                      <p className="text-sm text-secondary-400">Not uploaded</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Bank Statement:</span>
+                  <div className="mt-1">
+                    {selectedEmployee.attachments?.bankStatement ? (
+                      <button
+                        onClick={() => handleViewAttachment(selectedEmployee.attachments!.bankStatement!, 'Bank Statement')}
+                        className="text-primary-600 hover:text-primary-700 text-sm font-medium underline"
+                      >
+                        View Bank Statement
+                      </button>
+                    ) : (
+                      <p className="text-sm text-secondary-400">Not uploaded</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Registration Status */}
+            <div className="bg-secondary-50 rounded-lg p-4">
+              <h3 className="text-lg font-bold text-secondary-900 mb-4">Registration Status</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Active Registration Token:</span>
+                  <p className="text-sm font-bold text-secondary-900">
+                    {selectedEmployee.hasActiveRegistrationToken ? 'Yes' : 'No'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Token Expiry:</span>
+                  <p className="text-sm font-bold text-secondary-900">
+                    {selectedEmployee.registrationTokenExpiry 
+                      ? new Date(selectedEmployee.registrationTokenExpiry).toLocaleString()
+                      : 'No active token'
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button variant="secondary" fullWidth onClick={() => setShowDetailsModal(false)}>
+                Close
+              </Button>
+              <Button 
+                variant="primary" 
+                fullWidth 
+                onClick={() => handleResendRegistrationEmail(selectedEmployee.id, selectedEmployee.name)}
+              >
+                Resend Registration Email
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Enhanced Employee Profile Modal */}
+      <Modal
+        isOpen={showProfileModal}
+        onClose={() => {
+          setShowProfileModal(false);
+          setEnhancedEmployeeDetails(null);
+        }}
+        title="Complete Employee Profile"
+        size="full"
+      >
+        {enhancedEmployeeDetails && (
+          <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+            {/* Section 1: Personal Information */}
+            <div className="bg-white border border-secondary-200 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+                <UsersIcon className="w-5 h-5 text-primary-600" />
+                Personal Information
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">First Name:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.personalDetails.firstName}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Last Name:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.personalDetails.lastName}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Email:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.personalDetails.email}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Phone:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.personalDetails.phone || 'Not provided'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Date of Birth:</span>
+                  <p className="text-sm font-bold text-secondary-900">
+                    {enhancedEmployeeDetails.personalDetails.date_of_birth 
+                      ? new Date(enhancedEmployeeDetails.personalDetails.date_of_birth).toLocaleDateString()
+                      : 'Not provided'
+                    }
+                  </p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Gender:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.personalDetails.gender || 'Not provided'}</p>
+                </div>
+                <div className="col-span-3">
+                  <span className="text-sm font-medium text-secondary-500">Address:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.personalDetails.address || 'Not provided'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: Guardian Information */}
+            <div className="bg-white border border-secondary-200 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+                <UsersIcon className="w-5 h-5 text-info-600" />
+                Guardian Information
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Guardian Name:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.guardianDetails.guardian_name || 'Not provided'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Guardian Phone:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.guardianDetails.guardian_phone || 'Not provided'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Guardian Relation:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.guardianDetails.guardian_relation || 'Not provided'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Education Details */}
+            <div className="bg-white border border-secondary-200 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+                <DocumentIcon className="w-5 h-5 text-success-600" />
+                Education Details
+              </h3>
+              <div className="grid grid-cols-4 gap-4">
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Qualification:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.educationDetails.qualification || 'Not provided'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">University:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.educationDetails.university || 'Not provided'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Passing Year:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.educationDetails.passing_year || 'Not provided'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Grade:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.educationDetails.grade || 'Not provided'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 4: Bank Details */}
+            <div className="bg-white border border-secondary-200 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+                <DocumentIcon className="w-5 h-5 text-warning-600" />
+                Bank Details
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Bank Name:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.bankDetails.bank_name || 'Not provided'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Account Number:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.bankDetails.account_number || 'Not provided'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">IFSC Code:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.bankDetails.ifsc_code || 'Not provided'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Branch Name:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.bankDetails.branch_name || 'Not provided'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 5: Identity Documents */}
+            <div className="bg-white border border-secondary-200 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+                <FolderOpenIcon className="w-5 h-5 text-indigo-600" />
+                Identity Documents
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">PAN Number:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.identityDetails.pan_number || 'Not provided'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Aadhaar Number:</span>
+                  <p className="text-sm font-bold text-secondary-900">{enhancedEmployeeDetails.identityDetails.aadhaar_number || 'Not provided'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 6: Attachments */}
+            <div className="bg-white border border-secondary-200 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+                <DocumentIcon className="w-5 h-5 text-purple-600" />
+                Attachments
+              </h3>
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">PAN Card:</span>
+                  <div className="mt-2 flex gap-2">
+                    {enhancedEmployeeDetails.attachments.pan_card_file && (
+                      <>
+                        <button
+                          onClick={() => handleViewAttachment(enhancedEmployeeDetails.attachments.pan_card_file!, 'PAN Card')}
+                          className="text-primary-600 hover:text-primary-700 text-sm font-medium underline"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => handleDownloadAttachment(enhancedEmployeeDetails.attachments.pan_card_file!.split('/').pop() || 'pan-card.pdf')}
+                          className="text-success-600 hover:text-success-700 text-sm font-medium underline"
+                        >
+                          Download
+                        </button>
+                      </>
+                    )}
+                    {!enhancedEmployeeDetails.attachments.pan_card_file && (
+                      <p className="text-sm text-secondary-400">Not uploaded</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Aadhaar Card:</span>
+                  <div className="mt-2 flex gap-2">
+                    {enhancedEmployeeDetails.attachments.aadhaar_card_file && (
+                      <>
+                        <button
+                          onClick={() => handleViewAttachment(enhancedEmployeeDetails.attachments.aadhaar_card_file!, 'Aadhaar Card')}
+                          className="text-primary-600 hover:text-primary-700 text-sm font-medium underline"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => handleDownloadAttachment(enhancedEmployeeDetails.attachments.aadhaar_card_file!.split('/').pop() || 'aadhaar-card.pdf')}
+                          className="text-success-600 hover:text-success-700 text-sm font-medium underline"
+                        >
+                          Download
+                        </button>
+                      </>
+                    )}
+                    {!enhancedEmployeeDetails.attachments.aadhaar_card_file && (
+                      <p className="text-sm text-secondary-400">Not uploaded</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Education Certificate:</span>
+                  <div className="mt-2 flex gap-2">
+                    {enhancedEmployeeDetails.attachments.education_certificate && (
+                      <>
+                        <button
+                          onClick={() => handleViewAttachment(enhancedEmployeeDetails.attachments.education_certificate!, 'Education Certificate')}
+                          className="text-primary-600 hover:text-primary-700 text-sm font-medium underline"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => handleDownloadAttachment(enhancedEmployeeDetails.attachments.education_certificate!.split('/').pop() || 'education-certificate.pdf')}
+                          className="text-success-600 hover:text-success-700 text-sm font-medium underline"
+                        >
+                          Download
+                        </button>
+                      </>
+                    )}
+                    {!enhancedEmployeeDetails.attachments.education_certificate && (
+                      <p className="text-sm text-secondary-400">Not uploaded</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Profile Photo:</span>
+                  <div className="mt-2 flex gap-2">
+                    {enhancedEmployeeDetails.attachments.profile_photo && (
+                      <>
+                        <button
+                          onClick={() => handleViewAttachment(enhancedEmployeeDetails.attachments.profile_photo!, 'Profile Photo')}
+                          className="text-primary-600 hover:text-primary-700 text-sm font-medium underline"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => handleDownloadAttachment(enhancedEmployeeDetails.attachments.profile_photo!.split('/').pop() || 'profile-photo.jpg')}
+                          className="text-success-600 hover:text-success-700 text-sm font-medium underline"
+                        >
+                          Download
+                        </button>
+                      </>
+                    )}
+                    {!enhancedEmployeeDetails.attachments.profile_photo && (
+                      <p className="text-sm text-secondary-400">Not uploaded</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500">Other Documents:</span>
+                  <div className="mt-2 flex gap-2">
+                    {enhancedEmployeeDetails.attachments.other_documents && (
+                      <>
+                        <button
+                          onClick={() => handleViewAttachment(enhancedEmployeeDetails.attachments.other_documents!, 'Other Documents')}
+                          className="text-primary-600 hover:text-primary-700 text-sm font-medium underline"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => handleDownloadAttachment(enhancedEmployeeDetails.attachments.other_documents!.split('/').pop() || 'other-documents.pdf')}
+                          className="text-success-600 hover:text-success-700 text-sm font-medium underline"
+                        >
+                          Download
+                        </button>
+                      </>
+                    )}
+                    {!enhancedEmployeeDetails.attachments.other_documents && (
+                      <p className="text-sm text-secondary-400">Not uploaded</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button variant="secondary" fullWidth onClick={() => setShowProfileModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
