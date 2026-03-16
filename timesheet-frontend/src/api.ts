@@ -30,6 +30,15 @@ API.interceptors.response.use(
   },
   (error) => {
     loadingManager.stopLoading();
+    
+    // Handle 401 Unauthorized errors
+    if (error.response?.status === 401) {
+      console.error('401 Unauthorized - Clearing auth and redirecting to login');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    
     return Promise.reject(error);
   }
 );

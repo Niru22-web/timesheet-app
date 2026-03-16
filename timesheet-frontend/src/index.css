@@ -60,19 +60,19 @@
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm;
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm min-h-[44px] min-w-[44px];
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-sm active:scale-95;
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-sm active:scale-95 min-h-[44px] min-w-[44px];
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm bg-white text-secondary-700 border border-secondary-200 hover:bg-secondary-50 hover:border-secondary-300 focus:ring-secondary-200 shadow-sm active:scale-95;
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm bg-white text-secondary-700 border border-secondary-200 hover:bg-secondary-50 hover:border-secondary-300 focus:ring-secondary-200 shadow-sm active:scale-95 min-h-[44px] min-w-[44px];
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm bg-danger-600 text-white hover:bg-danger-700 focus:ring-danger-500 shadow-sm active:scale-95;
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm bg-danger-600 text-white hover:bg-danger-700 focus:ring-danger-500 shadow-sm active:scale-95 min-h-[44px] min-w-[44px];
   }
 
   .card {
@@ -80,7 +80,7 @@
   }
 
   .input-field {
-    @apply w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-lg outline-none transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-secondary-300 text-sm;
+    @apply w-full px-4 py-3 bg-white border border-secondary-200 rounded-lg outline-none transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-secondary-300 text-sm min-h-[44px];
   }
 
   .label {
@@ -88,7 +88,75 @@
   }
 
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border;
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border;
+  }
+
+  /* Responsive Table Styles */
+  .responsive-table {
+    @apply w-full overflow-x-auto;
+  }
+
+  .responsive-table table {
+    @apply min-w-full divide-y divide-secondary-200;
+  }
+
+  .responsive-table th {
+    @apply px-3 py-3.5 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider bg-secondary-50;
+  }
+
+  .responsive-table td {
+    @apply px-3 py-4 text-sm text-secondary-900 whitespace-nowrap;
+  }
+
+  /* Mobile Card View for Tables */
+  .mobile-card-view {
+    @apply space-y-3;
+  }
+
+  .mobile-card {
+    @apply bg-white rounded-lg border border-secondary-200 p-4 space-y-3;
+  }
+
+  .mobile-card-header {
+    @apply flex items-center justify-between pb-2 border-b border-secondary-100;
+  }
+
+  .mobile-card-title {
+    @apply font-semibold text-secondary-900;
+  }
+
+  .mobile-card-content {
+    @apply space-y-2;
+  }
+
+  .mobile-card-row {
+    @apply flex justify-between items-center py-1;
+  }
+
+  .mobile-card-label {
+    @apply text-xs font-medium text-secondary-500 uppercase tracking-wider;
+  }
+
+  .mobile-card-value {
+    @apply text-sm text-secondary-900 text-right;
+  }
+
+  /* Touch-friendly action buttons */
+  .action-button {
+    @apply p-2 rounded-lg hover:bg-secondary-100 transition-colors duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center;
+  }
+
+  /* Responsive Grid */
+  .responsive-grid {
+    @apply grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  .responsive-grid-2 {
+    @apply grid gap-4 grid-cols-1 sm:grid-cols-2;
+  }
+
+  .responsive-grid-3 {
+    @apply grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3;
   }
 }
 
@@ -118,6 +186,72 @@
   
   .modal-content {
     max-height: calc(100vh - 180px);
+  }
+
+  /* Hide table headers on mobile and show card view */
+  .responsive-table thead {
+    display: none;
+  }
+
+  .responsive-table,
+  .responsive-table tbody,
+  .responsive-table tr,
+  .responsive-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .responsive-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid var(--color-secondary-200);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background: white;
+  }
+
+  .responsive-table td {
+    text-align: right;
+    padding-left: 50%;
+    position: relative;
+    border-bottom: 1px solid var(--color-secondary-100);
+  }
+
+  .responsive-table td:before {
+    content: attr(data-label);
+    position: absolute;
+    left: 1rem;
+    width: calc(50% - 2rem);
+    padding-right: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--color-secondary-500);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .responsive-table td:last-child {
+    border-bottom: none;
+  }
+
+  /* Action buttons on mobile */
+  .responsive-table td:last-child {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    padding-left: 1rem;
+  }
+
+  .responsive-table td:last-child:before {
+    display: none;
+  }
+}
+
+/* Tablet styles */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .responsive-table th,
+  .responsive-table td {
+    @apply px-2 py-3 text-xs;
   }
 }
 

@@ -2,11 +2,12 @@ import React, { ButtonHTMLAttributes } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'premium' | 'action';
-    size?: 'sm' | 'md' | 'lg' | 'xl';
+    size?: 'sm' | 'md' | 'lg' | 'xl' | 'icon';
     isLoading?: boolean;
     leftIcon?: React.ReactNode;
     rightIcon?: React.ReactNode;
     fullWidth?: boolean;
+    touchFriendly?: boolean;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -17,11 +18,14 @@ const Button: React.FC<ButtonProps> = ({
     leftIcon,
     rightIcon,
     fullWidth = false,
+    touchFriendly = false,
     className = '',
     disabled,
     ...props
 }) => {
     const baseStyles = 'inline-flex items-center justify-center rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm select-none';
+    
+    const touchStyles = touchFriendly ? 'min-h-[44px] min-w-[44px]' : '';
 
     const variants = {
         primary: 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-md focus:ring-primary-500 active:scale-[0.98] shadow-sm',
@@ -37,6 +41,7 @@ const Button: React.FC<ButtonProps> = ({
         md: 'px-4 py-2',
         lg: 'px-6 py-3 text-base',
         xl: 'px-8 py-4 text-lg',
+        icon: 'p-2',
     };
 
     return (
@@ -46,6 +51,7 @@ const Button: React.FC<ButtonProps> = ({
                 ${variants[variant]}
                 ${sizes[size]}
                 ${fullWidth ? 'w-full' : ''}
+                ${touchStyles}
                 ${isLoading ? 'relative !text-transparent pointer-events-none' : ''}
                 ${className}
             `}

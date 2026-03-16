@@ -15,103 +15,99 @@ import {
   CalendarIcon,
   CheckCircleIcon,
   BellIcon,
-  ArrowRightOnRectangleIcon,
   Bars3Icon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
 
 // UI Components
-import Avatar from '../components/ui/Avatar';
-import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 
 interface DashboardHeaderProps {
   title?: string;
   subtitle?: string;
-  user?: any;
-  onLogout?: () => void;
   onMenuToggle?: () => void;
 }
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({ 
   title = 'Dashboard', 
   subtitle, 
-  user, 
-  onLogout,
   onMenuToggle
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between">
-          {/* Left Section - Company Info */}
+    <header className="sticky top-0 z-30 bg-white border-b border-gray-200/80 backdrop-blur-sm shadow-sm">
+      <div className="px-6 lg:px-8 h-16">
+        <div className="flex items-center justify-between h-full">
+          {/* Left Section - Sidebar Toggle + Branding */}
           <div className="flex items-center gap-4">
+            {/* Sidebar Toggle */}
             <button
               onClick={onMenuToggle || (() => setIsSidebarOpen(!isSidebarOpen))}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-all duration-200 active:scale-95"
+              aria-label="Toggle menu"
             >
-              <Bars3Icon className="w-5 h-5 text-gray-500" />
+              <Bars3Icon className="w-5 h-5 text-gray-600" />
             </button>
+            
+            {/* Company Branding */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-semibold shadow-sm flex-shrink-0">
                 A
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">{APP_CONFIG.COMPANY_NAME}</h1>
-                <p className="text-sm text-gray-500 font-medium">Timesheet Management System</p>
+              <div className="hidden sm:block">
+                <h1 className="text-sm font-semibold text-gray-900 leading-tight">Ashish Shah and Associates</h1>
               </div>
             </div>
           </div>
 
-          {/* Center Section - Title */}
-          <div className="hidden lg:flex items-center">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+          {/* Center Section - Page Title */}
+          <div className="hidden lg:flex items-center justify-center flex-1 absolute left-1/2 transform -translate-x-1/2">
+            <div className="text-center">
+              <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
               {subtitle && (
-                <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+                <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
               )}
             </div>
           </div>
 
-          {/* Right Section - User Info */}
-          <div className="flex items-center gap-4">
+          {/* Right Section - Notifications */}
+          <div className="flex items-center gap-3">
             {/* Notifications */}
-            <div className="relative">
-              <button className="p-2 rounded-lg hover:bg-gray-100 relative">
-                <BellIcon className="w-5 h-5 text-gray-500" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
-            </div>
-
-            {/* User Info */}
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Welcome back,</p>
-                <p className="text-sm font-medium text-gray-900">{user?.name || 'User'}</p>
-                <p className="text-xs text-gray-500 capitalize">{user?.role || 'User'}</p>
-              </div>
-              <Avatar name={user?.name || 'User'} size="md" />
-            </div>
-
-            {/* Logout */}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onLogout}
-              leftIcon={<ArrowRightOnRectangleIcon className="w-4 h-4" />}
-            >
-              Logout
-            </Button>
+            <button className="relative p-2.5 rounded-lg hover:bg-gray-100 transition-colors duration-200 group">
+              <BellIcon className="w-5 h-5 text-gray-600 group-hover:text-gray-900" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+            </button>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Title Display */}
+      <div className="lg:hidden px-6 py-3 border-t border-gray-100 bg-gray-50/50">
+        <div className="text-center">
+          <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+          {subtitle && (
+            <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
+          )}
         </div>
       </div>
 
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity duration-300"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}

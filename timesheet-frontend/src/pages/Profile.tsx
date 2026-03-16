@@ -15,7 +15,9 @@ import {
     HeartIcon,
     PencilSquareIcon,
     CameraIcon,
-    ArrowUpTrayIcon
+    ArrowUpTrayIcon,
+    LockClosedIcon,
+    KeyIcon
 } from '@heroicons/react/24/outline';
 
 // UI Components
@@ -48,6 +50,16 @@ const Profile: React.FC = () => {
     // Profile photo state
     const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string>('');
+    
+    // Change password state
+    const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+    const [passwordData, setPasswordData] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
+    const [passwordError, setPasswordError] = useState('');
+    const [passwordLoading, setPasswordLoading] = useState(false);
 
     useEffect(() => {
         fetchProfile();
@@ -164,6 +176,49 @@ const Profile: React.FC = () => {
         }
     };
 
+    // Password change handlers
+    const handlePasswordChange = (field: string, value: string) => {
+        setPasswordData(prev => ({ ...prev, [field]: value }));
+        setPasswordError('');
+    };
+
+    const handleChangePassword = async () => {
+        // Validation
+        if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+            setPasswordError('All fields are required');
+            return;
+        }
+
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            setPasswordError('New passwords do not match');
+            return;
+        }
+
+        if (passwordData.newPassword.length < 6) {
+            setPasswordError('Password must be at least 6 characters long');
+            return;
+        }
+
+        setPasswordLoading(true);
+        setPasswordError('');
+
+        try {
+            await API.post('/auth/change-password', {
+                currentPassword: passwordData.currentPassword,
+                newPassword: passwordData.newPassword
+            });
+
+            alert('Password changed successfully!');
+            setPasswordModalOpen(false);
+            setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        } catch (error: any) {
+            console.error('Error changing password:', error);
+            setPasswordError(error.response?.data?.error || 'Failed to change password');
+        } finally {
+            setPasswordLoading(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="h-full flex items-center justify-center">
@@ -191,14 +246,24 @@ const Profile: React.FC = () => {
                     <h1 className="text-3xl font-extrabold text-secondary-900 tracking-tight">Personal Identity</h1>
                     <p className="text-sm font-medium text-secondary-500 mt-1">Manage your secure credentials and professional profile.</p>
                 </div>
-                <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleEditProfile}
-                    leftIcon={<PencilSquareIcon className="w-4 h-4" />}
-                >
-                    Edit Profile
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setPasswordModalOpen(true)}
+                        leftIcon={<LockClosedIcon className="w-4 h-4" />}
+                    >
+                        Change Password
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleEditProfile}
+                        leftIcon={<PencilSquareIcon className="w-4 h-4" />}
+                    >
+                        Edit Profile
+                    </Button>
+                </div>
             </div>
 
             <div className="flex-1 overflow-y-auto no-scrollbar pb-6">
@@ -428,6 +493,68 @@ const Profile: React.FC = () => {
                         </Button>
                         <Button variant="primary" fullWidth onClick={handleSaveProfile}>
                             Save Changes
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+            
+            {/* Change Password Modal */}
+            <Modal
+                isOpen={passwordModalOpen}
+                onClose={() => {
+                    setPasswordModalOpen(false);
+                    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                    setPasswordError('');
+                }}
+                title="Change Password"
+                size="md"
+            >
+                <div className="space-y-4">
+                    <Input
+                        label="Current Password"
+                        type="password"
+                        placeholder="Enter current password"
+                        value={passwordData.currentPassword}
+                        onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
+                        leftIcon={<LockClosedIcon className="w-5 h-5" />}
+                        touchFriendly
+                    />
+                    <Input
+                        label="New Password"
+                        type="password"
+                        placeholder="Enter new password"
+                        value={passwordData.newPassword}
+                        onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                        leftIcon={<KeyIcon className="w-5 h-5" />}
+                        touchFriendly
+                    />
+                    <Input
+                        label="Confirm New Password"
+                        type="password"
+                        placeholder="Confirm new password"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
+                        leftIcon={<KeyIcon className="w-5 h-5" />}
+                        touchFriendly
+                    />
+                    
+                    {passwordError && (
+                        <div className="bg-danger-50 text-danger-700 px-3 py-2 rounded-lg text-sm">
+                            {passwordError}
+                        </div>
+                    )}
+                    
+                    <div className="pt-4 flex gap-3">
+                        <Button variant="secondary" fullWidth onClick={() => setPasswordModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button 
+                            variant="primary" 
+                            fullWidth 
+                            onClick={handleChangePassword}
+                            isLoading={passwordLoading}
+                        >
+                            Change Password
                         </Button>
                     </div>
                 </div>

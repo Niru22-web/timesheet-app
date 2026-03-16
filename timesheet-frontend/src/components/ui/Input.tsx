@@ -6,6 +6,8 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement | HTMLTextArea
     leftIcon?: React.ReactNode;
     multiline?: boolean;
     rows?: number;
+    touchFriendly?: boolean;
+    containerClassName?: string;
 }
 
 const Input: React.FC<InputProps> = ({
@@ -15,18 +17,21 @@ const Input: React.FC<InputProps> = ({
     className = '',
     multiline = false,
     rows = 3,
+    touchFriendly = false,
+    containerClassName = '',
     ...props
 }) => {
     const inputStyles = `
-        w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-lg outline-none 
+        w-full px-4 py-3 bg-white border border-secondary-200 rounded-lg outline-none 
         transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 
         hover:border-secondary-300 text-sm placeholder:text-secondary-400
+        ${touchFriendly ? 'min-h-[44px] text-base' : ''}
         ${leftIcon ? 'pl-11' : ''}
         ${error ? 'border-danger-400 focus:ring-danger-500/10 focus:border-danger-500' : ''}
     `;
 
     return (
-        <div className="space-y-1.5 w-full">
+        <div className={`space-y-1.5 w-full ${containerClassName}`}>
             {label && (
                 <label className="text-sm font-medium text-secondary-700 block ml-0.5">
                     {label}
@@ -35,8 +40,8 @@ const Input: React.FC<InputProps> = ({
 
             <div className="relative group">
                 {leftIcon && (
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary-400 group-focus-within:text-primary-500 transition-colors pointer-events-none">
-                        {React.cloneElement(leftIcon as React.ReactElement, { className: 'w-5 h-5' })}
+                    <div className={`absolute left-4 top-1/2 -translate-y-1/2 text-secondary-400 group-focus-within:text-primary-500 transition-colors pointer-events-none`}>
+                        {React.cloneElement(leftIcon as React.ReactElement<any>, { className: 'w-5 h-5' })}
                     </div>
                 )}
 
@@ -44,7 +49,7 @@ const Input: React.FC<InputProps> = ({
                     <textarea
                         className={`${inputStyles} resize-none min-h-[100px] ${className}`}
                         rows={rows}
-                        {...props as any}
+                        {...(props as any)}
                     />
                 ) : (
                     <input

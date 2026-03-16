@@ -9,14 +9,17 @@ import {
   IdentificationIcon,
   AcademicCapIcon,
   BuildingOfficeIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  EnvelopeIcon
 } from '@heroicons/react/24/outline';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import StatusBadge from '../components/ui/StatusBadge';
 import Avatar from '../components/ui/Avatar';
+import Modal from '../components/ui/Modal';
 import API from '../api';
+import { useAuth } from '../contexts/AuthContext';
 
 interface EmployeeDetails {
   // Personal Details
@@ -88,11 +91,14 @@ interface EmployeeDetails {
 const EditEmployee: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const [employee, setEmployee] = useState<EmployeeDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{type: string; employeeName: string; employeeId: string} | null>(null);
 
   useEffect(() => {
     fetchEmployeeDetails();
@@ -158,6 +164,37 @@ const EditEmployee: React.FC = () => {
     }
   };
 
+  const handleResendRegistrationEmail = async (employeeId: string, employeeName: string) => {
+    setConfirmAction({ type: 'resend-email', employeeId, employeeName });
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmAction) return;
+    
+    if (confirmAction.type === 'resend-email') {
+      try {
+        const response = await API.post(`/employees/resend-registration/${confirmAction.employeeId}`);
+        if (response.data.success) {
+          alert('✅ Registration email sent successfully.');
+        } else {
+          alert('❌ Failed to send registration email');
+        }
+      } catch (err: any) {
+        console.error('Error resending registration email:', err);
+        const errorMessage = err.response?.data?.error || err.message || 'Failed to resend registration email';
+        alert(`❌ ${errorMessage}`);
+      }
+    }
+    
+    setShowConfirmDialog(false);
+    setConfirmAction(null);
+  };
+
+  const isAdmin = () => {
+    return user?.role?.toLowerCase() === 'admin';
+  };
+
   const handleDownloadAttachment = (url: string, filename: string) => {
     if (url) {
       const link = document.createElement('a');
@@ -206,7 +243,7 @@ const EditEmployee: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 flex justify-between items-center">
           <Button
             onClick={() => navigate('/employees')}
             variant="secondary"
@@ -216,13 +253,24 @@ const EditEmployee: React.FC = () => {
             Back to Employees
           </Button>
           
-          <div className="bg-white rounded-lg shadow p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Edit Employee</h1>
-            <p className="text-gray-600">
-              Editing: {employee.firstName} {employee.lastName} ({employee.employeeId})
-            </p>
-            <StatusBadge status={employee.status} className="inline-block" />
-          </div>
+          {isAdmin() && (
+            <Button
+              onClick={() => handleResendRegistrationEmail(employee.id, `${employee.firstName} ${employee.lastName}`)}
+              variant="secondary"
+              className="mb-4"
+              leftIcon={<EnvelopeIcon className="w-4 h-4" />}
+            >
+              Resend Registration Email
+            </Button>
+          )}
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Edit Employee</h1>
+          <p className="text-gray-600">
+            Editing: {employee.firstName} {employee.lastName} ({employee.employeeId})
+          </p>
+          <StatusBadge status={employee.status} className="inline-block" />
         </div>
 
         {/* Personal Information */}
@@ -339,7 +387,7 @@ const EditEmployee: React.FC = () => {
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">PAN Card</span>
                     <Button
-                      onClick={() => handleDownloadAttachment(employee.profile.panFileUrl, 'pan-card.pdf')}
+                      onClick={() => handleDownloadAttachment(employee.profile!.panFileUrl!, 'pan-card.pdf')}
                       variant="secondary"
                       size="sm"
                     >
@@ -354,7 +402,7 @@ const EditEmployee: React.FC = () => {
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">Aadhaar Card</span>
                     <Button
-                      onClick={() => handleDownloadAttachment(employee.profile.aadhaarFileUrl, 'aadhaar-card.pdf')}
+                      onClick={() => handleDownloadAttachment(employee.profile!.aadhaarFileUrl!, 'aadhaar-card.pdf')}
                       variant="secondary"
                       size="sm"
                     >
@@ -369,7 +417,7 @@ const EditEmployee: React.FC = () => {
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">Employee Photo</span>
                     <Button
-                      onClick={() => handleDownloadAttachment(employee.profile.employeePhotoUrl, 'employee-photo.jpg')}
+                      onClick={() => handleDownloadAttachment(employee.profile!.employeePhotoUrl!, 'employee-photo.jpg')}
                       variant="secondary"
                       size="sm"
                     >
@@ -377,7 +425,7 @@ const EditEmployee: React.FC = () => {
                     </Button>
                   </div>
                   <img 
-                    src={`http://localhost:3001${employee.profile.employeePhotoUrl}`}
+                    src={`http://localhost:3001${employee.profile!.employeePhotoUrl}`}
                     alt="Employee Photo" 
                     className="mt-2 w-20 h-20 rounded object-cover"
                   />
@@ -389,7 +437,7 @@ const EditEmployee: React.FC = () => {
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">Bank Statement</span>
                     <Button
-                      onClick={() => handleDownloadAttachment(employee.profile.bankStatementFileUrl, 'bank-statement.pdf')}
+                      onClick={() => handleDownloadAttachment(employee.profile!.bankStatementFileUrl!, 'bank-statement.pdf')}
                       variant="secondary"
                       size="sm"
                     >
@@ -620,6 +668,40 @@ const EditEmployee: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Confirmation Dialog */}
+        <Modal
+          isOpen={showConfirmDialog}
+          onClose={() => {
+            setShowConfirmDialog(false);
+            setConfirmAction(null);
+          }}
+          title="Confirm Action"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <p className="text-secondary-700">
+              {confirmAction?.type === 'resend-email' ? `Do you want to resend the registration email to ${confirmAction.employeeName}?` : ''}
+            </p>
+            <div className="flex gap-3 pt-4">
+              <Button 
+                variant="secondary" 
+                onClick={() => {
+                  setShowConfirmDialog(false);
+                  setConfirmAction(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="primary" 
+                onClick={handleConfirmAction}
+              >
+                Send Email
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </div>
   );

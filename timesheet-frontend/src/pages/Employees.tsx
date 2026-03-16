@@ -25,6 +25,7 @@ import Input from '../components/ui/Input';
 import StatusBadge from '../components/ui/StatusBadge';
 import Modal from '../components/ui/Modal';
 import Avatar from '../components/ui/Avatar';
+import ResponsiveTable from '../components/ui/ResponsiveTable';
 
 interface Employee {
   id: string;
@@ -134,6 +135,8 @@ const Employees: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{type: string; employeeId: string; employeeName: string} | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [enhancedEmployeeDetails, setEnhancedEmployeeDetails] = useState<EnhancedEmployeeDetails | null>(null);
@@ -230,16 +233,17 @@ const Employees: React.FC = () => {
 
   const fetchPendingApprovals = async () => {
     try {
-      const res = await API.get('/admin/pending-approvals');
-      setPendingApprovals(res.data);
+      const res = await API.get('/employees/pending-approvals');
+      setPendingApprovals(res.data.data || []);
     } catch (err) {
       console.error('Failed to fetch pending approvals:', err);
     }
   };
 
   const handleApproveEmployee = async (employeeId: string) => {
+    console.log('Approve employee clicked:', employeeId);
     try {
-      await API.post(`/admin/approve-employee/${employeeId}`);
+      await API.post(`/employees/approve-employee/${employeeId}`);
       fetchPendingApprovals();
       fetchEmployees();
     } catch (err) {
@@ -249,9 +253,10 @@ const Employees: React.FC = () => {
   };
 
   const handleRejectEmployee = async (employeeId: string) => {
+    console.log('Reject employee clicked:', employeeId);
     if (window.confirm('Are you sure you want to reject this employee? This action cannot be undone.')) {
       try {
-        await API.post(`/admin/reject-employee/${employeeId}`, { reason: 'Rejected by administrator' });
+        await API.post(`/employees/reject-employee/${employeeId}`, { reason: 'Rejected by administrator' });
         fetchPendingApprovals();
         fetchEmployees();
       } catch (err) {
@@ -303,6 +308,7 @@ const Employees: React.FC = () => {
   };
 
   const handleCreateEmployee = async () => {
+    console.log('Create employee clicked');
     // Validation
     if (!firstName || !lastName || !email || !designation || !role || !department) {
       alert('Please fill all mandatory fields.');
@@ -413,6 +419,7 @@ const Employees: React.FC = () => {
   };
 
   const handleDeleteEmployee = async (id: string, employeeName: string) => {
+    console.log('Delete employee clicked:', id, employeeName);
     if (window.confirm(`Are you sure you want to delete ${employeeName}? This action cannot be undone and will remove all associated data including timelogs, projects, and reimbursements.`)) {
       try {
         await API.delete(`/employees/${id}`);
@@ -432,8 +439,16 @@ const Employees: React.FC = () => {
     setShowDetailsModal(true);
   };
 
-  const handleEditEmployee = (employeeId: string) => {
-    navigate(`/employees/edit/${employeeId}`);
+  const handleViewEmployee = (employee: Employee) => {
+    console.log('View employee clicked:', employee);
+    setSelectedEmployee(employee);
+    setShowDetailsModal(true);
+  };
+
+  const handleEditEmployee = (employee: Employee) => {
+    console.log('Edit employee clicked:', employee);
+    setEditingEmployee(employee);
+    setShowEditModal(true);
   };
 
   const handleDownloadAllAttachments = (employee: Employee) => {
@@ -488,7 +503,7 @@ const Employees: React.FC = () => {
       try {
         const response = await API.post(`/employees/resend-registration/${employeeId}`);
         if (response.data.success) {
-          alert('✅ Registration email sent successfully!');
+          alert('✅ Registration email sent successfully.');
           fetchEmployees(); // Refresh to update token status
         } else {
           alert('❌ Failed to send registration email');
@@ -499,6 +514,38 @@ const Employees: React.FC = () => {
         alert(`❌ ${errorMessage}`);
       }
     }
+  };
+
+  const handleResendEmailWithConfirmation = (employeeId: string, employeeName: string) => {
+    setConfirmAction({ type: 'resend-email', employeeId, employeeName });
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmAction) return;
+    
+    if (confirmAction.type === 'resend-email') {
+      try {
+        const response = await API.post(`/employees/resend-registration/${confirmAction.employeeId}`);
+        if (response.data.success) {
+          alert('✅ Registration email sent successfully.');
+          fetchEmployees(); // Refresh to update token status
+        } else {
+          alert('❌ Failed to send registration email');
+        }
+      } catch (err: any) {
+        console.error('Error resending registration email:', err);
+        const errorMessage = err.response?.data?.error || err.message || 'Failed to resend registration email';
+        alert(`❌ ${errorMessage}`);
+      }
+    }
+    
+    setShowConfirmDialog(false);
+    setConfirmAction(null);
+  };
+
+  const isAdmin = () => {
+    return user?.role?.toLowerCase() === 'admin';
   };
 
   const handleViewAttachment = (attachmentUrl: string, fileName: string) => {
@@ -768,116 +815,98 @@ const Employees: React.FC = () => {
           </div>
         </div>
 
-        {/* Table Area: Scrollable and Compact */}
+        {/* Table Area: Responsive Table */}
         <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
           {loading ? (
             <div className="h-40 flex items-center justify-center">
-              <ArrowPathIcon className="w-8 h-8 text-primary-500 animate-spin" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
             </div>
           ) : error ? (
-            <div className="h-40 flex items-center justify-center text-danger-500 font-bold">
-              {error}
+            <div className="text-center py-12 text-danger-600">
+              <div className="text-lg font-medium mb-2">Error loading employees</div>
+              <div className="text-sm">{error}</div>
             </div>
           ) : (
-            <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 bg-secondary-50/80 backdrop-blur-sm z-10">
-                <tr className="border-b border-secondary-100/50">
-                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Name</th>
-                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Role</th>
-                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Reporting Partner</th>
-                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Reporting Manager</th>
-                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Email</th>
-                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest">Status</th>
-                  <th className="px-6 py-3 text-xs font-bold text-secondary-500 uppercase tracking-widest text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-secondary-50">
-                {filteredEmployees.map((emp) => (
-                  <tr key={emp.id} className="hover:bg-primary-50/20 group transition-colors">
-                    <td className="px-6 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <Avatar 
-                          name={emp.name} 
-                          size="sm" 
-                          src={emp.profile?.employeePhotoUrl ? `http://localhost:3001${emp.profile.employeePhotoUrl}` : undefined}
-                        />
-                        <span className="text-sm font-bold text-secondary-900">{emp.name}</span>
+            <ResponsiveTable
+              data={filteredEmployees}
+              columns={[
+                {
+                  key: 'name',
+                  label: 'Name',
+                  render: (value: string, row: Employee) => (
+                    <div className="flex items-center gap-3">
+                      <Avatar name={value} size="sm" />
+                      <div>
+                        <div className="font-medium text-secondary-900">{value}</div>
+                        <div className="text-xs text-secondary-500">{row.email}</div>
                       </div>
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap">
-                      <span className="text-xs font-bold px-2 py-0.5 bg-secondary-100 text-secondary-700 rounded-full border border-secondary-200 uppercase tracking-tight">
-                        {emp.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap">
-                      <span className="text-sm text-secondary-600">
-                        {emp.reportingPartner ? partners.find(p => p.id === emp.reportingPartner)?.firstName + ' ' + partners.find(p => p.id === emp.reportingPartner)?.lastName : 'None'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap">
-                      <span className="text-sm text-secondary-600">
-                        {emp.reportingManager ? partners.find(p => p.id === emp.reportingManager)?.firstName + ' ' + partners.find(p => p.id === emp.reportingManager)?.lastName : 'None'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap">
-                      <span className="text-sm text-secondary-600">{emp.email}</span>
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap">
-                      <StatusBadge status={emp.status} className="h-6" />
-                    </td>
-                    <td className="px-6 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleViewDetails(emp)}
-                          className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
-                          title="View Employee"
-                        >
-                          <EyeIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEditEmployee(emp.id)}
-                          className="text-yellow-600 hover:text-yellow-800 p-1 rounded hover:bg-yellow-50 transition-colors"
-                          title="Edit Employee"
-                        >
-                          <PencilSquareIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDownloadAllAttachments(emp)}
-                          className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors"
-                          title="Download All Attachments"
-                        >
-                          <ArrowDownTrayIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleResendRegistrationEmail(emp.id, emp.name)}
-                          className="text-purple-600 hover:text-purple-800 p-1 rounded hover:bg-purple-50 transition-colors"
-                          title="Resend Registration Email"
-                        >
-                          <PaperAirplaneIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
-                          title="Delete Employee"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filteredEmployees.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-20 text-center">
-                      <div className="flex flex-col items-center gap-2 opacity-40">
-                        <UsersIcon className="w-10 h-10 text-secondary-300" />
-                        <p className="text-sm font-bold text-secondary-500">No employees found matching your search</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                    </div>
+                  )
+                },
+                {
+                  key: 'role',
+                  label: 'Role',
+                  render: (value: string) => (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                      {value}
+                    </span>
+                  )
+                },
+                {
+                  key: 'designation',
+                  label: 'Designation'
+                },
+                {
+                  key: 'department',
+                  label: 'Department'
+                },
+                {
+                  key: 'status',
+                  label: 'Status',
+                  render: (value: string) => {
+                    const statusConfig: Record<string, { variant: 'success' | 'danger' | 'warning' | 'secondary'; label: string }> = {
+                      'Active': { variant: 'success', label: 'Active' },
+                      'active': { variant: 'success', label: 'Active' },
+                      'Inactive': { variant: 'danger', label: 'Inactive' },
+                      'On Leave': { variant: 'warning', label: 'On Leave' },
+                      'pending': { variant: 'warning', label: 'Pending' },
+                      'rejected': { variant: 'danger', label: 'Rejected' }
+                    };
+                    const config = statusConfig[value] || { variant: 'secondary', label: value };
+                    return <StatusBadge status={config.variant} text={config.label} />;
+                  }
+                }
+              ]}
+              actions={(row: Employee) => (
+                <>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => handleViewEmployee(row)}
+                    touchFriendly
+                  >
+                    <EyeIcon className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => handleEditEmployee(row)}
+                    touchFriendly
+                  >
+                    <PencilSquareIcon className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => handleDeleteEmployee(row.id, row.name)}
+                    touchFriendly
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </Button>
+                </>
+              )}
+              emptyMessage="No employees found"
+            />
           )}
         </div>
 
@@ -903,12 +932,13 @@ const Employees: React.FC = () => {
         size="lg"
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="First Name"
               placeholder="e.g. Rahul"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
+              touchFriendly
               required
             />
             <Input
@@ -916,6 +946,7 @@ const Employees: React.FC = () => {
               placeholder="e.g. Varma"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
+              touchFriendly
               required
             />
           </div>
@@ -925,14 +956,16 @@ const Employees: React.FC = () => {
             placeholder="rahul@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            touchFriendly
             required
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Designation"
               placeholder="e.g. Tax Associate"
               value={designation}
               onChange={(e) => setDesignation(e.target.value)}
+              touchFriendly
               required
             />
             <Input
@@ -940,6 +973,7 @@ const Employees: React.FC = () => {
               type="date"
               value={dateOfJoining}
               onChange={(e) => setDateOfJoining(e.target.value)}
+              touchFriendly
               required
             />
           </div>
@@ -981,7 +1015,7 @@ const Employees: React.FC = () => {
                 className={`w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-lg outline-none transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-secondary-300 text-sm font-medium ${role === 'Partner' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 value={reportingPartner}
                 onChange={(e) => setReportingPartner(e.target.value)}
-                disabled={role === 'Partner' || (editingEmployee && (editingEmployee.reportingPartner !== undefined))}
+                disabled={role === 'Partner' || (editingEmployee && (editingEmployee.reportingPartner !== undefined && editingEmployee.reportingPartner !== null)) || false}
               >
                 <option value="">Select Partner...</option>
                 {partners.map(partner => (
@@ -1000,7 +1034,7 @@ const Employees: React.FC = () => {
                 className={`w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-lg outline-none transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-secondary-300 text-sm font-medium ${role === 'Partner' || role === 'Manager' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 value={reportingManager}
                 onChange={(e) => setReportingManager(e.target.value)}
-                disabled={role === 'Partner' || role === 'Manager' || (editingEmployee && (editingEmployee.reportingManager !== undefined))}
+                disabled={role === 'Partner' || role === 'Manager' || (editingEmployee && (editingEmployee.reportingManager !== undefined && editingEmployee.reportingManager !== null)) || false}
               >
                 <option value="">Select Manager...</option>
                 {role === 'Employee' && partners.map(partner => (
@@ -1045,106 +1079,134 @@ const Employees: React.FC = () => {
           setSelectedEmployee(null);
         }}
         title="Employee Details"
-        size="xl"
+        size="full"
       >
         {selectedEmployee && (
-          <div className="space-y-6">
-            {/* Basic Information */}
-            <div className="bg-secondary-50 rounded-lg p-4">
-              <h3 className="text-lg font-bold text-secondary-900 mb-4">Basic Information</h3>
-              <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-6 max-h-[80vh] overflow-y-auto">
+            {/* Personal Details Section */}
+            <div className="bg-white border border-secondary-200 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+                <UsersIcon className="w-5 h-5 text-primary-600" />
+                Personal Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <span className="text-sm font-medium text-secondary-500">Employee ID:</span>
-                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.employeeId}</p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-secondary-500">Full Name:</span>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Full Name</span>
                   <p className="text-sm font-bold text-secondary-900">{selectedEmployee.name}</p>
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-secondary-500">Office Email:</span>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Email</span>
                   <p className="text-sm font-bold text-secondary-900">{selectedEmployee.email}</p>
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-secondary-500">Phone:</span>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Phone Number</span>
                   <p className="text-sm font-bold text-secondary-900">{selectedEmployee.phone || 'Not provided'}</p>
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-secondary-500">Department:</span>
-                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.department}</p>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Employee ID</span>
+                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.employeeId}</p>
                 </div>
+                {selectedEmployee.profile && (
+                  <>
+                    <div>
+                      <span className="text-sm font-medium text-secondary-500 block mb-1">Date of Birth</span>
+                      <p className="text-sm font-bold text-secondary-900">
+                        {selectedEmployee.profile.dob ? new Date(selectedEmployee.profile.dob).toLocaleDateString() : 'Not provided'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-secondary-500 block mb-1">Gender</span>
+                      <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.gender || 'Not provided'}</p>
+                    </div>
+                    <div className="md:col-span-2 lg:col-span-3">
+                      <span className="text-sm font-medium text-secondary-500 block mb-1">Permanent Address</span>
+                      <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.permanentAddress || 'Not provided'}</p>
+                    </div>
+                    <div className="md:col-span-2 lg:col-span-3">
+                      <span className="text-sm font-medium text-secondary-500 block mb-1">Current Address</span>
+                      <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.currentAddress || 'Not provided'}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Professional Details Section */}
+            <div className="bg-white border border-secondary-200 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+                <DocumentIcon className="w-5 h-5 text-success-600" />
+                Professional Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <span className="text-sm font-medium text-secondary-500">Designation:</span>
-                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.designation}</p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-secondary-500">Role:</span>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Role</span>
                   <p className="text-sm font-bold text-secondary-900">{selectedEmployee.role}</p>
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-secondary-500">Status:</span>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Department</span>
+                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.department}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Designation</span>
+                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.designation}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Reporting Manager</span>
+                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.reportingManager || 'Not assigned'}</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Joining Date</span>
+                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.joining_date || selectedEmployee.joinDate}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Account Details Section */}
+            <div className="bg-white border border-secondary-200 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+                <FolderOpenIcon className="w-5 h-5 text-warning-600" />
+                Account Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Account Status</span>
                   <StatusBadge status={selectedEmployee.status} className="h-6" />
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-secondary-500">Date of Joining:</span>
-                  <p className="text-sm font-bold text-secondary-900">{selectedEmployee.joining_date || selectedEmployee.joinDate}</p>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Registration Status</span>
+                  <p className="text-sm font-bold text-secondary-900">
+                    {selectedEmployee.hasActiveRegistrationToken ? 'Active' : 'Inactive'}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-secondary-500">Created At:</span>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Last Login</span>
+                  <p className="text-sm font-bold text-secondary-900">Not available</p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Token Expiry</span>
+                  <p className="text-sm font-bold text-secondary-900">
+                    {selectedEmployee.registrationTokenExpiry 
+                      ? new Date(selectedEmployee.registrationTokenExpiry).toLocaleString()
+                      : 'No active token'
+                    }
+                  </p>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Created At</span>
                   <p className="text-sm font-bold text-secondary-900">{new Date(selectedEmployee.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
             </div>
 
-            {/* Profile Information */}
-            {selectedEmployee.profile && (
-              <div className="bg-secondary-50 rounded-lg p-4">
-                <h3 className="text-lg font-bold text-secondary-900 mb-4">Profile Information</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-sm font-medium text-secondary-500">Date of Birth:</span>
-                    <p className="text-sm font-bold text-secondary-900">
-                      {selectedEmployee.profile.dob ? new Date(selectedEmployee.profile.dob).toLocaleDateString() : 'Not provided'}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-secondary-500">Education:</span>
-                    <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.education || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-secondary-500">Marital Status:</span>
-                    <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.maritalStatus || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-secondary-500">Gender:</span>
-                    <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.gender || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-secondary-500">Personal Email:</span>
-                    <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.personalEmail || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-secondary-500">Personal Mobile:</span>
-                    <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.personalMobile || 'Not provided'}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-sm font-medium text-secondary-500">Permanent Address:</span>
-                    <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.permanentAddress || 'Not provided'}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-sm font-medium text-secondary-500">Current Address:</span>
-                    <p className="text-sm font-bold text-secondary-900">{selectedEmployee.profile.currentAddress || 'Not provided'}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Attachments */}
-            <div className="bg-secondary-50 rounded-lg p-4">
-              <h3 className="text-lg font-bold text-secondary-900 mb-4">Attachments</h3>
-              <div className="grid grid-cols-2 gap-4">
+            {/* Attachments Section */}
+            <div className="bg-white border border-secondary-200 rounded-lg p-6">
+              <h3 className="text-lg font-bold text-secondary-900 mb-4 flex items-center gap-2">
+                <DocumentIcon className="w-5 h-5 text-purple-600" />
+                Attachments
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <span className="text-sm font-medium text-secondary-500">PAN Card:</span>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">PAN Card</span>
                   <div className="mt-1">
                     {selectedEmployee.attachments?.panFile ? (
                       <button
@@ -1159,7 +1221,7 @@ const Employees: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-secondary-500">Aadhaar Card:</span>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Aadhaar Card</span>
                   <div className="mt-1">
                     {selectedEmployee.attachments?.aadhaarFile ? (
                       <button
@@ -1174,7 +1236,7 @@ const Employees: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-secondary-500">Employee Photo:</span>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Employee Photo</span>
                   <div className="mt-1">
                     {selectedEmployee.attachments?.employeePhoto ? (
                       <button
@@ -1189,7 +1251,7 @@ const Employees: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-secondary-500">Bank Statement:</span>
+                  <span className="text-sm font-medium text-secondary-500 block mb-1">Bank Statement</span>
                   <div className="mt-1">
                     {selectedEmployee.attachments?.bankStatement ? (
                       <button
@@ -1206,39 +1268,20 @@ const Employees: React.FC = () => {
               </div>
             </div>
 
-            {/* Registration Status */}
-            <div className="bg-secondary-50 rounded-lg p-4">
-              <h3 className="text-lg font-bold text-secondary-900 mb-4">Registration Status</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <span className="text-sm font-medium text-secondary-500">Active Registration Token:</span>
-                  <p className="text-sm font-bold text-secondary-900">
-                    {selectedEmployee.hasActiveRegistrationToken ? 'Yes' : 'No'}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-secondary-500">Token Expiry:</span>
-                  <p className="text-sm font-bold text-secondary-900">
-                    {selectedEmployee.registrationTokenExpiry 
-                      ? new Date(selectedEmployee.registrationTokenExpiry).toLocaleString()
-                      : 'No active token'
-                    }
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button variant="secondary" fullWidth onClick={() => setShowDetailsModal(false)}>
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4 border-t border-secondary-200">
+              <Button variant="secondary" onClick={() => setShowDetailsModal(false)}>
                 Close
               </Button>
-              <Button 
-                variant="primary" 
-                fullWidth 
-                onClick={() => handleResendRegistrationEmail(selectedEmployee.id, selectedEmployee.name)}
-              >
-                Resend Registration Email
-              </Button>
+              {isAdmin() && (
+                <Button 
+                  variant="primary" 
+                  fullWidth 
+                  onClick={() => handleResendEmailWithConfirmation(selectedEmployee.id, selectedEmployee.name)}
+                >
+                  Resend Registration Email
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -1528,6 +1571,42 @@ const Employees: React.FC = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Confirmation Dialog */}
+      <Modal
+        isOpen={showConfirmDialog}
+        onClose={() => {
+          setShowConfirmDialog(false);
+          setConfirmAction(null);
+        }}
+        title="Confirm Action"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-secondary-700">
+            {confirmAction?.type === 'resend-email' && (
+              <>Do you want to resend the registration email to <strong>{confirmAction.employeeName}</strong>?</>
+            )}
+          </p>
+          <div className="flex gap-3 pt-4">
+            <Button 
+              variant="secondary" 
+              onClick={() => {
+                setShowConfirmDialog(false);
+                setConfirmAction(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="primary" 
+              onClick={handleConfirmAction}
+            >
+              Send Email
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

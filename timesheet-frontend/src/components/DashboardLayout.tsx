@@ -15,14 +15,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   title, 
   subtitle 
 }) => {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   return (
     <div className="h-screen w-screen overflow-hidden flex">
@@ -41,8 +35,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           <DashboardHeader
             title={title}
             subtitle={subtitle}
-            user={user}
-            onLogout={handleLogout}
             onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
           />
         </div>
