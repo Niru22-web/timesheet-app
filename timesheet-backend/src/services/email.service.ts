@@ -1,4 +1,5 @@
 import EmailService from '../modules/email/email.service';
+import nodemailer from 'nodemailer';
 
 // Direct Email Connector interface
 interface DirectEmailOptions {
@@ -8,51 +9,134 @@ interface DirectEmailOptions {
   text?: string;
 }
 
+// SMTP Configuration
+const SMTP_CONFIG = {
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: process.env.SMTP_SECURE === 'true',
+  auth: {
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || ''
+  }
+};
+
+// Create SMTP transporter if SMTP credentials are available
+const createSMTPTransporter = () => {
+  console.log('🔍 Checking SMTP configuration...');
+  console.log('SMTP_HOST:', process.env.SMTP_HOST ? '✅ Set' : '❌ Missing');
+  console.log('SMTP_USER:', process.env.SMTP_USER ? '✅ Set' : '❌ Missing');
+  console.log('SMTP_PASS:', process.env.SMTP_PASS ? '✅ Set' : '❌ Missing');
+  
+  if (SMTP_CONFIG.auth.user && SMTP_CONFIG.auth.pass) {
+    console.log('📧 Creating SMTP transporter with:', {
+      host: SMTP_CONFIG.host,
+      port: SMTP_CONFIG.port,
+      user: SMTP_CONFIG.auth.user
+    });
+    return nodemailer.createTransport(SMTP_CONFIG);
+  } else {
+    console.log('❌ SMTP credentials not configured. Please set SMTP_HOST, SMTP_USER, and SMTP_PASS environment variables.');
+  }
+  return null;
+};
+
 export const sendEmail = async (options: DirectEmailOptions): Promise<boolean> => {
   try {
-    console.log('📧 Attempting to send email via Outlook OAuth:', options);
+    console.log('📧 Attempting to send email to:', options.to);
+    console.log('📋 Email subject:', options.subject);
     
-    // Use the EmailService with Outlook OAuth
-    const emailService = new EmailService();
-    
-    // Find any active Outlook connection in the system
-    const connections = await emailService.getAllEmailConnections();
+    // First try OAuth method (Outlook/Google)
+    const connections = await EmailService.getAllEmailConnections();
     console.log('📋 Available email connections:', connections.length);
     
-    // Find an active Outlook connection
     const outlookConnection = connections.find(conn => conn.provider === 'outlook' && conn.accessToken);
-    if (!outlookConnection) {
-      console.error('❌ No active Outlook connection found. Please connect Outlook account first.');
-      console.log('📋 Email content (not sent - no Outlook connection):');
-      console.log('To:', options.to);
-      console.log('Subject:', options.subject);
-      return false;
+    
+    if (outlookConnection) {
+      console.log('✅ Using Outlook OAuth connection from:', outlookConnection.email);
+      console.log('🔐 Token expires at:', outlookConnection.tokenExpiry);
+      
+      try {
+        // Check if token needs refresh before sending
+        const now = new Date();
+        const tokenExpiry = new Date(outlookConnection.tokenExpiry);
+        const isTokenExpired = now > tokenExpiry;
+        
+        if (isTokenExpired) {
+          console.log('🔄 Access token expired, refreshing before sending email...');
+          try {
+            const newToken = await EmailService.refreshAccessToken(outlookConnection);
+            console.log('✅ Token refreshed successfully');
+            outlookConnection.accessToken = newToken;
+          } catch (refreshError) {
+            console.error('❌ Failed to refresh token:', refreshError);
+            throw new Error('Outlook token refresh failed. Please reconnect the email account.');
+          }
+        }
+        
+        // Send email using the EmailService's internal method
+        await EmailService['sendSystemEmail']({
+          to: options.to,
+          subject: options.subject,
+          html: options.html
+        });
+        
+        console.log('✅ Email sent successfully via Outlook OAuth to:', options.to);
+        return true;
+        
+      } catch (oauthError) {
+        console.error('❌ Outlook OAuth failed:', oauthError);
+        console.error('❌ OAuth error details:', oauthError instanceof Error ? oauthError.message : 'Unknown error');
+        
+        // Don't fall back to SMTP for OAuth-specific errors
+        if (oauthError instanceof Error && 
+            (oauthError.message.includes('authentication') || 
+             oauthError.message.includes('permission') ||
+             oauthError.message.includes('token'))) {
+          throw oauthError;
+        }
+        
+        console.log('⚠️ OAuth failed, trying SMTP fallback...');
+      }
+    } else {
+      console.log('⚠️ No active Outlook connection found, checking SMTP fallback');
     }
     
-    console.log('✅ Using Outlook connection for:', outlookConnection.email);
+    // Fallback to SMTP if OAuth fails or no connection
+    const smtpTransporter = createSMTPTransporter();
+    if (smtpTransporter) {
+      console.log('📧 Sending email via SMTP to:', options.to);
+      
+      const mailOptions = {
+        from: `"Timesheet System" <${SMTP_CONFIG.auth.user}>`,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text
+      };
+      
+      await smtpTransporter.sendMail(mailOptions);
+      console.log('✅ Email sent successfully via SMTP to:', options.to);
+      return true;
+    }
     
-    // Send email using the connected Outlook account
-    await emailService.sendEmail(outlookConnection.employeeId, {
-      to: options.to,
-      subject: options.subject,
-      html: options.html,
-      text: options.text
-    });
+    // If neither OAuth nor SMTP is available
+    console.error('❌ No email service configured. Please set up either OAuth or SMTP.');
+    console.log('📋 Email content (not sent - no email service configured):');
+    console.log('To:', options.to);
+    console.log('Subject:', options.subject);
     
-    console.log('✅ Email sent successfully via Outlook OAuth to:', options.to);
-    return true;
+    return false;
     
   } catch (error) {
-    console.error('❌ Failed to send email via Outlook OAuth:', error);
+    console.error('❌ Failed to send email:', error);
     console.error('Email service error details:', error instanceof Error ? error.message : 'Unknown error');
     
     // Log the email content for debugging
     console.log('📋 Email content (not sent due to error):');
     console.log('To:', options.to);
     console.log('Subject:', options.subject);
-    console.log('HTML:', options.html);
     
-    return false;
+    throw error; // Re-throw to let the caller handle it
   }
 };
 

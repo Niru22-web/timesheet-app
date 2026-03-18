@@ -11,6 +11,7 @@ interface User {
   position?: string;
   department?: string;
   status?: string;
+  officeEmail?: string;
 }
 
 interface AuthContextType {
@@ -18,6 +19,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,6 +39,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check for existing auth token and user data on mount
@@ -54,6 +57,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('user');
       }
     }
+    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -70,10 +74,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsAuthenticated(true);
         return true;
       } else {
+        console.error('Login failed:', response.data);
+        // Show more specific error message
+        const errorMessage = response.data?.error || 'Login failed. Please check your credentials.';
+        alert(`❌ ${errorMessage}`);
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
+      
+      // Handle network errors specifically
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('ERR_CONNECTION_REFUSED') || error.message?.includes('ERR_CONNECTION_REFUSED')) {
+        alert('❌ Network connection failed. Please check if the backend server is running and accessible.');
+      } else if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        alert('❌ Connection refused. The server may be down or not accepting connections.');
+      } else if (error.response?.status === 500) {
+        alert('❌ Server error occurred. Please try again later.');
+      } else {
+        alert(`❌ Login failed: ${error.message || 'Unknown error'}`);
+      }
+      
       return false;
     }
   };
@@ -89,7 +109,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     login,
     logout,
-    isAuthenticated
+    isAuthenticated,
+    loading
   };
 
   return (

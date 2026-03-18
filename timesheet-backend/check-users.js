@@ -5,7 +5,18 @@ async function checkUsers() {
   try {
     console.log('🔍 Checking database users...');
     
-    const users = await prisma.employee.findMany();
+    const users = await prisma.employee.findMany({
+      select: {
+        firstName: true,
+        lastName: true,
+        employeeId: true,
+        officeEmail: true,
+        role: true,
+        designation: true,
+        status: true,
+        password: true
+      }
+    });
     console.log(`📊 Total users in database: ${users.length}`);
     
     if (users.length > 0) {
@@ -16,6 +27,7 @@ async function checkUsers() {
         console.log(`  👔 Role: ${user.role}`);
         console.log(`  📋 Designation: ${user.designation}`);
         console.log(`  ✅ Status: ${user.status}`);
+        console.log(`  🔑 Has Password: ${user.password ? 'Yes' : 'No'}`);
         console.log('');
       });
     } else {

@@ -3,15 +3,34 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { prisma } from "../../config/prisma";
 import { generateToken } from "../../config/jwt";
-import { sendPasswordResetEmail } from "../../services/email.service";
+import { sendPasswordResetEmail, sendEmail } from "../../services/email.service";
 import EmailService from "../email/email.service";
 
 export const login = async (req: Request, res: Response) => {
+  console.log('🔐 Login request received:');
+  console.log('  - Request body:', req.body);
+  console.log('  - Email:', req.body.email);
+  console.log('  - Password provided:', !!req.body.password);
+  
   const { email, password } = req.body;
 
+  if (!email || !password) {
+    console.log('❌ Missing email or password');
+    return res.status(400).json({ message: "Email and password are required" });
+  }
+
+  console.log('🔍 Looking for user with email:', email);
   const user = await prisma.employee.findUnique({
     where: { officeEmail: email },
   });
+
+  console.log('  - User found:', !!user);
+  if (user) {
+    console.log('  - User ID:', user.id);
+    console.log('  - User email:', user.officeEmail);
+    console.log('  - User status:', user.status);
+    console.log('  - User has password:', !!user.password);
+  }
 
   if (!user || !user.password)
     return res.status(400).json({ message: "Invalid credentials" });
@@ -177,8 +196,7 @@ export const register = async (req: Request, res: Response) => {
       console.log("Attempting to send registration email to:", employee.officeEmail);
       
       // Check if Outlook is connected before sending email
-      const emailService = new EmailService();
-      const connections = await emailService.getAllEmailConnections();
+      const connections = await EmailService.getAllEmailConnections();
       const outlookConnection = connections.find(conn => conn.provider === 'outlook' && conn.accessToken);
       
       if (!outlookConnection) {
@@ -320,11 +338,14 @@ export const forgotPassword = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
     
-    console.log("Forgot password request:", email);
+    console.log("🔐 Forgot password request received for:", email);
 
     if (!email) {
-      console.log("Email is required");
-      return res.status(400).json({ message: 'Email address is required' });
+      console.log("❌ Email is required");
+      return res.status(400).json({ 
+        success: false,
+        message: 'Email address is required' 
+      });
     }
 
     // Find user by email
@@ -333,13 +354,15 @@ export const forgotPassword = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      console.log("User not found for email:", email);
+      console.log("⚠️ User not found for email:", email);
+      // Always return success to prevent email enumeration attacks
       return res.json({
-        message: "If this email exists, a reset link will be sent."
+        success: true,
+        message: "If this email exists in our system, a password reset link has been sent."
       });
     }
 
-    console.log("User found:", user.officeEmail);
+    console.log("✅ User found:", user.officeEmail);
 
     // Generate reset token
     const resetToken = generateResetToken();
@@ -351,36 +374,65 @@ export const forgotPassword = async (req: Request, res: Response) => {
       VALUES (gen_random_uuid(), ${user.id}, ${email}, ${resetToken}, ${resetTokenExpiry}, NOW())
     `;
 
-    console.log("Reset token stored in database for user:", user.id);
+    console.log("✅ Reset token stored in database for user:", user.id);
 
-    const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
+    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
 
-    console.log("Reset Link:", resetLink);
+    console.log("🔗 Generated reset link:", resetLink);
 
-    // Send password reset email
-    const emailSent = await sendPasswordResetEmail(email, resetLink);
+    // Send password reset email - this is the critical part
+    console.log("📧 Attempting to send password reset email...");
     
-    if (emailSent) {
-      console.log(`✅ Password reset email sent to ${email}`);
-    } else {
-      console.log(`⚠️ Failed to send password reset email to ${email}`);
+    try {
+      const emailSent = await sendPasswordResetEmail(email, resetLink);
+      
+      if (emailSent) {
+        console.log(`✅ Password reset email sent successfully to ${email}`);
+        return res.json({
+          success: true,
+          message: "Password reset link has been sent to your email address.",
+          debugInfo: {
+            email: email,
+            userFound: true,
+            tokenStored: true,
+            emailSent: true
+          }
+        });
+      } else {
+        console.log(`❌ Failed to send password reset email to ${email}`);
+        // Return error instead of success when email fails
+        return res.status(500).json({
+          success: false,
+          message: "Failed to send password reset email. Please try again later.",
+          error: "Email service unavailable",
+          debugInfo: {
+            email: email,
+            userFound: true,
+            tokenStored: true,
+            emailSent: false
+          }
+        });
+      }
+    } catch (emailError) {
+      console.error('❌ Email sending error:', emailError);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send password reset email. Please try again later.",
+        error: emailError instanceof Error ? emailError.message : 'Unknown email error',
+        debugInfo: {
+          email: email,
+          userFound: true,
+          tokenStored: true,
+          emailSent: false
+        }
+      });
     }
 
-    res.json({
-      message: "Password reset link sent to your email address",
-      debugInfo: {
-        email: email,
-        resetLink: resetLink,
-        userFound: true,
-        tokenStored: true,
-        emailSent: emailSent
-      }
-    });
-
   } catch (error) {
-    console.error("Forgot Password API Error:", error);
+    console.error("❌ Forgot Password API Error:", error);
     res.status(500).json({
-      message: "Server error",
+      success: false,
+      message: "Server error occurred while processing your request",
       error: error instanceof Error ? error.message : "Unknown error"
     });
   }

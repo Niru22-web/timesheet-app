@@ -445,11 +445,20 @@ const EmployeeRegistration: React.FC = () => {
               />
               <Input
                 label="Date of Joining"
-                value={employeeInfo.dateOfJoining || new Date().toISOString().split('T')[0]}
+                value={employeeInfo.profile?.doj ? employeeInfo.profile.doj.split('T')[0] : (employeeInfo.dateOfJoining || new Date().toISOString().split('T')[0])}
                 type="date"
                 disabled
                 leftIcon={<CalendarIcon />}
               />
+              {employeeInfo.profile?.dob && (
+                <Input
+                  label="Date of Birth"
+                  value={employeeInfo.profile.dob.split('T')[0]}
+                  type="date"
+                  disabled
+                  leftIcon={<CalendarIcon />}
+                />
+              )}
               <Input
                 label="Department"
                 value={employeeInfo.department || 'Accounting'}

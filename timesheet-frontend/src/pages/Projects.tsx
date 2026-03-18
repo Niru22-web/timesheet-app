@@ -88,7 +88,7 @@ const Projects: React.FC = () => {
       const [projectsRes, clientsRes, employeesRes, allEmployeesRes] = await Promise.all([
         API.get('/projects'),
         API.get('/clients'),
-        API.get('/employees/team'), // For team assignment (filtered)
+        API.get('/employees'), // Changed from /employees/team which doesn't exist
         API.get('/employees') // For dropdown (all employees)
       ]);
       console.log('API responses:', {

@@ -217,26 +217,123 @@ export const updateEmployee = async (req: any, res: Response) => {
     const { id } = req.params;
     const updateData = req.body;
 
-    console.log('Updating employee with ID:', id);
-    console.log('Update data received:', updateData);
+    console.log('🔄 Updating employee with ID:', id);
+    console.log('📥 Update data received:', JSON.stringify(updateData, null, 2));
 
     const employee = await prisma.employee.findUnique({
       where: { id }
     });
 
     if (!employee) {
-      return res.status(404).json({ error: 'Employee not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Employee not found' 
+      });
     }
 
+    // Separate profile data from employee data
+    const { profile, ...employeeUpdateData } = updateData;
+
+    console.log('👤 Employee update data:', JSON.stringify(employeeUpdateData, null, 2));
+    console.log('📋 Profile data:', JSON.stringify(profile, null, 2));
+
+    // Update employee basic information
     const updatedEmployee = await prisma.employee.update({
       where: { id },
-      data: updateData
+      data: employeeUpdateData
     });
 
-    res.json(updatedEmployee);
+    console.log('✅ Basic employee info updated');
+
+    // Update profile data if provided
+    if (profile && Object.keys(profile).length > 0) {
+      console.log('🔄 Updating profile data...');
+      
+      // Check if profile exists
+      const existingProfile = await prisma.employeeProfile.findUnique({
+        where: { employeeId: id }
+      });
+
+      console.log('📊 Existing profile found:', !!existingProfile);
+
+      // Filter out null/undefined values for required fields
+      const filteredProfile = {
+        dob: profile.dob ? new Date(profile.dob) : new Date('2000-01-01'), // Default date if not provided
+        doj: profile.doj ? new Date(profile.doj) : new Date(), // Default to today if not provided
+        education: profile.education || 'Not specified',
+        maritalStatus: profile.maritalStatus || 'Single',
+        gender: profile.gender || 'Other',
+        permanentAddress: profile.permanentAddress || 'Not provided',
+        currentAddress: profile.currentAddress || 'Not provided',
+        pan: profile.pan || 'Not provided',
+        aadhaar: profile.aadhaar || 'Not provided',
+        // Optional fields - include only if provided
+        ...(profile.panFileUrl && { panFileUrl: profile.panFileUrl }),
+        ...(profile.aadhaarFileUrl && { aadhaarFileUrl: profile.aadhaarFileUrl }),
+        ...(profile.currentPinCode && { currentPinCode: profile.currentPinCode }),
+        ...(profile.guardianAddress && { guardianAddress: profile.guardianAddress }),
+        ...(profile.guardianName && { guardianName: profile.guardianName }),
+        ...(profile.guardianNumber && { guardianNumber: profile.guardianNumber }),
+        ...(profile.personalEmail && { personalEmail: profile.personalEmail }),
+        ...(profile.personalMobile && { personalMobile: profile.personalMobile }),
+        ...(profile.employeePhotoUrl && { employeePhotoUrl: profile.employeePhotoUrl }),
+        ...(profile.accountHolderName && { accountHolderName: profile.accountHolderName }),
+        ...(profile.bankAccountNumber && { bankAccountNumber: profile.bankAccountNumber }),
+        ...(profile.bankName && { bankName: profile.bankName }),
+        ...(profile.branchName && { branchName: profile.branchName }),
+        ...(profile.ifscCode && { ifscCode: profile.ifscCode }),
+        ...(profile.bankStatementFileUrl && { bankStatementFileUrl: profile.bankStatementFileUrl }),
+        ...(profile.emergencyContactName && { emergencyContactName: profile.emergencyContactName }),
+        ...(profile.emergencyContactPhone && { emergencyContactPhone: profile.emergencyContactPhone }),
+        ...(profile.emergencyContactRelation && { emergencyContactRelation: profile.emergencyContactRelation })
+      };
+
+      console.log('🎯 Filtered profile data:', JSON.stringify(filteredProfile, null, 2));
+
+      if (existingProfile) {
+        console.log('📝 Updating existing profile...');
+        // Update existing profile
+        await prisma.employeeProfile.update({
+          where: { employeeId: id },
+          data: filteredProfile
+        });
+      } else {
+        console.log('➕ Creating new profile...');
+        // Create new profile
+        await prisma.employeeProfile.create({
+          data: {
+            employeeId: id,
+            ...filteredProfile
+          }
+        });
+      }
+      
+      console.log('✅ Profile data updated successfully');
+    }
+
+    // Fetch complete updated employee details
+    const completeUpdatedEmployee = await prisma.employee.findUnique({
+      where: { id },
+      include: {
+        profile: true
+      }
+    });
+
+    console.log('🎉 Employee updated successfully');
+
+    res.json({
+      success: true,
+      data: completeUpdatedEmployee,
+      message: 'Employee updated successfully'
+    });
   } catch (error) {
-    console.error('Error updating employee:', error);
-    res.status(500).json({ error: 'Failed to update employee' });
+    console.error('❌ Error updating employee:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack available');
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to update employee',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
 
@@ -301,12 +398,55 @@ export const deleteEmployee = async (req: any, res: Response) => {
 
 export const getEmployees = async (req: any, res: Response) => {
   try {
+    console.log('🔍 Fetching employees for user:', {
+      id: req.user?.id,
+      email: req.user?.email,
+      role: req.user?.role
+    });
+
+    // Base query - always include profile for photos
+    let whereClause: any = {};
+    let orderByClause: any = { createdAt: 'desc' };
+
+    // Role-based filtering
+    const userRole = req.user?.role?.toLowerCase();
+    
+    if (userRole === 'admin' || userRole === 'owner') {
+      // Admin/Owner can see all employees
+      console.log('👑 Admin/Owner role - showing all employees');
+      whereClause = {};
+    } else if (userRole === 'partner') {
+      // Partner can see employees where they are the reporting partner
+      console.log('🤝 Partner role - filtering by reportingPartner');
+      whereClause = {
+        reportingPartner: req.user?.id
+      };
+    } else if (userRole === 'manager') {
+      // Manager can see employees where they are the reporting manager
+      console.log('👨‍💼 Manager role - filtering by reportingManager');
+      whereClause = {
+        reportingManager: req.user?.id
+      };
+    } else {
+      // Employee role can only see themselves
+      console.log('👤 Employee role - showing only self');
+      whereClause = {
+        id: req.user?.id
+      };
+    }
+
+    console.log('📋 Applied filter:', whereClause);
+
     const employees = await prisma.employee.findMany({
+      where: whereClause,
       include: {
         profile: true // Include profile data to access photos
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: orderByClause
     });
+
+    console.log(`✅ Found ${employees.length} employees for ${userRole}`);
+
     res.json(employees);
   } catch (error) {
     console.error('Error fetching employees:', error);
@@ -334,6 +474,11 @@ export const getEmployeesByDepartment = async (req: any, res: Response) => {
 export const getPartners = async (req: any, res: Response) => {
   try {
     console.log('🔍 Fetching partners for dropdown...');
+    console.log('👤 User requesting partners:', {
+      id: req.user?.id,
+      email: req.user?.email,
+      role: req.user?.role
+    });
     
     const partners = await prisma.employee.findMany({
       where: { 
@@ -354,11 +499,96 @@ export const getPartners = async (req: any, res: Response) => {
     });
     
     console.log(`✅ Found ${partners.length} partners`);
+    console.log('📋 Partners data:', partners);
     
     res.json(partners);
   } catch (error) {
-    console.error('Error fetching partners:', error);
+    console.error('❌ Error fetching partners:', error);
     res.status(500).json({ error: 'Failed to fetch partners' });
+  }
+};
+
+// Get managers under a specific partner
+export const getManagersByPartner = async (req: any, res: Response) => {
+  try {
+    const { partnerId, includeManagerId } = req.query;
+    
+    console.log('🔍 Fetching managers for partner:', partnerId);
+    console.log('👤 User requesting managers:', {
+      id: req.user?.id,
+      email: req.user?.email,
+      role: req.user?.role
+    });
+    console.log('📋 Query parameters:', { partnerId, includeManagerId });
+    
+    if (!partnerId) {
+      return res.status(400).json({ 
+        error: 'Partner ID is required' 
+      });
+    }
+    
+    // Find all managers who report to this partner
+    let managers = await prisma.employee.findMany({
+      where: { 
+        role: { 
+          equals: 'Manager' 
+        },
+        reportingPartner: partnerId,
+        status: 'active'
+      },
+      select: {
+        id: true,
+        employeeId: true,
+        firstName: true,
+        lastName: true,
+        officeEmail: true,
+        role: true,
+        status: true,
+        reportingPartner: true
+      },
+      orderBy: { firstName: 'asc' }
+    });
+    
+    // If includeManagerId is provided, add that manager even if they don't belong to this partner
+    if (includeManagerId) {
+      console.log('🔍 includeManagerId parameter found:', includeManagerId);
+      const existingManager = managers.find(m => m.id === includeManagerId);
+      if (!existingManager) {
+        console.log('🔍 Including additional manager:', includeManagerId);
+        const additionalManager = await prisma.employee.findUnique({
+          where: { id: includeManagerId as string },
+          select: {
+            id: true,
+            employeeId: true,
+            firstName: true,
+            lastName: true,
+            officeEmail: true,
+            role: true,
+            status: true,
+            reportingPartner: true
+          }
+        });
+        
+        if (additionalManager) {
+          managers.push(additionalManager);
+          console.log('✅ Added additional manager to list:', additionalManager.firstName, additionalManager.lastName);
+        } else {
+          console.log('❌ Additional manager not found in database');
+        }
+      } else {
+        console.log('✅ Manager already exists in list');
+      }
+    } else {
+      console.log('📋 No includeManagerId parameter provided');
+    }
+    
+    console.log(`✅ Found ${managers.length} managers under partner ${partnerId}`);
+    console.log('📋 Managers data:', managers);
+    
+    res.json(managers);
+  } catch (error) {
+    console.error('❌ Error fetching managers by partner:', error);
+    res.status(500).json({ error: 'Failed to fetch managers' });
   }
 };
 
@@ -383,37 +613,27 @@ export const getEmployeeById = async (req: any, res: Response) => {
       });
     }
 
+    // Helper to find employee by ID or Email
+    const findByAny = async (value: string) => {
+      if (!value) return null;
+      // Try ID
+      let emp = await prisma.employee.findUnique({
+        where: { id: value },
+        select: { id: true, employeeId: true, firstName: true, lastName: true, officeEmail: true, role: true }
+      });
+      if (!emp) {
+        // Try Email
+        emp = await prisma.employee.findUnique({
+          where: { officeEmail: value },
+          select: { id: true, employeeId: true, firstName: true, lastName: true, officeEmail: true, role: true }
+        });
+      }
+      return emp;
+    };
+
     // Get reporting partner and manager details
-    let reportingPartnerDetails = null;
-    let reportingManagerDetails = null;
-
-    if (employee.reportingPartner) {
-      reportingPartnerDetails = await prisma.employee.findUnique({
-        where: { id: employee.reportingPartner },
-        select: {
-          id: true,
-          employeeId: true,
-          firstName: true,
-          lastName: true,
-          officeEmail: true,
-          role: true
-        }
-      });
-    }
-
-    if (employee.reportingManager) {
-      reportingManagerDetails = await prisma.employee.findUnique({
-        where: { id: employee.reportingManager },
-        select: {
-          id: true,
-          employeeId: true,
-          firstName: true,
-          lastName: true,
-          officeEmail: true,
-          role: true
-        }
-      });
-    }
+    let reportingPartnerDetails = await findByAny(employee.reportingPartner || '');
+    let reportingManagerDetails = await findByAny(employee.reportingManager || '');
 
     // Construct full employee response
     const fullEmployeeDetails = {
@@ -422,7 +642,7 @@ export const getEmployeeById = async (req: any, res: Response) => {
       employeeId: employee.employeeId,
       firstName: employee.firstName,
       lastName: employee.lastName,
-      officeEmail: employee.officeEmail,
+      officeEmail: employee.officeEmail || '',
       designation: employee.designation,
       role: employee.role,
       department: employee.department,

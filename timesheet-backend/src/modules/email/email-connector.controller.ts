@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import emailService from './email.service';
+import { sendEmail } from '../../services/email.service';
 import { authenticate } from '../../middleware/auth.middleware';
 
 class EmailConnectorController {
@@ -165,7 +166,7 @@ class EmailConnectorController {
         });
       }
 
-      const result = await emailService.sendEmail(user.employeeId, {
+      const result = await sendEmail({
         to,
         subject,
         text,

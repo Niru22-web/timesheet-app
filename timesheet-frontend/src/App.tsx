@@ -34,10 +34,11 @@ import EmployeeRegistration from './pages/EmployeeRegistration';
 import EmailConfiguration from './pages/EmailConfiguration';
 import EmailTemplates from './pages/EmailTemplates';
 import UserAccessControl from './pages/UserAccessControl';
+import OAuthCallback from './pages/OAuthCallback';
+
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { isAuthenticated } = useAuth();
-    console.log('PrivateRoute - isAuthenticated:', isAuthenticated);
     return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 };
 
@@ -57,6 +58,7 @@ const App: React.FC = () => {
                         <Route path="/reset-password" element={<ResetPassword />} />
                         <Route path="/register" element={<UserRegistration />} />
                         <Route path="/complete-registration" element={<EmployeeRegistration />} />
+                        <Route path="/oauth-callback" element={<OAuthCallback />} />
 
                         {/* Dashboard Routes - Use new dashboard components directly */}
                         <Route path="/admin" element={

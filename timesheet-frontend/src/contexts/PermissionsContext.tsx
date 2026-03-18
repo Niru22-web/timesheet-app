@@ -28,7 +28,7 @@ interface PermissionsProviderProps {
 
 export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({ children }) => {
   const [permissions, setPermissions] = useState<Permissions>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const fetchPermissions = async () => {
     try {
@@ -36,10 +36,30 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({ childr
       const response = await API.get('/admin/my-permissions');
       if (response.data.success) {
         setPermissions(response.data.permissions);
+      } else {
+        console.error('Failed to fetch permissions:', response.data);
+        // Set empty permissions on error
+        setPermissions({});
+        // Show user-friendly error message
+        const errorMessage = response.data?.error || 'Failed to fetch permissions';
+        alert(`❌ ${errorMessage}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching permissions:', error);
-      // Set empty permissions on error
+      
+      // Handle network errors specifically
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('ERR_CONNECTION_REFUSED')) {
+        alert('❌ Network connection failed. Please check if the backend server is running and accessible.');
+      } else if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        alert('❌ Connection refused. The server may be down or not accepting connections.');
+      } else if (error.response?.status === 500) {
+        alert('❌ Server error occurred. Please try again later.');
+      } else {
+        // Generic error handling
+        const errorMessage = error.response?.data?.error || error.message || 'Failed to fetch permissions';
+        alert(`❌ ${errorMessage}`);
+      }
+      
       setPermissions({});
     } finally {
       setLoading(false);
@@ -47,7 +67,15 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({ childr
   };
 
   useEffect(() => {
-    fetchPermissions();
+    // Only fetch permissions if user is authenticated
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      fetchPermissions();
+    } else {
+      // Clear permissions if not authenticated
+      setPermissions({});
+      setLoading(false);
+    }
   }, []);
 
   const hasPermission = (moduleName: string, permissionType: keyof Permission): boolean => {

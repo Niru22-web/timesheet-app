@@ -33,6 +33,7 @@ model Employee {
   userPermission     UserPermission?
   managedTimelogs    Timelog[]           @relation("TimelogReportingManager")
   partnerTimelogs    Timelog[]           @relation("TimelogReportingPartner")
+  documents          EmployeeDocument[]
 }
 
 model EmployeeProfile {
@@ -287,4 +288,20 @@ model EmailLog {
   employeeId   String?
 
   @@map("email_logs")
+}
+
+model EmployeeDocument {
+  id           String   @id @default(uuid())
+  employeeId   String
+  title        String
+  category     String   @default("Other")
+  fileName     String
+  filePath     String
+  fileSize     Int
+  mimeType     String
+  uploadedAt   DateTime @default(now())
+  uploadedBy   String?
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("employee_documents")
 }

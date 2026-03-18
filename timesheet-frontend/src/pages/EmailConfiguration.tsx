@@ -28,6 +28,7 @@ interface OAuthConnection {
   email: string;
   isActive: boolean;
   expiresAt?: string;
+  createdAt?: string;
 }
 
 interface EmailConfig {
@@ -142,6 +143,33 @@ const EmailConfiguration: React.FC = () => {
     }
   }, []);
 
+  // Listen for OAuth messages from popup
+  useEffect(() => {
+    const handleOAuthMessage = (event: MessageEvent) => {
+      if (event.data.type === 'OAUTH_SUCCESS') {
+        console.log('Received OAUTH_SUCCESS message:', event.data);
+        
+        setTestResult({
+          success: true,
+          message: 'Outlook account connected successfully!',
+          details: { 
+            provider: 'outlook', 
+            email: event.data.data?.email || 'Connected',
+            connectedAt: new Date().toISOString() 
+          }
+        });
+        setShowTestModal(true);
+        
+        // Refresh OAuth status
+        checkOAuthStatus();
+      }
+    };
+
+    window.addEventListener('message', handleOAuthMessage);
+    return () => window.removeEventListener('message', handleOAuthMessage);
+  }, []);
+
+
   const checkOAuthStatus = async () => {
     try {
       console.log('🔍 Checking OAuth status...');
@@ -223,8 +251,17 @@ const EmailConfiguration: React.FC = () => {
       console.log('Outlook OAuth response:', response);
       
       if (response?.data?.success && response.data.url) {
-        // Redirect to OAuth URL directly
-        window.location.href = response.data.url;
+        // Open OAuth URL in a popup instead of redirecting the current window
+        const width = 600;
+        const height = 700;
+        const left = window.screen.width / 2 - width / 2;
+        const top = window.screen.height / 2 - height / 2;
+        
+        window.open(
+          response.data.url, 
+          'Outlook OAuth', 
+          `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes,toolbar=no,menubar=no,scrollbars=yes`
+        );
       } else {
         const errorMessage = response?.data?.message || 'Failed to generate Outlook OAuth authorization URL';
         const isConfigError = errorMessage.includes('not configured') || errorMessage.includes('Missing required environment variables');

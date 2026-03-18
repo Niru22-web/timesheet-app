@@ -571,7 +571,7 @@ export const updateProfilePhoto = async (req: any, res: Response) => {
       employeePhotoUrl: employeeProfile.employeePhotoUrl
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating profile photo:', error);
     res.status(500).json({ error: 'Failed to update profile photo', details: error.message });
   }

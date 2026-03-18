@@ -34,9 +34,18 @@ API.interceptors.response.use(
     // Handle 401 Unauthorized errors
     if (error.response?.status === 401) {
       console.error('401 Unauthorized - Clearing auth and redirecting to login');
+      
+      // Clear authentication data
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      
+      // Only redirect if not already on login page to prevent infinite loops
+      if (!window.location.pathname.includes('/login') && 
+          !window.location.pathname.includes('/forgot-password') && 
+          !window.location.pathname.includes('/reset-password') &&
+          !window.location.pathname.includes('/register')) {
+        window.location.href = '/login';
+      }
     }
     
     return Promise.reject(error);

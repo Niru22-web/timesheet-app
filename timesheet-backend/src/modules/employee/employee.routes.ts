@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
-import { createEmployee, deleteEmployee, getEmployees, getEmployeesByDepartment, updateEmployee, resendRegistrationEmail, getEmployeeById, downloadAttachment, getPartners } from "./employee.controller";
+import { createEmployee, deleteEmployee, getEmployees, getEmployeesByDepartment, updateEmployee, resendRegistrationEmail, getEmployeeById, downloadAttachment, getPartners, getManagersByPartner } from "./employee.controller";
 import { completeEmployeeProfile, getEmployeeByEmail, uploadProfileDocuments, updateProfilePhoto, uploadProfilePhoto } from "./employeeProfile.controller";
+import { uploadEmployeeDocument, getEmployeeDocuments, downloadEmployeeDocument, deleteEmployeeDocument, uploadDocument } from "./employeeDocuments.controller";
 import { prisma } from "../../config/prisma";
 
 // Debug: Log all imported functions to ensure they exist
@@ -56,13 +57,76 @@ const checkManagerRole = (req: any, res: any, next: any) => {
   }
 };
 
-// Employee management routes
+// Employee management routes - specific routes first
+router.get("/partners", authenticate, getPartners);
+router.get("/managers-by-partner", authenticate, getManagersByPartner);
+router.get("/by-email", authenticate, getEmployeeByEmail);
+router.get("/department", authenticate, getEmployeesByDepartment);
+router.get("/team", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    let user = null;
+    
+    if (token) {
+      try {
+        const jwt = require('jsonwebtoken');
+        user = jwt.verify(token, process.env.JWT_SECRET || 'supersecretkey');
+      } catch (error) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+    }
+
+    let whereClause = {};
+    
+    if (user) {
+      if (user.role === 'Admin' || user.role === 'admin') {
+        whereClause = {};
+      } else if (user.role === 'Manager' || user.role === 'manager') {
+        whereClause = {
+          OR: [
+            { reportingManager: user.email },
+            { reportingPartner: user.email },
+            { officeEmail: user.email }
+          ]
+        };
+      } else {
+        whereClause = {
+          officeEmail: user.email
+        };
+      }
+    }
+
+    const teamMembers = await prisma.employee.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        employeeId: true,
+        firstName: true,
+        lastName: true,
+        officeEmail: true,
+        designation: true,
+        department: true,
+        role: true,
+        status: true
+      }
+    });
+    
+    res.json({
+      success: true,
+      data: teamMembers
+    });
+  } catch (error) {
+    console.error("Failed to fetch team members:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to fetch team members" 
+    });
+  }
+});
+
 router.post("/", authenticate, createEmployee);
 router.get("/", authenticate, getEmployees);
 router.get("/:id", authenticate, getEmployeeById);
-router.get("/by-email", authenticate, getEmployeeByEmail);
-router.get("/department", authenticate, getEmployeesByDepartment);
-router.get("/partners", authenticate, getPartners);
 router.put("/:id", authenticate, updateEmployee);
 router.delete("/:id", authenticate, deleteEmployee);
 
@@ -162,67 +226,10 @@ router.post("/reject-employee/:id", authenticate, checkManagerRole, async (req: 
   }
 });
 
-// Team assignment route
-router.get("/team", async (req, res) => {
-  try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    let user = null;
-    
-    if (token) {
-      try {
-        const jwt = require('jsonwebtoken');
-        user = jwt.verify(token, process.env.JWT_SECRET || 'supersecretkey');
-      } catch (error) {
-        return res.status(401).json({ error: "Invalid token" });
-      }
-    }
-
-    let whereClause = {};
-    
-    if (user) {
-      if (user.role === 'Admin' || user.role === 'admin') {
-        whereClause = {};
-      } else if (user.role === 'Manager' || user.role === 'manager') {
-        whereClause = {
-          OR: [
-            { reportingManager: user.email },
-            { reportingPartner: user.email },
-            { officeEmail: user.email }
-          ]
-        };
-      } else {
-        whereClause = {
-          officeEmail: user.email
-        };
-      }
-    }
-
-    const teamMembers = await prisma.employee.findMany({
-      where: whereClause,
-      select: {
-        id: true,
-        employeeId: true,
-        firstName: true,
-        lastName: true,
-        officeEmail: true,
-        designation: true,
-        department: true,
-        role: true,
-        status: true
-      }
-    });
-    
-    res.json({
-      success: true,
-      data: teamMembers
-    });
-  } catch (error) {
-    console.error("Failed to fetch team members:", error);
-    res.status(500).json({ 
-      success: false,
-      error: "Failed to fetch team members" 
-    });
-  }
-});
+// Employee document routes - more specific routes first
+router.get("/documents/:documentId/download", authenticate, downloadEmployeeDocument);
+router.delete("/documents/:documentId", authenticate, checkManagerRole, deleteEmployeeDocument);
+router.post("/:employeeId/documents", authenticate, checkManagerRole, uploadDocument, uploadEmployeeDocument);
+router.get("/:employeeId/documents", authenticate, getEmployeeDocuments);
 
 export default router;

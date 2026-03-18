@@ -1,5 +1,5 @@
 import { prisma } from '../../config/prisma';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import { google } from 'googleapis';
 import axios from 'axios';
 
@@ -192,31 +192,42 @@ class EmailService {
     refreshToken: string;
     tokenExpiry: Date;
   }) {
-    await prisma.emailConnection.upsert({
+    await prisma.emailConnection.updateMany({
       where: {
-        employeeId_provider: {
-          employeeId: data.employeeId,
-          provider: data.provider
-        }
+        employeeId: data.employeeId,
+        provider: data.provider
       },
-      update: {
+      data: {
         email: data.email,
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
         tokenExpiry: data.tokenExpiry,
         isActive: true,
         updatedAt: new Date()
-      },
-      create: {
-        employeeId: data.employeeId,
-        provider: data.provider,
-        email: data.email,
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        tokenExpiry: data.tokenExpiry,
-        isActive: true
       }
     });
+
+    // If no records were updated, create a new one
+    const existing = await prisma.emailConnection.findFirst({
+      where: {
+        employeeId: data.employeeId,
+        provider: data.provider
+      }
+    });
+
+    if (!existing) {
+      await prisma.emailConnection.create({
+        data: {
+          employeeId: data.employeeId,
+          provider: data.provider,
+          email: data.email,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+          tokenExpiry: data.tokenExpiry,
+          isActive: true
+        }
+      });
+    }
   }
 
   // Get email connection for employee
@@ -282,7 +293,12 @@ class EmailService {
 
   private async refreshMicrosoftToken(connection: any) {
     try {
-      console.log('🔄 Microsoft OAuth: Refreshing access token...');
+      console.log('🔄 Microsoft OAuth: Refreshing access token for:', connection.email);
+      
+      if (!connection.refreshToken) {
+        console.error('❌ No refresh token available for:', connection.email);
+        throw new Error('No refresh token available. Please reconnect the email account.');
+      }
       
       const tokenData = new URLSearchParams({
         client_id: MICROSOFT_OAUTH_CONFIG.clientId,
@@ -292,73 +308,63 @@ class EmailService {
         scope: 'https://graph.microsoft.com/.default'
       });
 
-      const response = await axios.post(
+      console.log('📤 Sending refresh token request to Microsoft...');
+      const tokenResponse = await axios.post(
         'https://login.microsoftonline.com/common/oauth2/v2.0/token',
         tokenData,
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
-          }
+          },
+          timeout: 10000 // 10 second timeout
         }
       );
 
-      const { access_token, expires_in } = response.data;
+      const { access_token, expires_in, error, error_description } = tokenResponse.data;
+      
+      if (error) {
+        console.error('❌ Microsoft token refresh failed:', error, error_description);
+        throw new Error(`Token refresh failed: ${error} - ${error_description}`);
+      }
+
       console.log('✅ Microsoft OAuth: Token refreshed successfully');
+      console.log('🕐 New token expires in:', expires_in, 'seconds');
 
       // Update tokens in database
-      await prisma.emailConnection.update({
-        where: { id: connection.id },
+      await prisma.emailConnection.updateMany({
+        where: {
+          employeeId: connection.employeeId,
+          provider: 'outlook'
+        },
         data: {
           accessToken: access_token,
-          tokenExpiry: new Date(Date.now() + (expires_in * 1000)),
+          tokenExpiry: new Date(Date.now() + expires_in * 1000),
           updatedAt: new Date()
         }
       });
-
+      
+      console.log('✅ Token updated in database');
       return access_token;
     } catch (error) {
       console.error('❌ Failed to refresh Microsoft token:', error);
       if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const errorData = error.response?.data;
+        
         console.error('❌ Refresh token error details:', {
-          status: error.response?.status,
-          data: error.response?.data
+          status: status,
+          data: errorData
         });
+        
+        if (status === 400 && errorData?.error === 'invalid_grant') {
+          console.error('❌ Refresh token expired or invalid');
+          throw new Error('Refresh token expired. Please reconnect the email account.');
+        }
       }
       throw new Error('Outlook connection expired. Please reconnect email account.');
     }
   }
 
-  // Send email using connected Outlook account
-  async sendEmail(employeeId: string, options: {
-    to: string | string[];
-    subject: string;
-    text?: string;
-    html?: string;
-  }) {
-    // Get Outlook connection from database
-    const connection = await this.getOutlookConnection(employeeId);
-    
-    if (!connection) {
-      throw new Error('Outlook not connected. Please connect your Outlook account first.');
-    }
-
-    // Check if token needs refresh
-    if (new Date() > connection.tokenExpiry) {
-      console.log('🔄 Access token expired, refreshing...');
-      await this.refreshAccessToken(connection);
-      // Get refreshed connection
-      const refreshedConnection = await this.getOutlookConnection(employeeId);
-      if (!refreshedConnection) {
-        throw new Error('Failed to refresh Outlook connection');
-      }
-      connection.accessToken = refreshedConnection.accessToken;
-    }
-
-    // Send email via Microsoft Graph API
-    return this.sendOutlookEmail(connection, options);
-  }
-
-  // Get only Outlook connection from database
   private async getOutlookConnection(employeeId: string) {
     try {
       const connector = await prisma.emailConnection.findFirst({
@@ -439,8 +445,8 @@ class EmailService {
       }
     };
 
-    console.log("Using access token:", connection.accessToken);
-    console.log("Sending email to:", Array.isArray(options.to) ? options.to.join(', ') : options.to);
+    console.log("📧 Sending Outlook email to:", Array.isArray(options.to) ? options.to.join(', ') : options.to);
+    console.log("🔐 Using access token (first 20 chars):", connection.accessToken.substring(0, 20) + "...");
 
     try {
       const response = await axios.post(
@@ -450,22 +456,46 @@ class EmailService {
           headers: {
             Authorization: `Bearer ${connection.accessToken}`,
             'Content-Type': 'application/json'
-          }
+          },
+          timeout: 10000 // 10 second timeout
         }
       );
 
+      console.log('✅ Outlook email sent successfully. Response status:', response.status);
       return {
         success: true,
         messageId: response.headers['X-Message-Id'] || 'sent',
         provider: 'outlook'
       };
     } catch (error: any) {
-      if (error.response?.data) {
-        console.error("Graph API error:", error.response.data);
+      console.error('❌ Outlook email sending failed:');
+      
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const errorData = error.response?.data;
+        
+        console.error('❌ Graph API Error Details:', {
+          status: status,
+          statusText: error.response?.statusText,
+          data: errorData,
+          headers: error.response?.headers
+        });
+        
+        if (status === 401) {
+          console.error('❌ Authentication failed - token may be expired');
+          throw new Error("Outlook authentication failed. Please reconnect the email account.");
+        } else if (status === 403) {
+          console.error('❌ Permission denied - check Mail.Send permission');
+          throw new Error("Outlook permission denied. Please check app permissions.");
+        } else if (status === 400) {
+          console.error('❌ Bad request - check email format');
+          throw new Error("Invalid email format or request data.");
+        } else {
+          console.error('❌ Unknown Microsoft Graph error:', status);
+          throw new Error(`Microsoft Graph error: ${status} - ${errorData?.error?.message || 'Unknown error'}`);
+        }
       }
-      if (error.response?.status === 401) {
-        throw new Error("Request failed with status code 401: Outlook connection expired. Please reconnect email account.");
-      }
+      
       throw error;
     }
   }

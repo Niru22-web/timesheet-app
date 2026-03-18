@@ -92,6 +92,16 @@ const EditEmployee: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  const isAdmin = () => {
+    const role = user?.role?.toLowerCase() || '';
+    return role === 'admin' || role === 'owner';
+  };
+
+  const isManagement = () => {
+    const role = user?.role?.toLowerCase() || '';
+    return ['manager', 'admin', 'partner', 'owner'].includes(role);
+  };
   
   const [employee, setEmployee] = useState<EmployeeDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,6 +109,13 @@ const EditEmployee: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{type: string; employeeName: string; employeeId: string} | null>(null);
+
+  // New states for reporting structure
+  const [partners, setPartners] = useState<any[]>([]);
+  const [managers, setManagers] = useState<any[]>([]);
+  const [partnersLoading, setPartnersLoading] = useState(false);
+  const [managersLoading, setManagersLoading] = useState(false);
+  const [selectedPartner, setSelectedPartner] = useState<string>('');
 
   useEffect(() => {
     fetchEmployeeDetails();
@@ -110,7 +127,17 @@ const EditEmployee: React.FC = () => {
       const response = await API.get(`/employees/${id}`);
       
       if (response.data.success) {
-        setEmployee(response.data.data);
+        const empData = response.data.data;
+        setEmployee(empData);
+        setSelectedPartner(empData.reportingPartner || '');
+        
+        // Fetch partners if admin
+        if (isAdmin()) {
+          fetchPartners();
+          if (empData.reportingPartner) {
+            fetchManagers(empData.reportingPartner);
+          }
+        }
       } else {
         setError('Failed to fetch employee details');
       }
@@ -120,6 +147,40 @@ const EditEmployee: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const fetchPartners = async () => {
+    try {
+      setPartnersLoading(true);
+      const response = await API.get('/employees/partners');
+      if (response.data && Array.isArray(response.data)) {
+        setPartners(response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching partners:', err);
+    } finally {
+      setPartnersLoading(false);
+    }
+  };
+
+  const fetchManagers = async (partnerId: string) => {
+    try {
+      setManagersLoading(true);
+      const response = await API.get(`/employees/managers-by-partner?partnerId=${partnerId}`);
+      if (response.data && Array.isArray(response.data)) {
+        setManagers(response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching managers:', err);
+    } finally {
+      setManagersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAdmin() && selectedPartner) {
+      fetchManagers(selectedPartner);
+    }
+  }, [selectedPartner]);
 
   const handleSave = async () => {
     if (!employee) return;
@@ -146,7 +207,13 @@ const EditEmployee: React.FC = () => {
         accountNumber: employee.accountNumber,
         ifscCode: employee.ifscCode,
         branchName: employee.branchName,
-        // Note: role, reportingPartner, reportingManager are NOT editable
+        // Allow editing of these fields for admins
+        role: employee.role,
+        department: employee.department,
+        designation: employee.designation,
+        reportingPartner: employee.reportingPartner || null,
+        reportingManager: employee.reportingManager || null,
+        status: employee.status
       };
       
       const response = await API.put(`/employees/${id}`, updateData);
@@ -189,10 +256,6 @@ const EditEmployee: React.FC = () => {
     
     setShowConfirmDialog(false);
     setConfirmAction(null);
-  };
-
-  const isAdmin = () => {
-    return user?.role?.toLowerCase() === 'admin';
   };
 
   const handleDownloadAttachment = (url: string, filename: string) => {
@@ -265,12 +328,28 @@ const EditEmployee: React.FC = () => {
           )}
         </div>
         
-        <div className="bg-white rounded-lg shadow p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Edit Employee</h1>
-          <p className="text-gray-600">
-            Editing: {employee.firstName} {employee.lastName} ({employee.employeeId})
-          </p>
-          <StatusBadge status={employee.status} className="inline-block" />
+        <div className="bg-white rounded-lg shadow p-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Edit Employee</h1>
+            <p className="text-gray-600">
+              Editing: {employee.firstName} {employee.lastName} ({employee.employeeId})
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <StatusBadge status={employee.status} className="capitalize" />
+            {isAdmin() && (
+              <select
+                className="text-xs border rounded px-2 py-1 bg-gray-50"
+                value={employee.status}
+                onChange={(e) => setEmployee({...employee, status: e.target.value})}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="pending">Pending</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            )}
+          </div>
         </div>
 
         {/* Personal Information */}
@@ -560,77 +639,147 @@ const EditEmployee: React.FC = () => {
           </div>
         </Card>
 
-        {/* Employment Details (Read-only) */}
-        <Card className="mb-8">
+        <Card className="mb-20">
           <div className="flex items-center mb-4">
             <BuildingOfficeIcon className="w-5 h-5 text-blue-600 mr-2" />
             <h2 className="text-lg font-semibold text-gray-900">Employment Details</h2>
-            <span className="ml-4 text-sm text-amber-600 bg-amber-50 px-2 py-1 rounded">Read-only</span>
+            {!isAdmin() && <span className="ml-4 text-sm text-amber-600 bg-amber-50 px-2 py-1 rounded">Read-only</span>}
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
-              <Input
-                label="Software Role"
-                value={employee.role}
-                disabled
-                className="bg-gray-100"
-              />
+              <label className="text-sm font-medium text-gray-700 block mb-1">Software Role</label>
+              {isAdmin() ? (
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  value={employee.role}
+                  onChange={(e) => {
+                    const newRole = e.target.value;
+                    let updates: any = { role: newRole };
+                    if (newRole === 'Partner') {
+                      updates.reportingPartner = '';
+                      updates.reportingManager = '';
+                      setSelectedPartner('');
+                    } else if (newRole === 'Manager' && employee.reportingPartner) {
+                      updates.reportingManager = employee.reportingPartner;
+                    }
+                    setEmployee({...employee, ...updates});
+                  }}
+                >
+                  <option value="Employee">Employee</option>
+                  <option value="Manager">Manager</option>
+                  <option value="Partner">Partner</option>
+                  <option value="Admin">Admin</option>
+                </select>
+              ) : (
+                <Input value={employee.role} disabled className="bg-gray-100" />
+              )}
             </div>
             
             <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Designation</label>
               <Input
-                label="Designation"
                 value={employee.designation}
-                disabled
-                className="bg-gray-100"
+                onChange={(e) => setEmployee({...employee, designation: e.target.value})}
+                disabled={!isAdmin()}
+                className={!isAdmin() ? "bg-gray-100" : ""}
               />
             </div>
             
             <div>
-              <Input
-                label="Department"
-                value={employee.department}
-                disabled
-                className="bg-gray-100"
-              />
+              <label className="text-sm font-medium text-gray-700 block mb-1">Department</label>
+              {isAdmin() ? (
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  value={employee.department}
+                  onChange={(e) => setEmployee({...employee, department: e.target.value})}
+                >
+                  <option value="Accounting">Accounting</option>
+                  <option value="Operations">Operations</option>
+                  <option value="Internal Audit">Internal Audit</option>
+                  <option value="Automations">Automations</option>
+                  <option value="Statutory Audit">Statutory Audit</option>
+                </select>
+              ) : (
+                <Input value={employee.department} disabled className="bg-gray-100" />
+              )}
             </div>
             
             <div>
-              <Input
-                label="Reporting Partner"
-                value={employee.reportingPartnerDetails ? 
-                  `${employee.reportingPartnerDetails.firstName} ${employee.reportingPartnerDetails.lastName}` : 'None'}
-                disabled
-                className="bg-gray-100"
-              />
+              <label className="text-sm font-medium text-gray-700 block mb-1">Reporting Partner</label>
+              {isAdmin() && employee.role !== 'Partner' ? (
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  value={employee.reportingPartner || ''}
+                  onChange={(e) => {
+                    const pId = e.target.value;
+                    setSelectedPartner(pId);
+                    let updates: any = { reportingPartner: pId };
+                    if (employee.role === 'Manager') {
+                      updates.reportingManager = pId;
+                    } else if (employee.role === 'Employee') {
+                      updates.reportingManager = '';
+                    }
+                    setEmployee({...employee, ...updates});
+                  }}
+                >
+                  <option value="">Select Partner...</option>
+                  {partners.map(p => (
+                    <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
+                  ))}
+                </select>
+              ) : (
+                <Input
+                  value={employee.reportingPartnerDetails ? 
+                    `${employee.reportingPartnerDetails.firstName} ${employee.reportingPartnerDetails.lastName}` : 'None'}
+                  disabled
+                  className="bg-gray-100"
+                />
+              )}
             </div>
             
             <div>
-              <Input
-                label="Reporting Manager"
-                value={employee.reportingManagerDetails ? 
-                  `${employee.reportingManagerDetails.firstName} ${employee.reportingManagerDetails.lastName}` : 'None'}
-                disabled
-                className="bg-gray-100"
-              />
-            </div>
-            
-            <div>
-              <Input
-                label="Status"
-                value={employee.status}
-                disabled
-                className="bg-gray-100"
-              />
+              <label className="text-sm font-medium text-gray-700 block mb-1">Reporting Manager</label>
+              {isAdmin() && employee.role === 'Employee' ? (
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  value={employee.reportingManager || ''}
+                  onChange={(e) => setEmployee({...employee, reportingManager: e.target.value})}
+                >
+                  <option value="">Select Manager...</option>
+                  {managers.length > 0 ? (
+                    managers.map(m => (
+                      <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
+                    ))
+                  ) : selectedPartner ? (
+                    <option value={selectedPartner}>
+                      {partners.find(p => p.id === selectedPartner)?.firstName || ''} {partners.find(p => p.id === selectedPartner)?.lastName || ''} (Direct report to Partner)
+                    </option>
+                  ) : null}
+                </select>
+              ) : isAdmin() && employee.role === 'Manager' ? (
+                <div className="px-3 py-2 bg-gray-50 border rounded-md text-sm text-gray-600">
+                  {employee.reportingPartnerDetails ? 
+                    `${employee.reportingPartnerDetails.firstName} ${employee.reportingPartnerDetails.lastName} (Partner)` : 'Select Partner first'}
+                </div>
+              ) : (
+                <Input
+                  value={employee.reportingManagerDetails ? 
+                    `${employee.reportingManagerDetails.firstName} ${employee.reportingManagerDetails.lastName}` : 'None'}
+                  disabled
+                  className="bg-gray-100"
+                />
+              )}
             </div>
             
             <div>
               <Input
                 label="Joining Date"
+                type="date"
                 value={employee.joiningDate ? employee.joiningDate.split('T')[0] : ''}
-                disabled
-                className="bg-gray-100"
+                onChange={(e) => setEmployee({...employee, joiningDate: e.target.value})}
+                disabled={!isAdmin()}
+                className={!isAdmin() ? "bg-gray-100" : ""}
               />
             </div>
           </div>

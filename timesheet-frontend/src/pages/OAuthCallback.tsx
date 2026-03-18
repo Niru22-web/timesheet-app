@@ -3,6 +3,8 @@ import React, { useEffect } from 'react';
 interface OAuthCallbackProps {}
 
 const OAuthCallback: React.FC<OAuthCallbackProps> = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  
   useEffect(() => {
     // Handle OAuth callback from popup window
     const messageHandler = (event: MessageEvent) => {
@@ -32,7 +34,9 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = () => {
         
         // Close popup after 3 seconds
         setTimeout(() => {
-          window.close();
+          if (window.opener) {
+            window.close();
+          }
         }, 3000);
       }
     };
@@ -40,7 +44,6 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = () => {
     window.addEventListener('message', messageHandler);
     
     // Handle errors
-    const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
     if (error) {
       document.body.innerHTML = `
@@ -54,35 +57,22 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = () => {
         </div>
       `;
     }
+
+    return () => window.removeEventListener('message', messageHandler);
   }, []);
   
   return (
     <div style={{ fontFamily: 'Arial, sans-serif' }}>
       {/* Loading message */}
-      {!urlParams.get('code') && !urlParams.get('error') && (
+      {!urlParams.get('code') && !urlParams.get('error') && !urlParams.get('outlook') && (
         <div style={{ textAlign: 'center', marginTop: '50px' }}>
           <div style={{ 
             display: 'inline-block', 
             padding: '20px', 
-            border: '4px solid #f3f4f6', 
-            borderRadius: '8px'
+            border: '1px solid #f3f4f6', 
+            borderRadius: '8px',
+            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
           }}>
-            <div style={{ 
-              border: '4px solid #e5e7eb', 
-              borderRadius: '4px', 
-              padding: '10px 20px', 
-              backgroundColor: '#fff'
-            }}>
-              <div style={{ 
-                width: '40px', 
-                height: '40px', 
-                borderTop: '4px solid #f3f4f6', 
-                borderRadius: '4px', 
-                padding: '10px 20px', 
-                backgroundColor: '#fff',
-                animation: 'spin 1s linear infinite'
-              }}></div>
-            </div>
             <p style={{ marginTop: '15px', color: '#666' }}>Processing authentication...</p>
           </div>
         </div>

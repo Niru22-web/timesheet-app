@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import EmailService from './email.service';
+import { sendEmail } from '../../services/email.service';
 import { authenticate } from '../../middleware/auth.middleware';
 import { prisma } from '../../config/prisma';
 import axios from 'axios';
@@ -256,12 +257,12 @@ export const sendTestEmail = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await emailService.sendEmail(user.employeeId, {
-      to,
-      subject,
-      text,
-      html
-    });
+    const result = await sendEmail({
+        to,
+        subject,
+        text,
+        html
+      });
 
     res.json({
       success: true,

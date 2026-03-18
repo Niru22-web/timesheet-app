@@ -27,6 +27,12 @@ export const validateRegistrationToken = async (req: Request, res: Response) => 
             status: true,
             reportingManager: true,
             reportingPartner: true,
+            profile: {
+              select: {
+                dob: true,
+                doj: true
+              }
+            }
           }
         }
       }
@@ -47,8 +53,37 @@ export const validateRegistrationToken = async (req: Request, res: Response) => 
     }
 
     // Token is valid, return employee information
+    const employee = registrationToken.employee as any;
+    
+    // Fetch reporting manager and partner names if IDs exist
+    if (employee.reportingManager) {
+      const manager = await prisma.employee.findUnique({
+        where: { id: employee.reportingManager },
+        select: { firstName: true, lastName: true }
+      });
+      if (manager) {
+        employee.reportingManager = {
+          id: employee.reportingManager,
+          name: `${manager.firstName} ${manager.lastName}`
+        };
+      }
+    }
+
+    if (employee.reportingPartner) {
+      const partner = await prisma.employee.findUnique({
+        where: { id: employee.reportingPartner },
+        select: { firstName: true, lastName: true }
+      });
+      if (partner) {
+        employee.reportingPartner = {
+          id: employee.reportingPartner,
+          name: `${partner.firstName} ${partner.lastName}`
+        };
+      }
+    }
+
     res.json({
-      employee: registrationToken.employee,
+      employee: employee,
       token: registrationToken.token
     });
 
