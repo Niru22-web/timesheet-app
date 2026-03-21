@@ -24,6 +24,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
 import Avatar from '../components/ui/Avatar';
+import { TableSkeleton, Skeleton } from '../components/ui/Skeleton';
 
 interface Project {
   id: string;
@@ -72,7 +73,8 @@ const Projects: React.FC = () => {
   const generateProjectId = async () => {
     try {
       const response = await API.get('/projects');
-      const projectCount = response.data.length;
+      const projectList = response.data?.success ? response.data.data : response.data;
+      const projectCount = Array.isArray(projectList) ? projectList.length : 0;
       const newId = `PRJ${String(projectCount + 1).padStart(4, '0')}`;
       setGeneratedProjectId(newId);
     } catch (err) {
@@ -97,10 +99,15 @@ const Projects: React.FC = () => {
         employees: employeesRes.data,
         allEmployees: allEmployeesRes.data
       });
-      setProjects(projectsRes.data || []);
-      setClients(clientsRes.data || []);
-      setEmployees(employeesRes.data || []);
-      setAllEmployees(allEmployeesRes.data || []);
+      const projectsArr = projectsRes.data?.success ? projectsRes.data.data : projectsRes.data;
+      const clientsArr = clientsRes.data?.success ? clientsRes.data.data : clientsRes.data;
+      const employeesArr = employeesRes.data?.success ? employeesRes.data.data : employeesRes.data;
+      const allEmployeesArr = allEmployeesRes.data?.success ? allEmployeesRes.data.data : allEmployeesRes.data;
+
+      setProjects(Array.isArray(projectsArr) ? projectsArr : []);
+      setClients(Array.isArray(clientsArr) ? clientsArr : []);
+      setEmployees(Array.isArray(employeesArr) ? employeesArr : []);
+      setAllEmployees(Array.isArray(allEmployeesArr) ? allEmployeesArr : []);
     } catch (err) {
       console.error('Failed to fetch project data:', err);
     } finally {
@@ -243,42 +250,56 @@ const Projects: React.FC = () => {
 
       {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-none">
-        <Card className="p-4 flex items-center gap-4 border-l-4 border-primary-500">
-          <div className="p-3 bg-primary-50 text-primary-600 rounded-xl">
-            <BriefcaseIcon className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Active Projects</p>
-            <p className="text-xl font-bold text-secondary-900">{projects.length}</p>
-          </div>
-        </Card>
-        <Card className="p-4 flex items-center gap-4 border-l-4 border-indigo-500">
-          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-            <UserGroupIcon className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Billable Teams</p>
-            <p className="text-xl font-bold text-secondary-900">{projects.filter(p => p.billable).length}</p>
-          </div>
-        </Card>
-        <Card className="p-4 flex items-center gap-4 border-l-4 border-amber-500">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
-            <ClockIcon className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">In-Discussion</p>
-            <p className="text-xl font-bold text-secondary-900">{projects.filter(p => p.status === 'In-Discussion').length}</p>
-          </div>
-        </Card>
-        <Card className="p-4 flex items-center gap-4 border-l-4 border-emerald-500">
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-            <ShieldCheckIcon className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Completed</p>
-            <p className="text-xl font-bold text-secondary-900">{projects.filter(p => p.status === 'Completed').length}</p>
-          </div>
-        </Card>
+        {loading && projects.length === 0 ? (
+          [1, 2, 3, 4].map((i) => (
+            <Card key={i} className="p-4 flex items-center gap-4 border-l-4 border-secondary-200">
+               <Skeleton variant="circular" width={48} height={48} />
+               <div className="flex-1">
+                  <Skeleton variant="text" width="40%" />
+                  <Skeleton variant="text" width="60%" />
+               </div>
+            </Card>
+          ))
+        ) : (
+          <>
+            <Card className="p-4 flex items-center gap-4 border-l-4 border-primary-500">
+              <div className="p-3 bg-primary-50 text-primary-600 rounded-xl">
+                <BriefcaseIcon className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Active Projects</p>
+                <p className="text-xl font-bold text-secondary-900">{projects.length}</p>
+              </div>
+            </Card>
+            <Card className="p-4 flex items-center gap-4 border-l-4 border-indigo-500">
+              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                <UserGroupIcon className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Billable Teams</p>
+                <p className="text-xl font-bold text-secondary-900">{projects.filter(p => p.billable).length}</p>
+              </div>
+            </Card>
+            <Card className="p-4 flex items-center gap-4 border-l-4 border-amber-500">
+              <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                <ClockIcon className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">In-Discussion</p>
+                <p className="text-xl font-bold text-secondary-900">{projects.filter(p => p.status === 'In-Discussion').length}</p>
+              </div>
+            </Card>
+            <Card className="p-4 flex items-center gap-4 border-l-4 border-emerald-500">
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                <ShieldCheckIcon className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Completed</p>
+                <p className="text-xl font-bold text-secondary-900">{projects.filter(p => p.status === 'Completed').length}</p>
+              </div>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Search and Table */}
@@ -308,13 +329,10 @@ const Projects: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-secondary-50">
-              {loading ? (
+              {loading && projects.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-20 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
-                      <p className="text-sm font-bold text-secondary-400">Loading master registry...</p>
-                    </div>
+                  <td colSpan={5} className="p-0">
+                    <TableSkeleton rows={10} columns={5} />
                   </td>
                 </tr>
               ) : filteredProjects.length > 0 ? (

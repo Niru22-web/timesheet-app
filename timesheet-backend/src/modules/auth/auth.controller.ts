@@ -208,60 +208,15 @@ export const register = async (req: Request, res: Response) => {
         
         // Create registration email content
         const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
-        const subject = 'Welcome to Timesheet System - Your Account is Ready';
+        const subject = 'Your account has been created';
         
         const html = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Welcome to Timesheet System</title>
-          </head>
-          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
-            <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center;">
-                <h1 style="margin: 0; font-size: 28px;">Welcome to Timesheet System</h1>
-              </div>
-              <div style="padding: 30px;">
-                <h2 style="color: #333; margin-top: 0;">Hello ${employee.firstName} ${employee.lastName},</h2>
-                <p style="color: #666; line-height: 1.6;">Your account has been successfully created in the Timesheet System. You can now log in and start using the system.</p>
-                
-                <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0;">
-                  <h3 style="color: #333; margin-top: 0;">Your Account Details:</h3>
-                  <p style="margin: 5px 0;"><strong>Email:</strong> ${employee.officeEmail}</p>
-                  <p style="margin: 5px 0;"><strong>Employee ID:</strong> ${employee.employeeId}</p>
-                  <p style="margin: 5px 0;"><strong>Role:</strong> ${employee.role}</p>
-                  <p style="margin: 5px 0;"><strong>Designation:</strong> ${employee.designation}</p>
-                </div>
-                
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                    Login to Your Account
-                  </a>
-                </div>
-                
-                <div style="background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                  <p style="margin: 0;"><strong>Note:</strong> If you haven't received your password or have trouble logging in, please contact your system administrator.</p>
-                </div>
-                
-                <p style="color: #666; margin-top: 30px;">If you have any questions or need assistance, please don't hesitate to reach out to your administrator.</p>
-                
-                <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #666; font-size: 14px;">
-                  <p>Best regards,<br>Timesheet System Team</p>
-                </div>
-              </div>
-            </div>
-          </body>
-          </html>
-        `;
-        
-        const text = `
-Welcome to Timesheet System
+Hi ${employee.firstName},
 
-Hello ${employee.firstName} ${employee.lastName},
+Welcome to the Timesheet System. Your account has been created successfully.
 
-Your account has been successfully created in the Timesheet System.
+You can log in to your account using the link below:
+${loginUrl}
 
 Account Details:
 Email: ${employee.officeEmail}
@@ -269,9 +224,27 @@ Employee ID: ${employee.employeeId}
 Role: ${employee.role}
 Designation: ${employee.designation}
 
-You can log in to your account at: ${loginUrl}
+If you have any questions, feel free to reply to this email.
 
-If you haven't received your password or have trouble logging in, please contact your system administrator.
+Best regards,
+Timesheet System Team
+        `;
+        
+        const text = `
+Hi ${employee.firstName},
+
+Welcome to the Timesheet System. Your account has been created successfully.
+
+You can log in to your account using the link below:
+${loginUrl}
+
+Account Details:
+Email: ${employee.officeEmail}
+Employee ID: ${employee.employeeId}
+Role: ${employee.role}
+Designation: ${employee.designation}
+
+If you have any questions, feel free to reply to this email.
 
 Best regards,
 Timesheet System Team
@@ -345,6 +318,16 @@ export const forgotPassword = async (req: Request, res: Response) => {
       return res.status(400).json({ 
         success: false,
         message: 'Email address is required' 
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      console.log("❌ Invalid email format:", email);
+      return res.status(400).json({ 
+        success: false,
+        message: 'Please enter a valid email address' 
       });
     }
 

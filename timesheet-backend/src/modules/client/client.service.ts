@@ -19,12 +19,18 @@ export class ClientService {
           gstStatus: true,
           gstin: true,
           pan: true,
+          primaryEmail: true,
+          phone: true,
+          companyDetails: true,
+          notes: true,
+          reportingPartner: true,
+          reportingManager: true,
           _count: {
             select: {
               projects: true
             }
           }
-        },
+        } as any,
         orderBy: {
           name: 'asc'
         }
@@ -97,15 +103,21 @@ export class ClientService {
         data: {
           clientId,
           name: clientData.name,
-          alias: clientData.alias,
+          primaryEmail: clientData.primaryEmail,
+          alias: clientData.alias || null,
           address: clientData.address || null,
           pin: clientData.pin || null,
           state: clientData.state || null,
           country: clientData.country || null,
-          gstStatus: clientData.gstStatus,
+          gstStatus: clientData.gstStatus || null,
           gstin: clientData.gstin || null,
-          pan: clientData.pan.toUpperCase()
-        }
+          pan: clientData.pan ? clientData.pan.toUpperCase() : null,
+          phone: clientData.phone || null,
+          companyDetails: clientData.companyDetails || null,
+          notes: clientData.notes || null,
+          reportingPartner: clientData.reportingPartner || null,
+          reportingManager: clientData.reportingManager || null,
+        } as any
       });
 
       return client;
@@ -141,15 +153,21 @@ export class ClientService {
         where: { id },
         data: {
           name: clientData.name,
-          alias: clientData.alias,
+          primaryEmail: clientData.primaryEmail,
+          alias: clientData.alias || null,
           address: clientData.address || null,
           pin: clientData.pin || null,
           state: clientData.state || null,
           country: clientData.country || null,
-          gstStatus: clientData.gstStatus,
+          gstStatus: clientData.gstStatus || null,
           gstin: clientData.gstin || null,
-          pan: clientData.pan.toUpperCase()
-        }
+          pan: clientData.pan ? clientData.pan.toUpperCase() : null,
+          phone: clientData.phone || null,
+          companyDetails: clientData.companyDetails || null,
+          notes: clientData.notes || null,
+          reportingPartner: clientData.reportingPartner || null,
+          reportingManager: clientData.reportingManager || null,
+        } as any
       });
 
       return client;

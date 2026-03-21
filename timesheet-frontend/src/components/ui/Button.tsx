@@ -1,4 +1,5 @@
 import React, { ButtonHTMLAttributes } from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'premium' | 'action';
@@ -23,17 +24,19 @@ const Button: React.FC<ButtonProps> = ({
     disabled,
     ...props
 }) => {
+    const { theme } = useTheme();
+    
     const baseStyles = 'inline-flex items-center justify-center rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm select-none';
     
     const touchStyles = touchFriendly ? 'min-h-[44px] min-w-[44px]' : '';
 
     const variants = {
-        primary: 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-md focus:ring-primary-500 active:scale-[0.98] shadow-sm',
-        secondary: 'bg-white text-secondary-700 border border-secondary-200 hover:bg-secondary-50 hover:border-secondary-300 focus:ring-secondary-200 shadow-sm active:scale-[0.98]',
+        primary: 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-md focus:ring-primary-500 active:scale-[0.98] shadow-sm dark:bg-primary-500 dark:hover:bg-primary-600',
+        secondary: 'bg-white text-secondary-700 border border-secondary-200 hover:bg-secondary-50 hover:border-secondary-300 focus:ring-secondary-200 shadow-sm active:scale-[0.98] dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700',
         danger: 'bg-danger-600 text-white hover:bg-danger-700 hover:shadow-md focus:ring-danger-500 active:scale-[0.98] shadow-sm',
-        ghost: 'bg-transparent text-secondary-600 hover:bg-secondary-50 hover:text-secondary-900 focus:ring-secondary-100',
-        premium: 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-md focus:ring-primary-500 active:scale-[0.98] shadow-sm',
-        action: 'bg-white text-primary-600 border border-primary-200 hover:bg-primary-50 hover:border-primary-300 focus:ring-primary-100 active:scale-[0.98] shadow-sm',
+        ghost: 'bg-transparent text-secondary-600 hover:bg-secondary-50 hover:text-secondary-900 focus:ring-secondary-100 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200',
+        premium: 'bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-md focus:ring-primary-500 active:scale-[0.98] shadow-sm',
+        action: 'bg-white text-primary-600 border border-primary-200 hover:bg-primary-50 hover:border-primary-300 focus:ring-primary-100 active:scale-[0.98] shadow-sm dark:bg-gray-800 dark:text-primary-400 dark:border-primary-800 dark:hover:bg-gray-700',
     };
 
     const sizes = {
@@ -54,7 +57,7 @@ const Button: React.FC<ButtonProps> = ({
                 ${touchStyles}
                 ${isLoading ? 'relative !text-transparent pointer-events-none' : ''}
                 ${className}
-            `}
+            `.trim().replace(/\s+/g, ' ')}
             disabled={isLoading || disabled}
             {...props}
         >

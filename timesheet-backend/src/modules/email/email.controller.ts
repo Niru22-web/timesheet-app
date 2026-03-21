@@ -531,18 +531,19 @@ export const getEmailTemplates = async (req: Request, res: Response) => {
         {
           name: 'Employee Registration',
           category: 'Registration',
-          subject: 'Welcome to {{company_name}}',
-          body: `Hello {{employee_name}},
+          subject: 'Your account has been created',
+          body: `Hi {{employee_name}},
 
-Welcome to {{company_name}}!
+Welcome to the Timesheet System. Your account has been created successfully.
 
-Your account has been created successfully. You can now access the Timesheet Management System.
+You can log in to your account using the link below:
+{{login_url}}
 
-Login Details:
-- Email: {{employee_email}}
-- Your temporary password will be sent separately
+Account Details:
+Email: {{employee_email}}
+Company: {{company_name}}
 
-Please login here: {{login_url}}
+If you have any questions, feel free to reply to this email.
 
 Best regards,
 {{company_name}} Team`,
@@ -551,43 +552,38 @@ Best regards,
         {
           name: 'Leave Approval',
           category: 'Leave',
-          subject: 'Leave Request {{status}} - {{employee_name}}',
-          body: `Hello {{manager_name}},
+          subject: 'Update on your leave request',
+          body: `Hi {{employee_name}},
 
-The leave request for {{employee_name}} has been {{status}}.
+Your leave request has been {{status}}.
 
 Leave Details:
-- Type: {{leave_type}}
-- From: {{start_date}}
-- To: {{end_date}}
-- Days: {{total_days}}
-- Reason: {{reason}}
+Type: {{leave_type}}
+Period: {{start_date}} to {{end_date}}
+Total Days: {{total_days}}
+Reason: {{reason}}
 
-{{#if approved}}
-Please update your records accordingly.
-{{else}}
-Please review the leave request and take appropriate action.
-{{/if}}
+If you have any questions, feel free to reply to this email.
 
 Best regards,
-Timesheet System`,
+Timesheet System Team`,
           variables: ['manager_name', 'employee_name', 'status', 'leave_type', 'start_date', 'end_date', 'total_days', 'reason']
         },
         {
           name: 'Timesheet Reminder',
           category: 'Timesheet',
-          subject: 'Timesheet Reminder - {{date}}',
-          body: `Hello {{employee_name}},
+          subject: 'Reminder: Timesheet submission due',
+          body: `Hi {{employee_name}},
 
 This is a friendly reminder to submit your timesheet for {{date}}.
 
 Current Status:
-- Hours Logged: {{hours_logged}}
-- Pending Entries: {{pending_entries}}
+Hours Logged: {{hours_logged}}
+Pending Entries: {{pending_entries}}
 
 Please ensure your timesheet is submitted by the deadline: {{deadline}}
 
-Login here: {{login_url}}
+You can log in here: {{login_url}}
 
 Best regards,
 {{company_name}} Team`,
@@ -596,17 +592,15 @@ Best regards,
         {
           name: 'Password Reset',
           category: 'Security',
-          subject: 'Password Reset Request - {{company_name}}',
-          body: `Hello {{employee_name}},
+          subject: 'Password Reset Request',
+          body: `Hi {{employee_name}},
 
-We received a request to reset your password for {{company_name}} Timesheet System.
+We received a request to reset your password for your {{company_name}} account.
 
-If you made this request, please click the link below to reset your password:
+You can reset your password using the link below:
 {{reset_url}}
 
-This link will expire in {{expiry_hours}} hours.
-
-If you didn't request this password reset, please ignore this email or contact your administrator.
+If you did not request this, please ignore this email.
 
 Best regards,
 {{company_name}} Team`,
@@ -614,15 +608,25 @@ Best regards,
         }
       ];
 
-      // Insert default templates
-      await prisma.emailTemplate.createMany({
-        data: defaultTemplates
-      });
+      // Insert default templates using a loop (safer than createMany for autogenerating IDs)
+      console.log('📝 Inserting default templates...');
+      for (const template of defaultTemplates) {
+        try {
+          await prisma.emailTemplate.create({
+            data: template
+          });
+        } catch (createErr) {
+          console.error(`❌ Failed to create template ${template.name}:`, createErr);
+        }
+      }
 
-      console.log('✅ Default templates created successfully');
+      console.log('✅ Default templates initialization completed');
 
       // Fetch the newly created templates
       const newTemplates = await prisma.emailTemplate.findMany({
+        where: {
+          status: 'active'
+        },
         orderBy: { createdAt: 'desc' }
       });
 
@@ -740,4 +744,82 @@ export const updateEmailTemplate = async (req: Request, res: Response) => {
 
 export const sendEmailFromTemplate = async (req: Request, res: Response) => {
   return await sendTestEmail(req, res);
+};
+
+// Email health check endpoint
+export const checkEmailHealth = async (req: Request, res: Response) => {
+  try {
+    console.log('🔍 Email health check requested');
+    
+    const health = {
+      smtp: {
+        configured: !!process.env.SMTP_USER && !!process.env.SMTP_PASS,
+        host: process.env.SMTP_HOST || 'not configured',
+        port: process.env.SMTP_PORT || '587',
+        secure: process.env.SMTP_SECURE || 'false'
+      },
+      oauth: {
+        google: {
+          configured: !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET,
+          clientId: process.env.GOOGLE_CLIENT_ID ? 'configured' : 'missing'
+        },
+        outlook: {
+          configured: !!process.env.OUTLOOK_CLIENT_ID && !!process.env.OUTLOOK_CLIENT_SECRET,
+          clientId: process.env.OUTLOOK_CLIENT_ID ? 'configured' : 'missing'
+        }
+      },
+      connections: {
+        outlook: 0,
+        gmail: 0
+      },
+      frontend: {
+        url: process.env.FRONTEND_URL || 'http://localhost:5173'
+      }
+    };
+
+    // Check active connections
+    try {
+      const connections = await emailService.getAllEmailConnections();
+      health.connections.outlook = connections.filter(c => c.provider === 'outlook').length;
+      health.connections.gmail = connections.filter(c => c.provider === 'gmail').length;
+      console.log('📊 Active connections:', health.connections);
+    } catch (dbError) {
+      console.warn('⚠️ Could not check connections:', dbError.message);
+    }
+
+    const recommendations = [];
+    
+    if (!health.smtp.configured && health.connections.outlook === 0) {
+      recommendations.push("Configure SMTP or OAuth to enable email sending");
+    }
+    
+    if (!health.oauth.google.configured && !health.oauth.outlook.configured) {
+      recommendations.push("Set up OAuth credentials for Gmail or Outlook");
+    }
+    
+    if (health.oauth.outlook.configured && health.connections.outlook === 0) {
+      recommendations.push("Connect an Outlook account in Email Configuration");
+    }
+    
+    if (health.oauth.google.configured && health.connections.gmail === 0) {
+      recommendations.push("Connect a Gmail account in Email Configuration");
+    }
+
+    console.log('✅ Email health check completed');
+    console.log('📋 Recommendations:', recommendations);
+
+    res.json({
+      success: true,
+      health,
+      recommendations,
+      status: (health.connections.outlook > 0 || health.smtp.configured) ? 'operational' : 'not_configured'
+    });
+  } catch (error) {
+    console.error('❌ Email health check error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      status: 'error'
+    });
+  }
 };

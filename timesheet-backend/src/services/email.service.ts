@@ -41,18 +41,23 @@ const createSMTPTransporter = () => {
 };
 
 export const sendEmail = async (options: DirectEmailOptions): Promise<boolean> => {
+  const startTime = Date.now();
+  
   try {
-    console.log('📧 Attempting to send email to:', options.to);
-    console.log('📋 Email subject:', options.subject);
+    console.log('📧 === EMAIL SENDING START ===');
+    console.log('📋 To:', options.to);
+    console.log('📋 Subject:', options.subject);
+    console.log('📋 HTML length:', options.html?.length || 0);
+    console.log('📋 Text length:', options.text?.length || 0);
     
-    // First try OAuth method (Outlook/Google)
+    // Check available services
     const connections = await EmailService.getAllEmailConnections();
-    console.log('📋 Available email connections:', connections.length);
+    console.log('📋 Available OAuth connections:', connections.length);
     
     const outlookConnection = connections.find(conn => conn.provider === 'outlook' && conn.accessToken);
     
     if (outlookConnection) {
-      console.log('✅ Using Outlook OAuth connection from:', outlookConnection.email);
+      console.log('🔐 Using Outlook OAuth connection from:', outlookConnection.email);
       console.log('🔐 Token expires at:', outlookConnection.tokenExpiry);
       
       try {
@@ -77,10 +82,14 @@ export const sendEmail = async (options: DirectEmailOptions): Promise<boolean> =
         await EmailService['sendSystemEmail']({
           to: options.to,
           subject: options.subject,
-          html: options.html
+          content: options.html || options.text || '',
+          isHtml: !!options.html
         });
         
-        console.log('✅ Email sent successfully via Outlook OAuth to:', options.to);
+        const endTime = Date.now();
+        console.log('✅ Email sent successfully via OAuth to:', options.to);
+        console.log('⏱️ Time taken:', endTime - startTime, 'ms');
+        
         return true;
         
       } catch (oauthError) {
@@ -115,7 +124,11 @@ export const sendEmail = async (options: DirectEmailOptions): Promise<boolean> =
       };
       
       await smtpTransporter.sendMail(mailOptions);
+      
+      const endTime = Date.now();
       console.log('✅ Email sent successfully via SMTP to:', options.to);
+      console.log('⏱️ Time taken:', endTime - startTime, 'ms');
+      
       return true;
     }
     
@@ -125,18 +138,24 @@ export const sendEmail = async (options: DirectEmailOptions): Promise<boolean> =
     console.log('To:', options.to);
     console.log('Subject:', options.subject);
     
+    const endTime = Date.now();
+    console.log('⏱️ Time taken:', endTime - startTime, 'ms');
+    
     return false;
     
   } catch (error) {
-    console.error('❌ Failed to send email:', error);
-    console.error('Email service error details:', error instanceof Error ? error.message : 'Unknown error');
+    const endTime = Date.now();
+    console.log('❌ === EMAIL SENDING FAILED ===');
+    console.log('⏱️ Time taken:', endTime - startTime, 'ms');
+    console.log('❌ Error:', error.message);
+    console.log('❌ Stack:', error.stack);
     
-    // Log the email content for debugging
+    // Log email content for debugging
     console.log('📋 Email content (not sent due to error):');
     console.log('To:', options.to);
     console.log('Subject:', options.subject);
     
-    throw error; // Re-throw to let the caller handle it
+    throw new Error(`Email sending failed: ${error.message}`);
   }
 };
 
@@ -144,120 +163,31 @@ export const sendPasswordResetEmail = async (email: string, resetLink: string): 
   const subject = 'Password Reset Request - Timesheet System';
   
   const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Password Reset</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          max-width: 600px;
-          margin: 0 auto;
-          padding: 20px;
-        }
-        .header {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          padding: 30px;
-          text-align: center;
-          border-radius: 10px 10px 0 0;
-        }
-        .content {
-          background: #f9f9f9;
-          padding: 30px;
-          border-radius: 0 0 10px 10px;
-        }
-        .reset-button {
-          display: inline-block;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          padding: 15px 30px;
-          text-decoration: none;
-          border-radius: 5px;
-          margin: 20px 0;
-          font-weight: bold;
-        }
-        .reset-button:hover {
-          opacity: 0.9;
-        }
-        .footer {
-          text-align: center;
-          margin-top: 30px;
-          color: #666;
-          font-size: 14px;
-        }
-        .warning {
-          background: #fff3cd;
-          border: 1px solid #ffeaa7;
-          color: #856404;
-          padding: 15px;
-          border-radius: 5px;
-          margin: 20px 0;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>🔐 Password Reset Request</h1>
-      </div>
-      
-      <div class="content">
-        <p>Hello,</p>
-        <p>We received a request to reset your password for your Timesheet System account.</p>
-        
-        <p>Click the button below to reset your password:</p>
-        
-        <div style="text-align: center;">
-          <a href="${resetLink}" class="reset-button">Reset Password</a>
-        </div>
-        
-        <p>Or copy and paste this link into your browser:</p>
-        <p style="word-break: break-all; background: #f0f0f0; padding: 10px; border-radius: 5px;">
-          ${resetLink}
-        </p>
-        
-        <div class="warning">
-          <strong>⚠️ Important:</strong>
-          <ul>
-            <li>This link will expire in <strong>15 minutes</strong></li>
-            <li>If you didn't request this password reset, please ignore this email</li>
-            <li>Never share this link with anyone</li>
-          </ul>
-        </div>
-        
-        <p>If you have any issues, please contact your system administrator.</p>
-      </div>
-      
-      <div class="footer">
-        <p>This is an automated message from the Timesheet System.</p>
-        <p>© 2026 Timesheet System. All rights reserved.</p>
-      </div>
-    </body>
-    </html>
-  `;
-
-  const text = `
-Password Reset Request
-
-Hello,
+Hi,
 
 We received a request to reset your password for your Timesheet System account.
 
-Click this link to reset your password:
+You can reset your password using the link below:
 ${resetLink}
 
-Important:
-- This link will expire in 15 minutes
-- If you didn't request this password reset, please ignore this email
-- Never share this link with anyone
+If you did not request this, please ignore this email.
 
-If you have any issues, please contact your system administrator.
+Best regards,
+Timesheet System Team
+  `;
 
-This is an automated message from the Timesheet System.
-© 2026 Timesheet System. All rights reserved.
+  const text = `
+Hi,
+
+We received a request to reset your password for your Timesheet System account.
+
+You can reset your password using the link below:
+${resetLink}
+
+If you did not request this, please ignore this email.
+
+Best regards,
+Timesheet System Team
   `;
 
   return await sendEmail({

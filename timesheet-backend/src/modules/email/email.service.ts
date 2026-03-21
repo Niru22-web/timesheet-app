@@ -26,10 +26,10 @@ const GOOGLE_OAUTH_CONFIG = {
 };
 
 const MICROSOFT_OAUTH_CONFIG = {
-  clientId: process.env.OUTLOOK_CLIENT_ID || '',
-  clientSecret: process.env.OUTLOOK_CLIENT_SECRET || '',
+  clientId: process.env.MICROSOFT_CLIENT_ID || process.env.OUTLOOK_CLIENT_ID || '',
+  clientSecret: process.env.MICROSOFT_CLIENT_SECRET || process.env.OUTLOOK_CLIENT_SECRET || '',
   redirectUri: process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:5000/api/email/oauth/outlook/callback',
-  scope: 'https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/User.Read offline_access'
+  scope: 'https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/User.Read openid profile email offline_access'
 };
 
 class EmailService {
@@ -61,14 +61,17 @@ class EmailService {
       redirect_uri: MICROSOFT_OAUTH_CONFIG.redirectUri,
       scope: MICROSOFT_OAUTH_CONFIG.scope,
       response_mode: 'query',
-      prompt: 'consent'
+      prompt: 'select_account'
     });
 
     if (state) {
       params.append('state', state);
     }
 
-    return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`;
+    const tenantId = process.env.MICROSOFT_TENANT_ID || 'common';
+    const url = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${params.toString()}`;
+    console.log("🔗 Constructed Outlook OAuth URL:", url);
+    return url;
   }
 
   // Handle Google OAuth callback
@@ -407,7 +410,7 @@ class EmailService {
       `To: ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`,
       `Subject: ${options.subject}`,
       'MIME-Version: 1.0',
-      'Content-Type: text/html; charset=utf-8',
+      `Content-Type: ${options.html ? 'text/html' : 'text/plain'}; charset=utf-8`,
       '',
       options.html || options.text
     ].join('\n');
@@ -653,7 +656,8 @@ class EmailService {
       await this.sendSystemEmail({
         to: data.to,
         subject: subject,
-        html: body
+        content: body,
+        isHtml: false
       });
 
       console.log('✅ Registration email sent successfully to:', data.to);
@@ -721,33 +725,29 @@ class EmailService {
     companyName: string;
   }) {
     const subject = `Welcome to ${data.companyName}`;
-    const body = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #4f46e5;">Welcome to ${data.companyName}</h2>
-        <p>Dear ${data.employeeName},</p>
-        <p>Your account has been created successfully. Please complete your registration by clicking the link below:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.registrationLink}" style="background-color: #4f46e5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
-            Complete Registration
-          </a>
-        </div>
-        <p><strong>Important:</strong> This registration link will expire in 24 hours.</p>
-        <p>Your login details:</p>
-        <ul>
-          <li><strong>Email:</strong> ${data.to}</li>
-          <li><strong>Employee ID:</strong> ${data.employeeId}</li>
-          <li><strong>Department:</strong> ${data.department}</li>
-          <li><strong>Designation:</strong> ${data.designation}</li>
-        </ul>
-        <p>If you have any questions, please contact your administrator.</p>
-        <p>Best regards,<br>${data.companyName} Team</p>
-      </div>
-    `;
+    const body = `Hi ${data.employeeName},
+
+Welcome to ${data.companyName}. Your account has been created successfully.
+
+You can complete your registration using the link below:
+${data.registrationLink}
+
+Account Details:
+Email: ${data.to}
+Employee ID: ${data.employeeId}
+Department: ${data.department}
+Designation: ${data.designation}
+
+If you have any questions, feel free to reply to this email.
+
+Best regards,
+${data.companyName} Team`;
 
     await this.sendSystemEmail({
       to: data.to,
       subject: subject,
-      html: body
+      content: body,
+      isHtml: false
     });
   }
 
@@ -764,10 +764,17 @@ class EmailService {
   }
 
   // Send email using configured provider
-  private async sendSystemEmail(data: { to: string; subject: string; html: string }) {
+  private async sendSystemEmail(data: { to: string; subject: string; content: string; isHtml?: boolean }) {
     try {
       console.log('📧 Attempting to send email to:', data.to);
       
+      const payload = {
+        to: data.to,
+        subject: data.subject,
+        html: data.isHtml !== false ? data.content : undefined,
+        text: data.isHtml === false ? data.content : data.content.replace(/<[^>]*>?/gm, '')
+      };
+
       // Try to use Outlook first - look for any active Outlook connection
       const outlookConnection = await prisma.emailConnection.findFirst({
         where: {
@@ -794,7 +801,7 @@ class EmailService {
           outlookConnection.accessToken = await this.refreshMicrosoftToken(outlookConnection);
         }
 
-        return this.sendOutlookEmail(outlookConnection, data);
+        return this.sendOutlookEmail(outlookConnection, payload);
       }
 
       // Try Gmail - look for any active Gmail connection
@@ -823,7 +830,7 @@ class EmailService {
            gmailConnection.accessToken = await this.refreshGoogleToken(gmailConnection);
         }
 
-        return this.sendGmailEmail(gmailConnection, data);
+        return this.sendGmailEmail(gmailConnection, payload);
       }
 
       throw new Error('No email provider configured. Please connect an email account in the Email Configuration page.');

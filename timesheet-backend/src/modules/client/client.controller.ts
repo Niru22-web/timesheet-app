@@ -25,36 +25,81 @@ const upload = multer({
 export const getAllClients = async (req: Request, res: Response) => {
   try {
     const clients = await clientService.getAllClients();
-    res.json(clients);
-  } catch (error) {
+    res.json({
+      success: true,
+      data: clients,
+      message: 'Clients retrieved successfully'
+    });
+  } catch (error: any) {
     console.error('Error fetching clients:', error);
-    res.status(500).json({ error: 'Failed to fetch clients' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch clients',
+      error: error.message 
+    });
   }
 };
 
 export const getClientById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const client = await clientService.getClientById(id);
+    const client: any = await clientService.getClientById(id);
     
     if (!client) {
-      return res.status(404).json({ error: 'Client not found' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Client not found' 
+      });
+    }
+
+    // Fetch reporting partner and manager details if they exist
+    const { prisma } = require('../../config/prisma');
+    
+    if (client.reportingPartner) {
+      const partner = await prisma.employee.findUnique({
+        where: { id: client.reportingPartner },
+        select: { id: true, firstName: true, lastName: true, employeeId: true, officeEmail: true }
+      });
+      client.reportingPartnerDetails = partner;
+    }
+
+    if (client.reportingManager) {
+      const manager = await prisma.employee.findUnique({
+        where: { id: client.reportingManager },
+        select: { id: true, firstName: true, lastName: true, employeeId: true, officeEmail: true }
+      });
+      client.reportingManagerDetails = manager;
     }
     
-    res.json(client);
-  } catch (error) {
+    res.json({
+      success: true,
+      data: client,
+      message: 'Client details retrieved successfully'
+    });
+  } catch (error: any) {
     console.error('Error fetching client:', error);
-    res.status(500).json({ error: 'Failed to fetch client' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch client',
+      error: error.message
+    });
   }
 };
 
 export const createClient = async (req: Request, res: Response) => {
   try {
     const client = await clientService.createClient(req.body);
-    res.status(201).json(client);
+    res.status(201).json({
+      success: true,
+      data: client,
+      message: 'Client created successfully'
+    });
   } catch (error: any) {
     console.error('Error creating client:', error);
-    res.status(400).json({ error: error.message || 'Failed to create client' });
+    res.status(400).json({ 
+      success: false, 
+      message: error.message || 'Failed to create client' 
+    });
   }
 };
 
@@ -62,10 +107,17 @@ export const updateClient = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const client = await clientService.updateClient(id, req.body);
-    res.json(client);
+    res.json({
+      success: true,
+      data: client,
+      message: 'Client updated successfully'
+    });
   } catch (error: any) {
     console.error('Error updating client:', error);
-    res.status(400).json({ error: error.message || 'Failed to update client' });
+    res.status(400).json({ 
+      success: false, 
+      message: error.message || 'Failed to update client' 
+    });
   }
 };
 
@@ -73,10 +125,16 @@ export const deleteClient = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await clientService.deleteClient(id);
-    res.json(result);
+    res.json({
+      success: true,
+      message: 'Client deleted successfully'
+    });
   } catch (error: any) {
     console.error('Error deleting client:', error);
-    res.status(400).json({ error: error.message || 'Failed to delete client' });
+    res.status(400).json({ 
+      success: false, 
+      message: error.message || 'Failed to delete client' 
+    });
   }
 };
 
@@ -93,7 +151,7 @@ export const bulkUploadClients = async (req: Request, res: Response) => {
     const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
     // Validate required columns
-    const requiredColumns = ['name', 'alias', 'gstStatus', 'pan'];
+    const requiredColumns = ['name', 'primaryEmail'];
     const firstRow = jsonData[0] as any;
     const missingColumns = requiredColumns.filter(col => !(col in firstRow));
     
@@ -101,7 +159,7 @@ export const bulkUploadClients = async (req: Request, res: Response) => {
       return res.status(400).json({ 
         error: 'Missing required columns',
         missingColumns,
-        requiredColumns: ['name', 'alias', 'address', 'pin', 'state', 'country', 'gstStatus', 'gstin', 'pan', 'clientId']
+        requiredColumns: ['name', 'primaryEmail', 'alias', 'address', 'pin', 'state', 'country', 'gstStatus', 'gstin', 'pan', 'phone', 'companyDetails', 'notes', 'clientId']
       });
     }
 
@@ -109,15 +167,21 @@ export const bulkUploadClients = async (req: Request, res: Response) => {
     const results = await clientService.bulkCreateClients(jsonData);
     
     res.json({
+      success: true,
       message: 'Bulk upload completed',
-      totalRecords: jsonData.length,
-      successCount: results.success.length,
-      errorCount: results.errors.length,
-      results
+      data: {
+        totalRecords: jsonData.length,
+        successCount: results.success.length,
+        errorCount: results.errors.length,
+        results
+      }
     });
   } catch (error: any) {
     console.error('Error in bulk upload:', error);
-    res.status(400).json({ error: error.message || 'Failed to process bulk upload' });
+    res.status(400).json({ 
+      success: false, 
+      message: error.message || 'Failed to process bulk upload' 
+    });
   }
 };
 

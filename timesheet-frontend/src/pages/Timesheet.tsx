@@ -126,7 +126,8 @@ const Timesheet: React.FC = () => {
       if (dateTo) params.toDate = dateTo;
 
       const res = await API.get('/timelogs', { params });
-      setEntries(res.data);
+      const logData = res.data?.success ? res.data.data : res.data;
+      setEntries(Array.isArray(logData) ? logData : []);
     } catch (err) {
       console.error('Failed to fetch logs:', err);
     } finally {
@@ -141,9 +142,10 @@ const Timesheet: React.FC = () => {
         API.get('/projects'),
         API.get('/jobs')
       ]);
-      setClients(clientsRes.data);
-      setProjects(projectsRes.data);
-      setJobs(jobsRes.data);
+      // Handle standardized response format { success, data, message }
+      setClients(clientsRes.data?.success ? clientsRes.data.data : clientsRes.data);
+      setProjects(projectsRes.data?.success ? projectsRes.data.data : projectsRes.data);
+      setJobs(jobsRes.data?.success ? jobsRes.data.data : jobsRes.data);
     } catch (err) {
       console.error('Failed to fetch master data:', err);
     }

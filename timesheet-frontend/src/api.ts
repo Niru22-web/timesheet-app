@@ -12,24 +12,21 @@ API.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  // Start global freeze for any outgoing data request
-  if (config.method !== 'get') {
-    loadingManager.startLoading("Syncing with database...");
-  } else {
-    // For GET, maybe use a more subtle message
-    loadingManager.startLoading("Fetching latest records...");
-  }
+  // Start global loading for ALL requests (Modern SaaS style)
+  // We don't block the screen here, just trigger the top progress bar
+  const isBlocking = false; // Minimal blocking
+  loadingManager.startLoading(undefined, isBlocking);
 
   return config;
 });
 
 API.interceptors.response.use(
   (response) => {
-    loadingManager.stopLoading();
+    loadingManager.stopLoading(false);
     return response;
   },
   (error) => {
-    loadingManager.stopLoading();
+    loadingManager.stopLoading(false);
     
     // Handle 401 Unauthorized errors
     if (error.response?.status === 401) {
@@ -51,5 +48,6 @@ API.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
 
 export default API;

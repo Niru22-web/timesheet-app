@@ -346,7 +346,10 @@ export const deleteEmployee = async (req: any, res: Response) => {
     });
 
     if (!employee) {
-      return res.status(404).json({ error: 'Employee not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Employee not found' 
+      });
     }
 
     console.log(`Deleting employee: ${employee.firstName} ${employee.lastName} (${employee.employeeId})`);
@@ -389,10 +392,16 @@ export const deleteEmployee = async (req: any, res: Response) => {
     });
     console.log('Deleted employee successfully');
 
-    res.json({ message: 'Employee and all related data deleted successfully' });
+    res.json({ 
+      success: true,
+      message: 'Employee and all related data deleted successfully' 
+    });
   } catch (error) {
     console.error('Error deleting employee:', error);
-    res.status(500).json({ error: 'Failed to delete employee' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to delete employee' 
+    });
   }
 };
 
@@ -447,10 +456,17 @@ export const getEmployees = async (req: any, res: Response) => {
 
     console.log(`✅ Found ${employees.length} employees for ${userRole}`);
 
-    res.json(employees);
+    console.log(`✅ Found ${employees.length} employees for ${userRole}`);
+
+    res.json({
+      success: true,
+      data: employees,
+      message: 'Employees retrieved successfully'
+    });
   } catch (error) {
     console.error('Error fetching employees:', error);
     res.status(500).json({ 
+      success: false,
       error: 'Failed to fetch employees',
       details: error instanceof Error ? error.message : String(error)
     });
@@ -464,10 +480,17 @@ export const getEmployeesByDepartment = async (req: any, res: Response) => {
       where: { department: department as string },
       orderBy: { createdAt: 'desc' }
     });
-    res.json(employees);
+    res.json({
+      success: true,
+      data: employees,
+      message: 'Employees retrieved successfully'
+    });
   } catch (error) {
     console.error('Error fetching employees by department:', error);
-    res.status(500).json({ error: 'Failed to fetch employees' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch employees' 
+    });
   }
 };
 
@@ -501,10 +524,17 @@ export const getPartners = async (req: any, res: Response) => {
     console.log(`✅ Found ${partners.length} partners`);
     console.log('📋 Partners data:', partners);
     
-    res.json(partners);
+    res.json({
+      success: true,
+      data: partners,
+      message: 'Partners retrieved successfully'
+    });
   } catch (error) {
     console.error('❌ Error fetching partners:', error);
-    res.status(500).json({ error: 'Failed to fetch partners' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch partners' 
+    });
   }
 };
 
@@ -585,10 +615,17 @@ export const getManagersByPartner = async (req: any, res: Response) => {
     console.log(`✅ Found ${managers.length} managers under partner ${partnerId}`);
     console.log('📋 Managers data:', managers);
     
-    res.json(managers);
+    res.json({
+      success: true,
+      data: managers,
+      message: 'Managers retrieved successfully'
+    });
   } catch (error) {
     console.error('❌ Error fetching managers by partner:', error);
-    res.status(500).json({ error: 'Failed to fetch managers' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch managers' 
+    });
   }
 };
 

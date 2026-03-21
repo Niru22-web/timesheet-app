@@ -14,7 +14,8 @@ import {
     DocumentArrowUpIcon,
     DocumentArrowDownIcon,
     ExclamationTriangleIcon,
-    CheckCircleIcon
+    CheckCircleIcon,
+    EyeIcon
 } from '@heroicons/react/24/outline';
 
 // UI Components
@@ -24,19 +25,28 @@ import Input from '../components/ui/Input';
 import StatusBadge from '../components/ui/StatusBadge';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
+import { TableSkeleton, Skeleton } from '../components/ui/Skeleton';
 
 interface Client {
     id: string;
     clientId: string;
     name: string;
-    alias: string;
-    gstStatus: string;
+    primaryEmail: string;
+    alias?: string;
+    gstStatus?: string;
     gstin?: string;
-    pan: string;
+    pan?: string;
     address?: string;
     pin?: string;
     state?: string;
     country?: string;
+    phone?: string;
+    companyDetails?: string;
+    notes?: string;
+    reportingPartner?: string;
+    reportingManager?: string;
+    reportingPartnerDetails?: any;
+    reportingManagerDetails?: any;
     _count?: {
         projects: number;
     };
@@ -65,6 +75,7 @@ const Clients: React.FC = () => {
     // Form state
     const [formData, setFormData] = useState({
         name: '',
+        primaryEmail: '',
         alias: '',
         address: '',
         pin: '',
@@ -72,22 +83,82 @@ const Clients: React.FC = () => {
         country: 'India',
         gstStatus: 'No',
         gstin: '',
-        pan: ''
+        pan: '',
+        phone: '',
+        companyDetails: '',
+        notes: '',
+        reportingPartner: '',
+        reportingManager: ''
     });
+
+    const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [viewingClient, setViewingClient] = useState<Client | null>(null);
+    const [partners, setPartners] = useState<any[]>([]);
+    const [managers, setManagers] = useState<any[]>([]);
+    const [partnersLoading, setPartnersLoading] = useState(false);
+    const [managersLoading, setManagersLoading] = useState(false);
 
     const isManager = user?.role === 'Manager' || user?.role === 'Admin' || user?.role === 'manager' || user?.role === 'admin';
 
     useEffect(() => {
         fetchClients();
+        fetchPartners();
     }, []);
+
+    const showMessage = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+        setNotification({ message, type });
+        setTimeout(() => setNotification(null), 5000);
+    };
+
+    const fetchPartners = async () => {
+        try {
+            setPartnersLoading(true);
+            const response = await API.get('/employees/partners');
+            // Support both formats
+            const partnerData = response.data?.success ? response.data.data : response.data;
+            setPartners(Array.isArray(partnerData) ? partnerData : []);
+        } catch (err) {
+            console.error('Failed to fetch partners:', err);
+        } finally {
+            setPartnersLoading(false);
+        }
+    };
+
+    const fetchManagersByPartner = async (partnerId: string) => {
+        if (!partnerId) {
+            setManagers([]);
+            return;
+        }
+        try {
+            setManagersLoading(true);
+            const response = await API.get(`/employees/managers-by-partner?partnerId=${partnerId}`);
+            const managerData = response.data?.success ? response.data.data : response.data;
+            setManagers(Array.isArray(managerData) ? managerData : []);
+        } catch (err) {
+            console.error('Failed to fetch managers:', err);
+        } finally {
+            setManagersLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (formData.reportingPartner) {
+            fetchManagersByPartner(formData.reportingPartner);
+        } else {
+            setManagers([]);
+        }
+    }, [formData.reportingPartner]);
 
     const fetchClients = async () => {
         try {
             setLoading(true);
             const response = await API.get('/clients');
-            setClients(response.data);
+            const clientData = response.data?.success ? response.data.data : response.data;
+            setClients(Array.isArray(clientData) ? clientData : []);
         } catch (err) {
             console.error('Failed to fetch clients:', err);
+            showMessage('Failed to fetch clients', 'error');
         } finally {
             setLoading(false);
         }
@@ -98,30 +169,30 @@ const Clients: React.FC = () => {
         if (!isManager) return;
 
         // Validation
-        if (!formData.name || !formData.alias || !formData.address || !formData.pin || !formData.state || !formData.country || !formData.pan) {
-            alert('All fields marked as mandatory must be filled.');
-            return;
-        }
-
-        if (formData.gstStatus === 'Yes' && !formData.gstin) {
-            alert('GSTIN is mandatory for GST Registered clients.');
+        if (!formData.name || !formData.primaryEmail) {
+            showMessage('Client Name and Primary Email are mandatory.', 'error');
             return;
         }
 
         try {
-            await API.post('/clients', formData);
-            setShowAddModal(false);
-            resetForm();
-            fetchClients();
-        } catch (err) {
+            const response = await API.post('/clients', formData);
+            if (response.data.success) {
+                showMessage(response.data.message || 'Client created successfully');
+                setShowAddModal(false);
+                resetForm();
+                fetchClients();
+            }
+        } catch (err: any) {
             console.error('Failed to create client:', err);
-            alert('Error creating client. Make sure you have appropriate permissions.');
+            const errorMsg = err.response?.data?.message || 'Error creating client.';
+            showMessage(errorMsg, 'error');
         }
     };
 
     const resetForm = () => {
         setFormData({
             name: '',
+            primaryEmail: '',
             alias: '',
             address: '',
             pin: '',
@@ -129,32 +200,62 @@ const Clients: React.FC = () => {
             country: 'India',
             gstStatus: 'No',
             gstin: '',
-            pan: ''
+            pan: '',
+            phone: '',
+            companyDetails: '',
+            notes: '',
+            reportingPartner: '',
+            reportingManager: ''
         });
     };
 
     const handleEditClient = async (client: Client) => {
         try {
-            // Fetch complete client details
+            setLoading(true); // Short loading
             const response = await API.get(`/clients/${client.id}`);
-            const fullClient = response.data;
+            const result = response.data;
+            const fullClient = result.success ? result.data : result;
             
             setEditingClient(fullClient);
             setFormData({
                 name: fullClient.name,
-                alias: fullClient.alias,
+                primaryEmail: fullClient.primaryEmail || '',
+                alias: fullClient.alias || '',
                 address: fullClient.address || '',
                 pin: fullClient.pin || '',
                 state: fullClient.state || '',
                 country: fullClient.country || 'India',
-                gstStatus: fullClient.gstStatus,
+                gstStatus: fullClient.gstStatus || 'No',
                 gstin: fullClient.gstin || '',
-                pan: fullClient.pan
+                pan: fullClient.pan || '',
+                phone: fullClient.phone || '',
+                companyDetails: fullClient.companyDetails || '',
+                notes: fullClient.notes || '',
+                reportingPartner: fullClient.reportingPartner || '',
+                reportingManager: fullClient.reportingManager || ''
             });
             setShowEditModal(true);
+        } catch (err: any) {
+            console.error('Failed to fetch client details:', err);
+            showMessage('Error fetching client details.', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleViewClient = async (client: Client) => {
+        try {
+            setLoading(true);
+            const response = await API.get(`/clients/${client.id}`);
+            const result = response.data;
+            const fullClient = result.success ? result.data : result;
+            setViewingClient(fullClient);
+            setShowViewModal(true);
         } catch (err) {
             console.error('Failed to fetch client details:', err);
-            alert('Error fetching client details. Please try again.');
+            showMessage('Error fetching client details.', 'error');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -163,25 +264,24 @@ const Clients: React.FC = () => {
         if (!isManager || !editingClient) return;
 
         // Validation
-        if (!formData.name || !formData.alias || !formData.address || !formData.pin || !formData.state || !formData.country || !formData.pan) {
-            alert('All fields marked as mandatory must be filled.');
-            return;
-        }
-
-        if (formData.gstStatus === 'Yes' && !formData.gstin) {
-            alert('GSTIN is mandatory for GST Registered clients.');
+        if (!formData.name || !formData.primaryEmail) {
+            showMessage('Client Name and Primary Email are mandatory.', 'error');
             return;
         }
 
         try {
-            await API.put(`/clients/${editingClient.id}`, formData);
-            setShowEditModal(false);
-            setEditingClient(null);
-            resetForm();
-            fetchClients();
-        } catch (err) {
+            const response = await API.put(`/clients/${editingClient.id}`, formData);
+            if (response.data.success) {
+                showMessage(response.data.message || 'Client updated successfully');
+                setShowEditModal(false);
+                setEditingClient(null);
+                resetForm();
+                fetchClients();
+            }
+        } catch (err: any) {
             console.error('Failed to update client:', err);
-            alert('Error updating client. Make sure you have appropriate permissions.');
+            const errorMsg = err.response?.data?.message || 'Error updating client.';
+            showMessage(errorMsg, 'error');
         }
     };
 
@@ -194,13 +294,17 @@ const Clients: React.FC = () => {
         if (!isManager || !deletingClient) return;
 
         try {
-            await API.delete(`/clients/${deletingClient.id}`);
-            setShowDeleteModal(false);
-            setDeletingClient(null);
-            fetchClients();
-        } catch (err) {
+            const response = await API.delete(`/clients/${deletingClient.id}`);
+            if (response.data.success) {
+                showMessage(response.data.message || 'Client deleted successfully');
+                setShowDeleteModal(false);
+                setDeletingClient(null);
+                fetchClients();
+            }
+        } catch (err: any) {
             console.error('Failed to delete client:', err);
-            alert('Error deleting client. Make sure you have appropriate permissions.');
+            const errorMsg = err.response?.data?.message || 'Error deleting client.';
+            showMessage(errorMsg, 'error');
         }
     };
 
@@ -214,13 +318,13 @@ const Clients: React.FC = () => {
             ];
             
             if (!validTypes.includes(file.type)) {
-                alert('Please select a valid Excel file (.xlsx or .xls)');
+                showMessage('Please select a valid Excel file (.xlsx or .xls)', 'error');
                 return;
             }
             
             // Validate file size (5MB limit)
             if (file.size > 5 * 1024 * 1024) {
-                alert('File size should not exceed 5MB');
+                showMessage('File size should not exceed 5MB', 'error');
                 return;
             }
             
@@ -235,20 +339,24 @@ const Clients: React.FC = () => {
         setUploadResult(null);
 
         try {
-            const formData = new FormData();
-            formData.append('file', selectedFile);
+            const uploadFormData = new FormData();
+            uploadFormData.append('file', selectedFile);
 
-            const response = await API.post('/clients/bulk-upload', formData, {
+            const response = await API.post('/clients/bulk-upload', uploadFormData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
 
-            setUploadResult(response.data.results);
-            fetchClients(); // Refresh client list
+            if (response.data.success) {
+                setUploadResult(response.data.data.results);
+                showMessage(response.data.message || 'Bulk upload completed successfully');
+                fetchClients(); // Refresh client list
+            }
         } catch (err: any) {
             console.error('Bulk upload failed:', err);
-            alert(err.response?.data?.error || 'Failed to upload file. Please check the format and try again.');
+            const errorMsg = err.response?.data?.message || 'Error during bulk upload.';
+            showMessage(errorMsg, 'error');
         } finally {
             setUploading(false);
         }
@@ -284,7 +392,7 @@ const Clients: React.FC = () => {
     const filteredClients = clients.filter(c =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.clientId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.alias.toLowerCase().includes(searchTerm.toLowerCase())
+        c.alias?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -340,33 +448,47 @@ const Clients: React.FC = () => {
 
             {/* Stats Summary */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-none">
-                <Card className="p-4 flex items-center gap-4 border-l-4 border-primary-500">
-                    <div className="p-3 bg-primary-50 text-primary-600 rounded-xl">
-                        <UsersIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Total Active Clients</p>
-                        <p className="text-2xl font-bold text-secondary-900">{clients.length}</p>
-                    </div>
-                </Card>
-                <Card className="p-4 flex items-center gap-4 border-l-4 border-indigo-500">
-                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-                        <ShieldCheckIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">GST Registered</p>
-                        <p className="text-2xl font-bold text-secondary-900">{clients.filter(c => c.gstStatus === 'Yes').length}</p>
-                    </div>
-                </Card>
-                <Card className="p-4 flex items-center gap-4 border-l-4 border-emerald-500">
-                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-                        <ClipboardDocumentCheckIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Active Projects</p>
-                        <p className="text-2xl font-bold text-secondary-900">12</p>
-                    </div>
-                </Card>
+                {loading && clients.length === 0 ? (
+                    [1, 2, 3].map((i) => (
+                        <Card key={i} className="p-4 flex items-center gap-4 border-l-4 border-secondary-200">
+                             <Skeleton variant="circular" width={48} height={48} />
+                             <div className="flex-1">
+                                <Skeleton variant="text" width="40%" />
+                                <Skeleton variant="text" width="60%" />
+                             </div>
+                        </Card>
+                    ))
+                ) : (
+                    <>
+                        <Card className="p-4 flex items-center gap-4 border-l-4 border-primary-500">
+                            <div className="p-3 bg-primary-50 text-primary-600 rounded-xl">
+                                <UsersIcon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Total Active Clients</p>
+                                <p className="text-2xl font-bold text-secondary-900">{clients.length}</p>
+                            </div>
+                        </Card>
+                        <Card className="p-4 flex items-center gap-4 border-l-4 border-indigo-500">
+                            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                                <ShieldCheckIcon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">GST Registered</p>
+                                <p className="text-2xl font-bold text-secondary-900">{clients.filter(c => c.gstStatus === 'Yes').length}</p>
+                            </div>
+                        </Card>
+                        <Card className="p-4 flex items-center gap-4 border-l-4 border-emerald-500">
+                            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                                <ClipboardDocumentCheckIcon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Active Projects</p>
+                                <p className="text-2xl font-bold text-secondary-900">12</p>
+                            </div>
+                        </Card>
+                    </>
+                )}
             </div>
 
             {/* Search and Table */}
@@ -396,13 +518,10 @@ const Clients: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-secondary-50 px-2">
-                            {loading ? (
+                            {loading && clients.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="py-20 text-center">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
-                                            <p className="text-sm font-bold text-secondary-400">Synchronizing database...</p>
-                                        </div>
+                                    <td colSpan={5} className="p-0">
+                                        <TableSkeleton rows={10} columns={5} />
                                     </td>
                                 </tr>
                             ) : filteredClients.length > 0 ? (
@@ -444,6 +563,13 @@ const Clients: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-5 text-right">
                                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button 
+                                                    onClick={() => handleViewClient(client)}
+                                                    className="p-2 text-secondary-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all border border-transparent hover:border-secondary-100"
+                                                    title="View Client Details"
+                                                >
+                                                    <EyeIcon className="w-4 h-4" />
+                                                </button>
                                                 {isManager && (
                                                     <button 
                                                         onClick={() => handleEditClient(client)}
@@ -499,45 +625,91 @@ const Clients: React.FC = () => {
                             required
                         />
                         <Input
-                            label="Alias / Short Code *"
-                            placeholder="e.g. RI"
-                            value={formData.alias}
-                            onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
+                            label="Primary Email *"
+                            placeholder="client@example.com"
+                            type="email"
+                            value={formData.primaryEmail}
+                            onChange={(e) => setFormData({ ...formData, primaryEmail: e.target.value })}
                             required
                         />
                     </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-sm font-bold text-secondary-700 block ml-0.5">Reporting Partner</label>
+                            <select
+                                className="block w-full rounded-xl border-secondary-200 shadow-sm focus:border-primary-500 focus:ring-primary-500/20 sm:text-sm h-12 border px-4 transition-all outline-none bg-secondary-50/50 focus:bg-white"
+                                value={formData.reportingPartner}
+                                onChange={(e) => setFormData({ ...formData, reportingPartner: e.target.value, reportingManager: '' })}
+                            >
+                                <option value="">Select Partner</option>
+                                {partners.map(p => (
+                                    <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-sm font-bold text-secondary-700 block ml-0.5">Account Manager</label>
+                            <select
+                                className="block w-full rounded-xl border-secondary-200 shadow-sm focus:border-primary-500 focus:ring-primary-500/20 sm:text-sm h-12 border px-4 transition-all outline-none bg-secondary-50/50 focus:bg-white disabled:opacity-50"
+                                value={formData.reportingManager}
+                                disabled={!formData.reportingPartner || managersLoading}
+                                onChange={(e) => setFormData({ ...formData, reportingManager: e.target.value })}
+                            >
+                                <option value="">Select Manager</option>
+                                {managers.map(m => (
+                                    <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
+                                ))}
+                                {formData.reportingPartner && managers.length === 0 && !managersLoading && (
+                                    <option value={formData.reportingPartner}>Direct to Partner</option>
+                                )}
+                            </select>
+                            {managersLoading && <p className="text-[10px] text-secondary-400 mt-1 ml-1">Loading available managers...</p>}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input
+                            label="Alias / Short Code"
+                            placeholder="e.g. RI"
+                            value={formData.alias}
+                            onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
+                        />
+                        <Input
+                            label="Phone Number"
+                            placeholder="+91 9876543210"
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        />
+                    </div>
+
                     <Input
-                        label="Registered Address *"
+                        label="Registered Address"
                         placeholder="Street address..."
                         multiline
                         rows={2}
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        required
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Input
-                            label="PIN Code *"
+                            label="PIN Code"
                             placeholder="400001"
                             value={formData.pin}
                             onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
-                            required
                         />
                         <Input
-                            label="State *"
+                            label="State"
                             placeholder="Maharashtra"
                             value={formData.state}
                             onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                            required
                         />
                         <Input
-                            label="Country *"
+                            label="Country"
                             placeholder="India"
                             value={formData.country}
                             onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                            required
                         />
                     </div>
 
@@ -568,17 +740,35 @@ const Clients: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Input
-                            label="PAN Card Number *"
+                            label="PAN Card Number"
                             placeholder="ABCDE1234F"
                             value={formData.pan}
                             onChange={(e) => setFormData({ ...formData, pan: e.target.value })}
-                            required
                         />
                         <Input
                             label="Unique Client ID"
                             value={editingClient?.clientId || ''}
                             disabled
                             placeholder="System Generated"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input
+                            label="Company Details"
+                            placeholder="Details about the company..."
+                            multiline
+                            rows={2}
+                            value={formData.companyDetails}
+                            onChange={(e) => setFormData({ ...formData, companyDetails: e.target.value })}
+                        />
+                        <Input
+                            label="Notes"
+                            placeholder="Additional internal notes..."
+                            multiline
+                            rows={2}
+                            value={formData.notes}
+                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                         />
                     </div>
 
@@ -683,45 +873,91 @@ const Clients: React.FC = () => {
                             required
                         />
                         <Input
-                            label="Alias / Short Code *"
-                            placeholder="e.g. RI"
-                            value={formData.alias}
-                            onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
+                            label="Primary Email *"
+                            placeholder="client@example.com"
+                            type="email"
+                            value={formData.primaryEmail}
+                            onChange={(e) => setFormData({ ...formData, primaryEmail: e.target.value })}
                             required
                         />
                     </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-sm font-bold text-secondary-700 block ml-0.5">Reporting Partner</label>
+                            <select
+                                className="block w-full rounded-xl border-secondary-200 shadow-sm focus:border-primary-500 focus:ring-primary-500/20 sm:text-sm h-12 border px-4 transition-all outline-none bg-secondary-50/50 focus:bg-white"
+                                value={formData.reportingPartner}
+                                onChange={(e) => setFormData({ ...formData, reportingPartner: e.target.value, reportingManager: '' })}
+                            >
+                                <option value="">Select Partner</option>
+                                {partners.map(p => (
+                                    <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-sm font-bold text-secondary-700 block ml-0.5">Account Manager</label>
+                            <select
+                                className="block w-full rounded-xl border-secondary-200 shadow-sm focus:border-primary-500 focus:ring-primary-500/20 sm:text-sm h-12 border px-4 transition-all outline-none bg-secondary-50/50 focus:bg-white disabled:opacity-50"
+                                value={formData.reportingManager}
+                                disabled={!formData.reportingPartner || managersLoading}
+                                onChange={(e) => setFormData({ ...formData, reportingManager: e.target.value })}
+                            >
+                                <option value="">Select Manager</option>
+                                {managers.map(m => (
+                                    <option key={m.id} value={m.id}>{m.firstName} {m.lastName}</option>
+                                ))}
+                                {formData.reportingPartner && managers.length === 0 && !managersLoading && (
+                                    <option value={formData.reportingPartner}>Direct to Partner</option>
+                                )}
+                            </select>
+                            {managersLoading && <p className="text-[10px] text-secondary-400 mt-1 ml-1">Loading available managers...</p>}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input
+                            label="Alias / Short Code"
+                            placeholder="e.g. RI"
+                            value={formData.alias}
+                            onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
+                        />
+                        <Input
+                            label="Phone Number"
+                            placeholder="+91 9876543210"
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        />
+                    </div>
+
                     <Input
-                        label="Registered Address *"
+                        label="Registered Address"
                         placeholder="Street address..."
                         multiline
                         rows={2}
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        required
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Input
-                            label="PIN Code *"
+                            label="PIN Code"
                             placeholder="400001"
                             value={formData.pin}
                             onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
-                            required
                         />
                         <Input
-                            label="State *"
+                            label="State"
                             placeholder="Maharashtra"
                             value={formData.state}
                             onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                            required
                         />
                         <Input
-                            label="Country *"
+                            label="Country"
                             placeholder="India"
                             value={formData.country}
                             onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                            required
                         />
                     </div>
 
@@ -752,17 +988,35 @@ const Clients: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Input
-                            label="PAN *"
+                            label="PAN"
                             placeholder="ABCDE1234F"
                             value={formData.pan}
                             onChange={(e) => setFormData({ ...formData, pan: e.target.value })}
-                            required
                         />
                         <Input
                             label="Unique Client ID"
                             value="AUTO-GENERATED"
                             disabled
                             placeholder="System Generated"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input
+                            label="Company Details"
+                            placeholder="Details about the company..."
+                            multiline
+                            rows={2}
+                            value={formData.companyDetails}
+                            onChange={(e) => setFormData({ ...formData, companyDetails: e.target.value })}
+                        />
+                        <Input
+                            label="Notes"
+                            placeholder="Additional internal notes..."
+                            multiline
+                            rows={2}
+                            value={formData.notes}
+                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                         />
                     </div>
 
@@ -806,10 +1060,10 @@ const Clients: React.FC = () => {
                                 <h4 className="text-sm font-bold text-blue-900 mb-2">Upload Instructions</h4>
                                 <ul className="text-xs text-blue-700 space-y-1">
                                     <li>• Download the template to understand the required format</li>
-                                    <li>• Required fields: name, alias, gstStatus, pan</li>
-                                    <li>• Optional fields: address, pin, state, country, gstin, clientId</li>
+                                    <li>• Required fields: <strong>name, primaryEmail</strong></li>
+                                    <li>• Optional fields: alias, phone, address, pin, state, country, gstStatus, gstin, pan, reportingPartner, reportingManager</li>
+                                    <li>• GSTIN is mandatory if gstStatus is 'Yes'</li>
                                     <li>• File format: Excel (.xlsx or .xls) - Max 5MB</li>
-                                    <li>• Client ID will be auto-generated if not provided</li>
                                 </ul>
                             </div>
                         </div>
@@ -940,6 +1194,125 @@ const Clients: React.FC = () => {
                     )}
                 </div>
             </Modal>
+
+            {/* View Modal */}
+            <Modal
+                isOpen={showViewModal}
+                onClose={() => {
+                    setShowViewModal(false);
+                    setViewingClient(null);
+                }}
+                title="Client Details"
+                size="xl"
+            >
+                {viewingClient && (
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-500">Legal Name</h4>
+                                <p className="mt-1 text-base text-gray-900 font-semibold">{viewingClient.name}</p>
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-500">Primary Email</h4>
+                                <p className="mt-1 text-base text-gray-900">{viewingClient.primaryEmail}</p>
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-500">Alias</h4>
+                                <p className="mt-1 text-base text-gray-900">{viewingClient.alias || '-'}</p>
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-500">Phone</h4>
+                                <p className="mt-1 text-base text-gray-900">{viewingClient.phone || '-'}</p>
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-500">Reporting Partner</h4>
+                                <p className="mt-1 text-base text-gray-900">
+                                    {viewingClient.reportingPartnerDetails ? 
+                                        `${viewingClient.reportingPartnerDetails.firstName} ${viewingClient.reportingPartnerDetails.lastName}` : 
+                                        '-'}
+                                </p>
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-medium text-gray-500">Account Manager</h4>
+                                <p className="mt-1 text-base text-gray-900">
+                                    {viewingClient.reportingManagerDetails ? 
+                                        `${viewingClient.reportingManagerDetails.firstName} ${viewingClient.reportingManagerDetails.lastName}` : 
+                                        '-'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-gray-200 pt-4">
+                            <h3 className="text-lg font-medium text-gray-900 mb-4">Tax & Location Info</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <h4 className="text-sm font-medium text-gray-500">GST Status</h4>
+                                    <p className="mt-1 text-base text-gray-900">{viewingClient.gstStatus}</p>
+                                </div>
+                                {viewingClient.gstStatus === 'Yes' && (
+                                    <div>
+                                        <h4 className="text-sm font-medium text-gray-500">GSTIN</h4>
+                                        <p className="mt-1 text-base text-gray-900 font-mono">{viewingClient.gstin}</p>
+                                    </div>
+                                )}
+                                <div>
+                                    <h4 className="text-sm font-medium text-gray-500">PAN</h4>
+                                    <p className="mt-1 text-base text-gray-900 font-mono uppercase">{viewingClient.pan || '-'}</p>
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-medium text-gray-500">Address</h4>
+                                    <p className="mt-1 text-base text-gray-900">{viewingClient.address || '-'}</p>
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-medium text-gray-500">Location</h4>
+                                    <p className="mt-1 text-base text-gray-900">
+                                        {[viewingClient.state, viewingClient.country].filter(Boolean).join(', ')} 
+                                        {viewingClient.pin && ` - ${viewingClient.pin}`}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {(viewingClient.companyDetails || viewingClient.notes) && (
+                            <div className="border-t border-gray-200 pt-4">
+                                <h3 className="text-lg font-medium text-gray-900 mb-4">Additional Information</h3>
+                                <div className="space-y-4">
+                                    {viewingClient.companyDetails && (
+                                        <div>
+                                            <h4 className="text-sm font-medium text-gray-500">Company Details</h4>
+                                            <p className="mt-1 text-base text-gray-900 whitespace-pre-wrap">{viewingClient.companyDetails}</p>
+                                        </div>
+                                    )}
+                                    {viewingClient.notes && (
+                                        <div>
+                                            <h4 className="text-sm font-medium text-gray-500">Internal Notes</h4>
+                                            <p className="mt-1 text-base text-gray-900 whitespace-pre-wrap">{viewingClient.notes}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+                <div className="mt-8 flex justify-end">
+                    <Button onClick={() => setShowViewModal(false)}>Close</Button>
+                </div>
+            </Modal>
+
+            {/* Notification Toast */}
+            {notification && (
+                <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-2xl z-[100] flex items-center space-x-3 transition-all transform animate-slide-in ${
+                    notification.type === 'error' ? 'bg-red-600' : 
+                    notification.type === 'info' ? 'bg-blue-600' : 'bg-green-600'
+                } text-white`}>
+                    {notification.type === 'error' ? (
+                        <ExclamationTriangleIcon className="h-6 w-6" />
+                    ) : (
+                        <CheckCircleIcon className="h-6 w-6" />
+                    )}
+                    <span className="font-medium">{notification.message}</span>
+                </div>
+            )}
         </div>
     );
 };

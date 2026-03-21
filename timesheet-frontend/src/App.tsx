@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PermissionsProvider } from './contexts/PermissionsContext';
 import { LoadingProvider } from './contexts/LoadingContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { ToastProvider } from './components/ui/Toast';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import FrozenLayout from './components/FrozenLayout';
@@ -27,6 +29,12 @@ import Clients from './pages/Clients';
 import Jobs from './pages/Jobs';
 import Profile from './pages/Profile';
 import SimpleLogin from './pages/SimpleLogin';
+import ModernLoginLayout from './components/layouts/ModernLoginLayout';
+import Auth3DLayout from './components/layouts/Auth3DLayout';
+import ForgotPassword3DLayout from './components/layouts/ForgotPassword3DLayout';
+import MobileAuthLayout from './components/layouts/MobileAuthLayout';
+import MobileForgotPasswordLayout from './components/layouts/MobileForgotPasswordLayout';
+import ResponsiveAuthLayout from './components/layouts/ResponsiveAuthLayout';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import UserRegistration from './pages/UserRegistration';
@@ -44,187 +52,192 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 const App: React.FC = () => {
     return (
-        <LoadingProvider>
-            <AuthProvider>
-                <PermissionsProvider>
-                    <Router>
-                        <Routes>
-                        {/* Default Route - Redirect to login */}
-                        <Route path="/" element={<Navigate to="/login" replace />} />
+        <ThemeProvider>
+            <ToastProvider>
+                <LoadingProvider>
+                    <AuthProvider>
+                        <PermissionsProvider>
+                            <Router>
+                                <Routes>
+                                    {/* Default Route - Redirect to login */}
+                                    <Route path="/" element={<Navigate to="/login" replace />} />
 
-                        {/* Public Routes */}
-                        <Route path="/login" element={<SimpleLogin />} />
-                        <Route path="/forgot-password" element={<ForgotPassword />} />
-                        <Route path="/reset-password" element={<ResetPassword />} />
-                        <Route path="/register" element={<UserRegistration />} />
-                        <Route path="/complete-registration" element={<EmployeeRegistration />} />
-                        <Route path="/oauth-callback" element={<OAuthCallback />} />
+                                    {/* Public Routes */}
+                                    <Route path="/login" element={<ResponsiveAuthLayout mode="login" />} />
+                                    <Route path="/signup" element={<ResponsiveAuthLayout mode="signup" />} />
+                                    <Route path="/forgot-password" element={<ResponsiveAuthLayout type="forgot" />} />
+                                    <Route path="/reset-password" element={<ResetPassword />} />
+                                    <Route path="/register" element={<UserRegistration />} />
+                                    <Route path="/complete-registration" element={<EmployeeRegistration />} />
+                                    <Route path="/oauth-callback" element={<OAuthCallback />} />
 
-                        {/* Dashboard Routes - Use new dashboard components directly */}
-                        <Route path="/admin" element={
-                            <PrivateRoute>
-                                <ErrorBoundary><AdminDashboard /></ErrorBoundary>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/manager" element={
-                            <PrivateRoute>
-                                <ErrorBoundary><ManagerDashboard /></ErrorBoundary>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/partner" element={
-                            <PrivateRoute>
-                                <ErrorBoundary><PartnerDashboard /></ErrorBoundary>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/employee" element={
-                            <PrivateRoute>
-                                <ErrorBoundary><EmployeeDashboard /></ErrorBoundary>
-                            </PrivateRoute>
-                        } />
+                                    {/* Dashboard Routes - Use new dashboard components directly */}
+                                    <Route path="/admin" element={
+                                        <PrivateRoute>
+                                            <ErrorBoundary><AdminDashboard /></ErrorBoundary>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/manager" element={
+                                        <PrivateRoute>
+                                            <ErrorBoundary><ManagerDashboard /></ErrorBoundary>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/partner" element={
+                                        <PrivateRoute>
+                                            <ErrorBoundary><PartnerDashboard /></ErrorBoundary>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/employee" element={
+                                        <PrivateRoute>
+                                            <ErrorBoundary><EmployeeDashboard /></ErrorBoundary>
+                                        </PrivateRoute>
+                                    } />
 
-                        {/* Protected Routes with Frozen Layout */}
-                        <Route path="/timesheet" element={
-                            <PrivateRoute>
-                                <FrozenLayout>
-                                    <ErrorBoundary>
-                                        <Timesheet />
-                                    </ErrorBoundary>
-                                </FrozenLayout>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/employees" element={
-                            <PrivateRoute>
-                                <ProtectedRoute moduleName="employees">
-                                    <FrozenLayout>
-                                        <ErrorBoundary>
-                                            <Employees />
-                                        </ErrorBoundary>
-                                    </FrozenLayout>
-                                </ProtectedRoute>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/employees/edit/:id" element={
-                            <PrivateRoute>
-                                <ProtectedRoute moduleName="employees">
-                                    <FrozenLayout>
-                                        <ErrorBoundary>
-                                            <EditEmployee />
-                                        </ErrorBoundary>
-                                    </FrozenLayout>
-                                </ProtectedRoute>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/projects" element={
-                            <PrivateRoute>
-                                <ProtectedRoute moduleName="projects">
-                                    <FrozenLayout>
-                                        <ErrorBoundary>
-                                            <Projects />
-                                        </ErrorBoundary>
-                                    </FrozenLayout>
-                                </ProtectedRoute>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/reports" element={
-                            <PrivateRoute>
-                                <ProtectedRoute moduleName="reports">
-                                    <FrozenLayout>
-                                        <ErrorBoundary>
-                                            <Reports />
-                                        </ErrorBoundary>
-                                    </FrozenLayout>
-                                </ProtectedRoute>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/clients" element={
-                            <PrivateRoute>
-                                <FrozenLayout>
-                                    <ErrorBoundary>
-                                        <Clients />
-                                    </ErrorBoundary>
-                                </FrozenLayout>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/jobs" element={
-                            <PrivateRoute>
-                                <FrozenLayout>
-                                    <ErrorBoundary>
-                                        <Jobs />
-                                    </ErrorBoundary>
-                                </FrozenLayout>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/profile" element={
-                            <PrivateRoute>
-                                <FrozenLayout>
-                                    <ErrorBoundary>
-                                        <Profile />
-                                    </ErrorBoundary>
-                                </FrozenLayout>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/admin-panel" element={
-                            <PrivateRoute>
-                                <FrozenLayout>
-                                    <ErrorBoundary>
-                                        <Admin />
-                                    </ErrorBoundary>
-                                </FrozenLayout>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/reimbursement" element={
-                            <PrivateRoute>
-                                <FrozenLayout>
-                                    <ErrorBoundary>
-                                        <Reimbursement />
-                                    </ErrorBoundary>
-                                </FrozenLayout>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/leave-management" element={
-                            <PrivateRoute>
-                                <FrozenLayout>
-                                    <ErrorBoundary>
-                                        <LeaveManagement />
-                                    </ErrorBoundary>
-                                </FrozenLayout>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/email-configuration" element={
-                            <PrivateRoute>
-                                <FrozenLayout>
-                                    <ErrorBoundary>
-                                        <EmailConfiguration />
-                                    </ErrorBoundary>
-                                </FrozenLayout>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/email-templates" element={
-                            <PrivateRoute>
-                                <FrozenLayout>
-                                    <ErrorBoundary>
-                                        <EmailTemplates />
-                                    </ErrorBoundary>
-                                </FrozenLayout>
-                            </PrivateRoute>
-                        } />
-                        <Route path="/admin/user-access" element={
-                            <PrivateRoute>
-                                <FrozenLayout>
-                                    <ErrorBoundary>
-                                        <UserAccessControl />
-                                    </ErrorBoundary>
-                                </FrozenLayout>
-                            </PrivateRoute>
-                        } />
+                                    {/* Protected Routes with Frozen Layout */}
+                                    <Route path="/timesheet" element={
+                                        <PrivateRoute>
+                                            <FrozenLayout>
+                                                <ErrorBoundary>
+                                                    <Timesheet />
+                                                </ErrorBoundary>
+                                            </FrozenLayout>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/employees" element={
+                                        <PrivateRoute>
+                                            <ProtectedRoute moduleName="employees">
+                                                <FrozenLayout>
+                                                    <ErrorBoundary>
+                                                        <Employees />
+                                                    </ErrorBoundary>
+                                                </FrozenLayout>
+                                            </ProtectedRoute>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/employees/edit/:id" element={
+                                        <PrivateRoute>
+                                            <ProtectedRoute moduleName="employees">
+                                                <FrozenLayout>
+                                                    <ErrorBoundary>
+                                                        <EditEmployee />
+                                                    </ErrorBoundary>
+                                                </FrozenLayout>
+                                            </ProtectedRoute>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/projects" element={
+                                        <PrivateRoute>
+                                            <ProtectedRoute moduleName="projects">
+                                                <FrozenLayout>
+                                                    <ErrorBoundary>
+                                                        <Projects />
+                                                    </ErrorBoundary>
+                                                </FrozenLayout>
+                                            </ProtectedRoute>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/reports" element={
+                                        <PrivateRoute>
+                                            <ProtectedRoute moduleName="reports">
+                                                <FrozenLayout>
+                                                    <ErrorBoundary>
+                                                        <Reports />
+                                                    </ErrorBoundary>
+                                                </FrozenLayout>
+                                            </ProtectedRoute>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/clients" element={
+                                        <PrivateRoute>
+                                            <FrozenLayout>
+                                                <ErrorBoundary>
+                                                    <Clients />
+                                                </ErrorBoundary>
+                                            </FrozenLayout>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/jobs" element={
+                                        <PrivateRoute>
+                                            <FrozenLayout>
+                                                <ErrorBoundary>
+                                                    <Jobs />
+                                                </ErrorBoundary>
+                                            </FrozenLayout>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/profile" element={
+                                        <PrivateRoute>
+                                            <FrozenLayout>
+                                                <ErrorBoundary>
+                                                    <Profile />
+                                                </ErrorBoundary>
+                                            </FrozenLayout>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/admin-panel" element={
+                                        <PrivateRoute>
+                                            <FrozenLayout>
+                                                <ErrorBoundary>
+                                                    <Admin />
+                                                </ErrorBoundary>
+                                            </FrozenLayout>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/reimbursement" element={
+                                        <PrivateRoute>
+                                            <FrozenLayout>
+                                                <ErrorBoundary>
+                                                    <Reimbursement />
+                                                </ErrorBoundary>
+                                            </FrozenLayout>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/leave-management" element={
+                                        <PrivateRoute>
+                                            <FrozenLayout>
+                                                <ErrorBoundary>
+                                                    <LeaveManagement />
+                                                </ErrorBoundary>
+                                            </FrozenLayout>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/email-configuration" element={
+                                        <PrivateRoute>
+                                            <FrozenLayout>
+                                                <ErrorBoundary>
+                                                    <EmailConfiguration />
+                                                </ErrorBoundary>
+                                            </FrozenLayout>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/email-templates" element={
+                                        <PrivateRoute>
+                                            <FrozenLayout>
+                                                <ErrorBoundary>
+                                                    <EmailTemplates />
+                                                </ErrorBoundary>
+                                            </FrozenLayout>
+                                        </PrivateRoute>
+                                    } />
+                                    <Route path="/admin/user-access" element={
+                                        <PrivateRoute>
+                                            <FrozenLayout>
+                                                <ErrorBoundary>
+                                                    <UserAccessControl />
+                                                </ErrorBoundary>
+                                            </FrozenLayout>
+                                        </PrivateRoute>
+                                    } />
 
-                        {/* Catch-all route */}
-                        <Route path="*" element={<Navigate to="/login" replace />} />
-                    </Routes>
-                </Router>
-            </PermissionsProvider>
-        </AuthProvider>
-    </LoadingProvider>
+                                    {/* Catch-all route */}
+                                    <Route path="*" element={<Navigate to="/login" replace />} />
+                                </Routes>
+                            </Router>
+                        </PermissionsProvider>
+                    </AuthProvider>
+                </LoadingProvider>
+            </ToastProvider>
+        </ThemeProvider>
     );
 };
 

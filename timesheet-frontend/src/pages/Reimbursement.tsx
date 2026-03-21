@@ -106,11 +106,17 @@ const Reimbursement: React.FC = () => {
         API.get('/projects'),
         API.get('/jobs')
       ]);
-      setClients(clientsRes.data);
-      setProjects(projectsRes.data);
-      setJobs(jobsRes.data);
+      
+      // Handle standardized response format { success, data, message }
+      setClients(clientsRes.data?.success ? clientsRes.data.data : clientsRes.data);
+      setProjects(projectsRes.data?.success ? projectsRes.data.data : projectsRes.data);
+      setJobs(jobsRes.data?.success ? jobsRes.data.data : jobsRes.data);
     } catch (err) {
       console.error('Failed to fetch master data:', err);
+      // Fallback to empty arrays
+      setClients([]);
+      setProjects([]);
+      setJobs([]);
     }
   };
 
@@ -120,9 +126,12 @@ const Reimbursement: React.FC = () => {
       const res = await API.get('/reimbursements', {
         params: { status: statusFilter }
       });
-      setClaims(res.data);
+      
+      // Handle standardized response format { success, data, message }
+      setClaims(res.data?.success ? res.data.data : res.data);
     } catch (err) {
       console.error('Failed to fetch claims:', err);
+      setClaims([]);
     } finally {
       setLoading(false);
     }

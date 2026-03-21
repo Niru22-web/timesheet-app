@@ -231,7 +231,11 @@ const EmailConfiguration: React.FC = () => {
       setLoading(true);
       const response = await API.get('/admin/email-configuration');
       if (response?.data && typeof response.data === 'object') {
-        setConfig(response.data);
+        setConfig(prev => ({ 
+          ...prev, 
+          ...response.data,
+          enableNotifications: response.data.enableNotifications ?? prev.enableNotifications
+        }));
         setSavedConfig(response.data);
       }
     } catch (err) {
@@ -251,17 +255,8 @@ const EmailConfiguration: React.FC = () => {
       console.log('Outlook OAuth response:', response);
       
       if (response?.data?.success && response.data.url) {
-        // Open OAuth URL in a popup instead of redirecting the current window
-        const width = 600;
-        const height = 700;
-        const left = window.screen.width / 2 - width / 2;
-        const top = window.screen.height / 2 - height / 2;
-        
-        window.open(
-          response.data.url, 
-          'Outlook OAuth', 
-          `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes,toolbar=no,menubar=no,scrollbars=yes`
-        );
+        // Open OAuth URL in the same window instead of a popup
+        window.location.href = response.data.url;
       } else {
         const errorMessage = response?.data?.message || 'Failed to generate Outlook OAuth authorization URL';
         const isConfigError = errorMessage.includes('not configured') || errorMessage.includes('Missing required environment variables');

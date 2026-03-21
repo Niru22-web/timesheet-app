@@ -3,8 +3,9 @@ import LoadingOverlay from '../components/ui/LoadingOverlay';
 import { loadingManager } from '../utils/loadingManager';
 
 interface LoadingContextType {
-    setIsLoading: (loading: boolean, message?: string) => void;
+    setIsLoading: (loading: boolean, message?: string, isBlocking?: boolean) => void;
     isLoading: boolean;
+    isBlocking: boolean;
 }
 
 const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
@@ -19,24 +20,27 @@ export const useLoading = () => {
 
 export const LoadingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [isLoading, setIsLoadingState] = useState(false);
+    const [isBlocking, setIsBlockingState] = useState(false);
     const [message, setMessage] = useState<string | undefined>(undefined);
 
     useEffect(() => {
-        return loadingManager.subscribe((loading, msg) => {
+        return loadingManager.subscribe((loading, msg, blocking) => {
             setIsLoadingState(loading);
             setMessage(msg);
+            setIsBlockingState(blocking || false);
         });
     }, []);
 
-    const setIsLoading = (loading: boolean, msg?: string) => {
-        if (loading) loadingManager.startLoading(msg);
-        else loadingManager.stopLoading();
+    const setIsLoading = (loading: boolean, msg?: string, blocking: boolean = false) => {
+        if (loading) loadingManager.startLoading(msg, blocking);
+        else loadingManager.stopLoading(blocking);
     };
 
     return (
-        <LoadingContext.Provider value={{ setIsLoading, isLoading }}>
+        <LoadingContext.Provider value={{ setIsLoading, isLoading, isBlocking }}>
             {children}
-            <LoadingOverlay isVisible={isLoading} message={message} />
+            <LoadingOverlay isVisible={isBlocking} message={message} />
         </LoadingContext.Provider>
     );
 };
+

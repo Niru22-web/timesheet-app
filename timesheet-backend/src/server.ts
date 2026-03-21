@@ -147,9 +147,17 @@ app.get("/api/reimbursements", authenticate, async (req, res) => {
       include: { employee: true },
       orderBy: { date: 'desc' }
     });
-    res.json(claims);
+    res.json({
+      success: true,
+      data: claims,
+      message: 'Reimbursement claims retrieved successfully'
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch claims" });
+    console.error('Error fetching claims:', error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to fetch claims" 
+    });
   }
 });
 
@@ -171,9 +179,17 @@ app.post("/api/reimbursements", authenticate, async (req, res) => {
         employeeId: user.id
       }
     });
-    res.json(newClaim);
+    res.status(201).json({
+      success: true,
+      data: newClaim,
+      message: 'Reimbursement claim submitted successfully'
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to submit claim" });
+    console.error('Error submitting claim:', error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to submit claim" 
+    });
   }
 });
 
@@ -227,10 +243,17 @@ app.get("/api/reports/summary", checkManagerRole, async (req, res) => {
       reportData.byJob[jobName] = (reportData.byJob[jobName] || 0) + log.hours;
     });
 
-    res.json(reportData);
+    res.json({
+      success: true,
+      data: reportData,
+      message: 'Report summary generated successfully'
+    });
   } catch (error) {
     console.error("Report summary error:", error);
-    res.status(500).json({ error: "Failed to generate report summary" });
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to generate report summary" 
+    });
   }
 });
 

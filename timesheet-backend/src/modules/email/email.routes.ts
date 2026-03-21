@@ -20,7 +20,8 @@ import {
   getEmailTemplates,
   updateEmailTemplate,
   sendEmailFromTemplate,
-  getPendingApprovals
+  getPendingApprovals,
+  checkEmailHealth
 } from './email.controller';
 
 const router = Router();
@@ -87,5 +88,8 @@ router.post('/send-email', sendTestEmail);
 
 // Admin approval routes
 router.get('/pending-approvals', checkAdminRole, getPendingApprovals);
+
+// Email health check route
+router.get('/health', checkEmailHealth);
 
 export default router;

@@ -12,11 +12,16 @@ interface User {
   department?: string;
   status?: string;
   officeEmail?: string;
+  profile?: {
+    employeePhotoUrl?: string;
+    [key: string]: any;
+  };
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
@@ -105,9 +110,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsAuthenticated(false);
   };
 
+  const register = async (name: string, email: string, password: string): Promise<boolean> => {
+    try {
+      const response = await API.post('/auth/register', {
+        name,
+        email,
+        password
+      });
+
+      if (response.data.token && response.data.user) {
+        localStorage.setItem('authToken', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        setUser(response.data.user);
+        setIsAuthenticated(true);
+        return true;
+      } else {
+        console.error('Registration failed:', response.data);
+        const errorMessage = response.data?.error || 'Registration failed. Please try again.';
+        alert(`❌ ${errorMessage}`);
+        return false;
+      }
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      alert(`❌ Registration failed: ${error.message || 'Unknown error'}`);
+      return false;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     login,
+    register,
     logout,
     isAuthenticated,
     loading

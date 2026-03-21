@@ -58,10 +58,17 @@ const upload = multer({
 export const getAllProjects = async (req: Request, res: Response) => {
   try {
     const projects = await projectService.getAllProjects();
-    res.json(projects);
+    res.json({
+      success: true,
+      data: projects,
+      message: 'Projects retrieved successfully'
+    });
   } catch (error) {
     console.error('Error fetching projects:', error);
-    res.status(500).json({ error: 'Failed to fetch projects' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch projects' 
+    });
   }
 };
 
@@ -71,13 +78,23 @@ export const getProjectById = async (req: Request, res: Response) => {
     const project = await projectService.getProjectById(id);
     
     if (!project) {
-      return res.status(404).json({ error: 'Project not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Project not found' 
+      });
     }
     
-    res.json(project);
+    res.json({
+      success: true,
+      data: project,
+      message: 'Project retrieved successfully'
+    });
   } catch (error) {
     console.error('Error fetching project:', error);
-    res.status(500).json({ error: 'Failed to fetch project' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch project' 
+    });
   }
 };
 
@@ -87,10 +104,17 @@ export const createProject = async (req: Request, res: Response) => {
     const attachments = req.files as any[];
     
     const project = await projectService.createProject(req.body, attachments, userEmail);
-    res.status(201).json(project);
+    res.status(201).json({
+      success: true,
+      data: project,
+      message: 'Project created successfully'
+    });
   } catch (error: any) {
     console.error('Error creating project:', error);
-    res.status(400).json({ error: error.message || 'Failed to create project' });
+    res.status(400).json({ 
+      success: false,
+      error: error.message || 'Failed to create project' 
+    });
   }
 };
 
@@ -98,10 +122,17 @@ export const updateProject = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const project = await projectService.updateProject(id, req.body);
-    res.json(project);
+    res.json({
+      success: true,
+      data: project,
+      message: 'Project updated successfully'
+    });
   } catch (error: any) {
     console.error('Error updating project:', error);
-    res.status(400).json({ error: error.message || 'Failed to update project' });
+    res.status(400).json({ 
+      success: false,
+      error: error.message || 'Failed to update project' 
+    });
   }
 };
 
@@ -109,10 +140,16 @@ export const deleteProject = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await projectService.deleteProject(id);
-    res.json(result);
+    res.json({
+      success: true,
+      message: 'Project deleted successfully'
+    });
   } catch (error: any) {
     console.error('Error deleting project:', error);
-    res.status(400).json({ error: error.message || 'Failed to delete project' });
+    res.status(400).json({ 
+      success: false,
+      error: error.message || 'Failed to delete project' 
+    });
   }
 };
 
@@ -129,10 +166,17 @@ export const searchProjects = async (req: Request, res: Response) => {
     };
     
     const projects = await projectService.searchProjects(q as string, filters);
-    res.json(projects);
+    res.json({
+      success: true,
+      data: projects,
+      message: 'Projects found successfully'
+    });
   } catch (error: any) {
     console.error('Error searching projects:', error);
-    res.status(500).json({ error: 'Failed to search projects' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to search projects' 
+    });
   }
 };
 

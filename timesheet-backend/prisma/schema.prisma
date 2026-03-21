@@ -70,18 +70,24 @@ model EmployeeProfile {
 }
 
 model Client {
-  id        String    @id @default(uuid())
-  clientId  String    @unique
-  name      String
-  alias     String
-  gstStatus String
-  gstin     String?
-  pan       String
-  address   String?
-  country   String?
-  pin       String?
-  state     String?
-  projects  Project[]
+  id             String    @id @default(uuid())
+  clientId       String    @unique
+  name           String
+  primaryEmail   String?
+  alias          String?
+  gstStatus      String?
+  gstin          String?
+  pan            String?
+  address        String?
+  country        String?
+  pin            String?
+  state          String?
+  phone          String?
+  companyDetails String?
+  notes          String?
+  reportingPartner String?
+  reportingManager String?
+  projects       Project[]
 }
 
 model Project {

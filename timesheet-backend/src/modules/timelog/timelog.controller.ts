@@ -99,8 +99,12 @@ export const getTimelogs = async (req: Request, res: Response) => {
     console.log('Timelogs fetched successfully, count:', Array.isArray(timelogs) ? timelogs.length : 'not an array');
     
     // Ensure we always return an array
-    const response = Array.isArray(timelogs) ? timelogs : [];
-    res.json(response);
+    const timelogArray = Array.isArray(timelogs) ? timelogs : [];
+    res.json({
+      success: true,
+      data: timelogArray,
+      message: 'Timelogs retrieved successfully'
+    });
   } catch (error) {
     console.error('Error fetching timelogs:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
@@ -128,10 +132,17 @@ export const createTimelog = async (req: Request, res: Response) => {
       user.id
     );
 
-    res.status(201).json(timelog);
+    res.status(201).json({
+      success: true,
+      data: timelog,
+      message: 'Timelog created successfully'
+    });
   } catch (error: any) {
     console.error('Error creating timelog:', error);
-    res.status(400).json({ error: error.message || 'Failed to create timelog' });
+    res.status(400).json({ 
+      success: false,
+      error: error.message || 'Failed to create timelog' 
+    });
   }
 };
 
@@ -148,10 +159,17 @@ export const updateTimelog = async (req: Request, res: Response) => {
       user.role
     );
 
-    res.json(timelog);
+    res.json({
+      success: true,
+      data: timelog,
+      message: 'Timelog updated successfully'
+    });
   } catch (error: any) {
     console.error('Error updating timelog:', error);
-    res.status(400).json({ error: error.message || 'Failed to update timelog' });
+    res.status(400).json({ 
+      success: false,
+      error: error.message || 'Failed to update timelog' 
+    });
   }
 };
 
@@ -161,7 +179,10 @@ export const deleteTimelog = async (req: Request, res: Response) => {
     const user = (req as any).user;
 
     const result = await timelogService.deleteTimelog(id, user.id, user.role);
-    res.json(result);
+    res.json({
+      success: true,
+      message: 'Timelog deleted successfully'
+    });
   } catch (error: any) {
     console.error('Error deleting timelog:', error);
     res.status(400).json({ error: error.message || 'Failed to delete timelog' });
@@ -172,7 +193,11 @@ export const getAccessibleClients = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     const clients = await timelogService.getAccessibleClients(user.id);
-    res.json(clients);
+    res.json({
+      success: true,
+      data: clients,
+      message: 'Accessible clients retrieved successfully'
+    });
   } catch (error) {
     console.error('Error fetching accessible clients:', error);
     res.status(500).json({ error: 'Failed to fetch accessible clients' });
@@ -187,7 +212,11 @@ export const getAccessibleProjects = async (req: Request, res: Response) => {
       user.id, 
       clientId as string
     );
-    res.json(projects);
+    res.json({
+      success: true,
+      data: projects,
+      message: 'Accessible projects retrieved successfully'
+    });
   } catch (error) {
     console.error('Error fetching accessible projects:', error);
     res.status(500).json({ error: 'Failed to fetch accessible projects' });
@@ -202,7 +231,11 @@ export const getAccessibleJobs = async (req: Request, res: Response) => {
       user.id, 
       projectId as string
     );
-    res.json(jobs);
+    res.json({
+      success: true,
+      data: jobs,
+      message: 'Accessible jobs retrieved successfully'
+    });
   } catch (error) {
     console.error('Error fetching accessible jobs:', error);
     res.status(500).json({ error: 'Failed to fetch accessible jobs' });
@@ -388,6 +421,7 @@ export const importTimelogsFromExcel = async (req: Request, res: Response) => {
     fs.unlinkSync(file.path);
 
     res.json({
+      success: true,
       message: 'Import completed',
       totalRows: data.length,
       validRows: timelogsToImport.length,
@@ -396,7 +430,7 @@ export const importTimelogsFromExcel = async (req: Request, res: Response) => {
       importErrorsCount: importResults.errors.length,
       validationErrors,
       importErrors: importResults.errors,
-      success: importResults.success
+      data: importResults.success
     });
   } catch (error: any) {
     console.error('Error importing timelogs:', error);
@@ -487,10 +521,17 @@ export const getTimesheetReports = async (req: Request, res: Response) => {
       filters
     );
 
-    res.json(reports);
+    res.json({
+      success: true,
+      data: reports,
+      message: 'Timesheet reports generated successfully'
+    });
   } catch (error) {
     console.error('Error generating timesheet reports:', error);
-    res.status(500).json({ error: 'Failed to generate timesheet reports' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to generate timesheet reports' 
+    });
   }
 };
 
@@ -513,10 +554,17 @@ export const getMissingTimesheets = async (req: Request, res: Response) => {
       dateTo as string
     );
 
-    res.json(missingTimesheets);
+    res.json({
+      success: true,
+      data: missingTimesheets,
+      message: 'Missing timesheets retrieved successfully'
+    });
   } catch (error) {
     console.error('Error fetching missing timesheets:', error);
-    res.status(500).json({ error: 'Failed to fetch missing timesheets' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch missing timesheets' 
+    });
   }
 };
 

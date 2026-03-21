@@ -40,9 +40,12 @@ const Reports: React.FC = () => {
       if (dateTo) params.toDate = dateTo;
 
       const res = await API.get('/reports/summary', { params });
-      setReportData(res.data);
+      
+      // Handle standardized response format { success, data, message }
+      setReportData(res.data?.success ? res.data.data : res.data);
     } catch (err) {
       console.error('Failed to fetch report:', err);
+      setReportData(null);
     } finally {
       setLoading(false);
     }

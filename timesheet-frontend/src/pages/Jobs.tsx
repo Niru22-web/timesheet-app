@@ -24,6 +24,7 @@ import Input from '../components/ui/Input';
 import StatusBadge from '../components/ui/StatusBadge';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
+import { TableSkeleton, Skeleton } from '../components/ui/Skeleton';
 
 interface Job {
     id: string;
@@ -88,9 +89,14 @@ const Jobs: React.FC = () => {
                 API.get('/clients'),
                 API.get('/projects')
             ]);
-            setJobs(jobsRes.data);
-            setClients(clientsRes.data);
-            setProjects(projectsRes.data);
+            
+            const jobsArr = jobsRes.data?.success ? jobsRes.data.data : jobsRes.data;
+            const clientsArr = clientsRes.data?.success ? clientsRes.data.data : clientsRes.data;
+            const projectsArr = projectsRes.data?.success ? projectsRes.data.data : projectsRes.data;
+
+            setJobs(Array.isArray(jobsArr) ? jobsArr : []);
+            setClients(Array.isArray(clientsArr) ? clientsArr : []);
+            setProjects(Array.isArray(projectsArr) ? projectsArr : []);
         } catch (err) {
             console.error('Failed to fetch jobs data:', err);
         } finally {
@@ -221,42 +227,56 @@ const Jobs: React.FC = () => {
 
             {/* Stats Summary */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-none">
-                <Card className="p-4 flex items-center gap-4 border-l-4 border-primary-500">
-                    <div className="p-3 bg-primary-50 text-primary-600 rounded-xl">
-                        <ListBulletIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Active Jobs</p>
-                        <p className="text-xl font-bold text-secondary-900">{jobs.length}</p>
-                    </div>
-                </Card>
-                <Card className="p-4 flex items-center gap-4 border-l-4 border-indigo-500">
-                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-                        <CurrencyDollarIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Billable Units</p>
-                        <p className="text-xl font-bold text-secondary-900">{jobs.filter(j => j.billable).length}</p>
-                    </div>
-                </Card>
-                <Card className="p-4 flex items-center gap-4 border-l-4 border-amber-500">
-                    <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
-                        <ClockIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">In-Discussion</p>
-                        <p className="text-xl font-bold text-secondary-900">{jobs.filter(j => j.status === 'In-Discussion').length}</p>
-                    </div>
-                </Card>
-                <Card className="p-4 flex items-center gap-4 border-l-4 border-emerald-500">
-                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-                        <ShieldCheckIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Managed Records</p>
-                        <p className="text-xl font-bold text-secondary-900">Stable</p>
-                    </div>
-                </Card>
+                {loading && jobs.length === 0 ? (
+                    [1, 2, 3, 4].map((i) => (
+                        <Card key={i} className="p-4 flex items-center gap-4 border-l-4 border-secondary-200">
+                             <Skeleton variant="circular" width={48} height={48} />
+                             <div className="flex-1">
+                                <Skeleton variant="text" width="40%" />
+                                <Skeleton variant="text" width="60%" />
+                             </div>
+                        </Card>
+                    ))
+                ) : (
+                    <>
+                        <Card className="p-4 flex items-center gap-4 border-l-4 border-primary-500">
+                            <div className="p-3 bg-primary-50 text-primary-600 rounded-xl">
+                                <ListBulletIcon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Active Jobs</p>
+                                <p className="text-xl font-bold text-secondary-900">{jobs.length}</p>
+                            </div>
+                        </Card>
+                        <Card className="p-4 flex items-center gap-4 border-l-4 border-indigo-500">
+                            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                                <CurrencyDollarIcon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Billable Units</p>
+                                <p className="text-xl font-bold text-secondary-900">{jobs.filter(j => j.billable).length}</p>
+                            </div>
+                        </Card>
+                        <Card className="p-4 flex items-center gap-4 border-l-4 border-amber-500">
+                            <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                                <ClockIcon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">In-Discussion</p>
+                                <p className="text-xl font-bold text-secondary-900">{jobs.filter(j => j.status === 'In-Discussion').length}</p>
+                            </div>
+                        </Card>
+                        <Card className="p-4 flex items-center gap-4 border-l-4 border-emerald-500">
+                            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                                <ShieldCheckIcon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Managed Records</p>
+                                <p className="text-xl font-bold text-secondary-900">Stable</p>
+                            </div>
+                        </Card>
+                    </>
+                )}
             </div>
 
             <Card className="flex-1 flex flex-col overflow-hidden min-h-0 shadow-lg">
@@ -285,13 +305,10 @@ const Jobs: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-secondary-50">
-                            {loading ? (
+                            {loading && jobs.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="py-20 text-center">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
-                                            <p className="text-sm font-bold text-secondary-400">Loading master jobs...</p>
-                                        </div>
+                                    <td colSpan={5} className="p-0">
+                                        <TableSkeleton rows={10} columns={5} />
                                     </td>
                                 </tr>
                             ) : filteredJobs.length > 0 ? (

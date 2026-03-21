@@ -9,14 +9,24 @@ interface FrozenLayoutProps {
 
 const FrozenLayout: React.FC<FrozenLayoutProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(() => {
+    const saved = localStorage.getItem('sidebarCollapsed');
+    return saved ? JSON.parse(saved) : true;
+  });
   const [isMobile, setIsMobile] = React.useState(false);
+
+  // Persist collapse state
+  React.useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', JSON.stringify(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
 
   // Detect mobile screen size
   React.useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) {
-        setIsSidebarOpen(false); // Close sidebar on desktop
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setIsSidebarOpen(false); // Close mobile sidebar on desktop
       }
     };
 
@@ -50,21 +60,25 @@ const FrozenLayout: React.FC<FrozenLayoutProps> = ({ children }) => {
         />
       )}
 
-      {/* Fixed Sidebar - Responsive width */}
+      {/* Fixed Sidebar - Responsive width and collapse */}
       <div className={`
-        fixed inset-y-0 left-0 w-72 bg-white border-r border-secondary-200 transform transition-all duration-300 ease-in-out z-50
-        md:relative md:translate-x-0 md:w-64 md:h-full md:flex-shrink-0
-        ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
-        ${isMobile ? 'w-80' : 'md:w-64'}
+        fixed inset-y-0 left-0 bg-white border-r border-secondary-200 transform transition-all duration-300 ease-in-out z-50
+        md:relative md:translate-x-0 md:h-full md:flex-shrink-0
+        ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : !isMobile ? 'translate-x-0' : '-translate-x-full'}
+        ${isMobile ? 'w-80' : isSidebarCollapsed ? 'w-20' : 'w-72'}
       `}>
         <Sidebar 
           isOpen={isSidebarOpen}
+          isCollapsed={isSidebarCollapsed}
+          onCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           onClose={() => setIsSidebarOpen(false)}
         />
       </div>
 
       {/* Main Content Area - Gets remaining space */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+      <div className={`
+        flex-1 flex flex-col h-full overflow-hidden min-w-0 transition-all duration-300
+      `}>
         {/* Fixed Header */}
         <div className="flex-shrink-0">
           <DashboardHeader

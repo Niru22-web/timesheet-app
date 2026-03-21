@@ -57,10 +57,17 @@ export const getLeaves = async (req: any, res: any) => {
       orderBy: { appliedDate: 'desc' }
     });
 
-    res.json(leaves);
+    res.json({
+      success: true,
+      data: leaves,
+      message: 'Leaves retrieved successfully'
+    });
   } catch (error) {
     console.error('Error fetching leaves:', error);
-    res.status(500).json({ error: 'Failed to fetch leaves' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch leaves' 
+    });
   }
 };
 
@@ -97,10 +104,17 @@ export const createLeave = async (req: any, res: any) => {
       }
     });
 
-    res.json(newLeave);
+    res.status(201).json({
+      success: true,
+      data: newLeave,
+      message: 'Leave request created successfully'
+    });
   } catch (error) {
     console.error('Error creating leave:', error);
-    res.status(500).json({ error: 'Failed to create leave request' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to create leave request' 
+    });
   }
 };
 
@@ -140,10 +154,17 @@ export const updateLeaveStatus = async (req: any, res: any) => {
       await updateLeaveBalance(updatedLeave.employeeId, updatedLeave.totalDays);
     }
 
-    res.json(updatedLeave);
+    res.json({
+      success: true,
+      data: updatedLeave,
+      message: `Leave ${status} successfully`
+    });
   } catch (error) {
     console.error('Error updating leave status:', error);
-    res.status(500).json({ error: 'Failed to update leave status' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to update leave status' 
+    });
   }
 };
 
@@ -177,10 +198,16 @@ export const deleteLeave = async (req: any, res: any) => {
       where: { id }
     });
 
-    res.json({ message: 'Leave request cancelled successfully' });
+    res.json({
+      success: true,
+      message: 'Leave request cancelled successfully'
+    });
   } catch (error) {
     console.error('Error cancelling leave:', error);
-    res.status(500).json({ error: 'Failed to cancel leave request' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to cancel leave request' 
+    });
   }
 };
 
@@ -190,13 +217,13 @@ export const getLeaveBalance = async (req: any, res: any) => {
     const user = req.user;
     
     console.log('Leave balance request - User ID:', user.id);
-    console.log('Leave balance request - User email:', user.email);
+    console.log('Leave balance request - Employee ID:', user.employeeId);
 
     const currentYear = new Date().getFullYear();
     
-    let leaveBalance = await prisma.leaveBalance.findUnique({
+    let leaveBalance = await prisma.leaveBalance.findFirst({
       where: { 
-        employeeId: user.id,
+        employeeId: user.employeeId,
         year: currentYear 
       }
     });
@@ -205,10 +232,10 @@ export const getLeaveBalance = async (req: any, res: any) => {
 
     // If no balance exists, create one with default values
     if (!leaveBalance) {
-      console.log('Creating new leave balance for user:', user.id, 'year:', currentYear);
+      console.log('Creating new leave balance for employee:', user.employeeId, 'year:', currentYear);
       leaveBalance = await prisma.leaveBalance.create({
         data: {
-          employeeId: user.id,
+          employeeId: user.employeeId,
           year: currentYear,
           totalLeaves: 21, // Default 21 days per year
           usedLeaves: 0,
@@ -226,7 +253,11 @@ export const getLeaveBalance = async (req: any, res: any) => {
       closingBalance: leaveBalance.remainingLeaves
     };
 
-    res.json(transformedBalance);
+    res.json({
+      success: true,
+      data: transformedBalance,
+      message: 'Leave balance retrieved successfully'
+    });
   } catch (error: any) {
     console.error('Error fetching leave balance:', error);
     console.error('Error details:', {
@@ -235,8 +266,9 @@ export const getLeaveBalance = async (req: any, res: any) => {
       user: req.user ? { id: req.user.id, email: req.user.email } : 'No user'
     });
     res.status(500).json({ 
-      message: 'Failed to fetch leave balance',
-      error: error.message 
+      success: false,
+      error: 'Failed to fetch leave balance',
+      details: error.message 
     });
   }
 };
@@ -245,7 +277,7 @@ export const getLeaveBalance = async (req: any, res: any) => {
 const updateLeaveBalance = async (employeeId: string, daysTaken: number) => {
   try {
     const currentYear = new Date().getFullYear();
-    const balance = await prisma.leaveBalance.findUnique({
+    const balance = await prisma.leaveBalance.findFirst({
       where: { 
         employeeId,
         year: currentYear 
@@ -264,12 +296,9 @@ const updateLeaveBalance = async (employeeId: string, daysTaken: number) => {
         }
       });
     } else {
-      // Update existing balance
+      // Update existing balance by ID
       await prisma.leaveBalance.update({
-        where: { 
-          employeeId,
-          year: currentYear 
-        },
+        where: { id: balance.id },
         data: {
           usedLeaves: balance.usedLeaves + daysTaken,
           remainingLeaves: balance.remainingLeaves - daysTaken,

@@ -9,6 +9,7 @@ export default function ClientForm() {
 
   const [form, setForm] = useState({
     name: "",
+    primaryEmail: "",
     alias: "",
     address: "",
     pin: "",
@@ -17,6 +18,9 @@ export default function ClientForm() {
     gstStatus: "",
     gstin: "",
     pan: "",
+    phone: "",
+    companyDetails: "",
+    notes: ""
   });
 
   const handleChange = (e: any) => {
@@ -24,8 +28,8 @@ export default function ClientForm() {
   };
 
   const handleSubmit = async () => {
-    if (Object.values(form).some((v) => !v && v !== "gstin")) {
-      alert("All fields mandatory");
+    if (!form.name || !form.primaryEmail) {
+      alert("Name and Primary Email are mandatory");
       return;
     }
 
@@ -49,8 +53,11 @@ export default function ClientForm() {
 
       <div className="grid grid-cols-2 gap-4">
 
-        <input name="name" placeholder="Client Name" onChange={handleChange} className="border p-2 rounded" />
+        <input name="name" placeholder="Client Name *" onChange={handleChange} className="border p-2 rounded" required />
+        <input name="primaryEmail" placeholder="Primary Email *" onChange={handleChange} className="border p-2 rounded" required />
+
         <input name="alias" placeholder="Alias" onChange={handleChange} className="border p-2 rounded" />
+        <input name="phone" placeholder="Phone Number" onChange={handleChange} className="border p-2 rounded" />
 
         <input name="address" placeholder="Address" onChange={handleChange} className="border p-2 rounded col-span-2" />
 
@@ -75,6 +82,9 @@ export default function ClientForm() {
         )}
 
         <input name="pan" placeholder="PAN" onChange={handleChange} className="border p-2 rounded" />
+
+        <textarea name="companyDetails" placeholder="Company Details" onChange={handleChange} className="border p-2 rounded col-span-2" rows={2}></textarea>
+        <textarea name="notes" placeholder="Notes" onChange={handleChange} className="border p-2 rounded col-span-2" rows={2}></textarea>
 
       </div>
 

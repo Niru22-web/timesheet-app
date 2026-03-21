@@ -25,6 +25,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Avatar from '../components/ui/Avatar';
+import TimesheetPhoto from '../components/ui/TimesheetPhoto';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -52,17 +53,17 @@ const AdminDashboard: React.FC = () => {
         API.get('/timelogs')
       ]);
 
-      const summary = summaryRes.status === 'fulfilled' ? summaryRes.value.data : {
+      const summary = summaryRes.status === 'fulfilled' ? (summaryRes.value.data.data || summaryRes.value.data) : {
         totalEmployees: 0,
         activeProjects: 0,
         totalHours: 0,
         averageUtilization: 0
       };
 
-      const employees = employeesRes.status === 'fulfilled' ? employeesRes.value.data : [];
-      const projects = projectsRes.status === 'fulfilled' ? projectsRes.value.data : [];
-      const clients = clientsRes.status === 'fulfilled' ? clientsRes.value.data : [];
-      const timelogs = timelogsRes.status === 'fulfilled' ? timelogsRes.value.data : [];
+      const employees = employeesRes.status === 'fulfilled' ? (employeesRes.value.data.data || employeesRes.value.data) : [];
+      const projects = projectsRes.status === 'fulfilled' ? (projectsRes.value.data.data || projectsRes.value.data) : [];
+      const clients = clientsRes.status === 'fulfilled' ? (clientsRes.value.data.data || clientsRes.value.data) : [];
+      const timelogs = timelogsRes.status === 'fulfilled' ? (timelogsRes.value.data.data || timelogsRes.value.data) : [];
 
       setDashboardData({
         summary,
@@ -70,9 +71,9 @@ const AdminDashboard: React.FC = () => {
         projects,
         clients,
         timelogs,
-        pendingTimelogs: timelogs.filter((t: any) => t.status === 'pending').length,
-        activeProjects: projects.filter((p: any) => p.status === 'active').length,
-        totalHours: timelogs.reduce((sum: number, log: any) => sum + (log.hours || 0), 0)
+        pendingTimelogs: Array.isArray(timelogs) ? timelogs.filter((t: any) => t.status === 'pending').length : 0,
+        activeProjects: Array.isArray(projects) ? projects.filter((p: any) => p.status === 'active').length : 0,
+        totalHours: Array.isArray(timelogs) ? timelogs.reduce((sum: number, log: any) => sum + (log.hours || 0), 0) : 0
       });
 
     } catch (err) {
@@ -114,6 +115,39 @@ const AdminDashboard: React.FC = () => {
       subtitle="Complete system overview and administrative controls"
     >
       <div className="space-y-6">
+        {/* Hero Section with Timesheet Photo */}
+        <Card className="p-8 bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-gray-800 dark:to-gray-700">
+          <div className="flex flex-col lg:flex-row items-center gap-8">
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                Welcome to Your Admin Dashboard
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
+                Manage your workforce efficiently with our comprehensive timesheet and employee management system.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Button 
+                  variant="primary" 
+                  onClick={() => navigate('/employees')}
+                  leftIcon={<UsersIcon className="w-4 h-4" />}
+                >
+                  Manage Employees
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  onClick={() => navigate('/timesheet')}
+                  leftIcon={<ClockIcon className="w-4 h-4" />}
+                >
+                  View Timesheets
+                </Button>
+              </div>
+            </div>
+            <div className="flex-shrink-0">
+              <TimesheetPhoto size="md" showCaption={false} />
+            </div>
+          </div>
+        </Card>
+
         {/* Filter Panel */}
         <FilterPanel 
           onFiltersChange={handleFiltersChange}

@@ -9,6 +9,7 @@ interface StatusBadgeProps {
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status, text, className = '' }) => {
     const getStatusConfig = (status: string) => {
+        if (!status) return { variant: 'secondary' as const, text: text || 'Unknown' };
         switch (status.toLowerCase()) {
             case 'active':
             case 'approved':

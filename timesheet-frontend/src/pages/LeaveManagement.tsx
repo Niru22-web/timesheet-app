@@ -104,7 +104,9 @@ const LeaveManagement: React.FC = () => {
       // Only fetch employees if user is Admin, Manager, or Partner
       if (user && ['Admin', 'Manager', 'Partner'].includes(user.role)) {
         const res = await API.get('/employees');
-        setEmployees(res.data);
+        
+        // Handle standardized response format { success, data, message }
+        setEmployees(res.data?.success ? res.data.data : res.data);
       }
     } catch (err) {
       console.error('Failed to fetch employees:', err);
@@ -128,7 +130,9 @@ const LeaveManagement: React.FC = () => {
       if (employeeFilter !== 'All Employees') params.employeeId = employeeFilter;
 
       const res = await API.get('/leaves', { params });
-      setLeaveRecords(res.data);
+      
+      // Handle standardized response format { success, data, message }
+      setLeaveRecords(res.data?.success ? res.data.data : res.data);
     } catch (err) {
       console.error('Failed to fetch leave records:', err);
       // Set empty array on error to show no records
@@ -143,7 +147,9 @@ const LeaveManagement: React.FC = () => {
       console.log('Fetching leave balance...');
       const res = await API.get('/leaves/balance');
       console.log('Leave balance response:', res.data);
-      setLeaveBalance(res.data);
+      
+      // Handle standardized response format { success, data, message }
+      setLeaveBalance(res.data?.success ? res.data.data : res.data);
     } catch (err: any) {
       console.error('Failed to fetch leave balance:', err);
       console.error('Error details:', {

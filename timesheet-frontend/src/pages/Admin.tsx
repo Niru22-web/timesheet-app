@@ -57,8 +57,9 @@ const Admin: React.FC = () => {
         API.get('/reports/summary'),
         API.get('/timelogs') // Use timelogs as audit trail for now
       ]);
-      setSummary(summaryRes.data);
-      setAuditLogs(logsRes.data.slice(0, 10));
+      setSummary(summaryRes.data.data || summaryRes.data);
+      const logsData = logsRes.data.data || logsRes.data;
+      setAuditLogs(Array.isArray(logsData) ? logsData.slice(0, 10) : []);
     } catch (err) {
       console.error('Failed to fetch system state:', err);
     } finally {

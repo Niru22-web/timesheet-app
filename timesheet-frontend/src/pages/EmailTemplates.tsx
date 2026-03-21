@@ -72,13 +72,25 @@ const EmailTemplates: React.FC = () => {
       // Handle the new API response format
       if (response.data?.success && response.data?.templates) {
         const templatesData = Array.isArray(response.data.templates) ? response.data.templates : [];
-        console.log('✅ Setting templates array:', templatesData);
-        setTemplates(templatesData);
+        console.log('✅ Templates received from backend:', templatesData);
+        
+        if (templatesData.length === 0) {
+          console.log('🔄 No templates returned from backend, using default templates');
+          setTemplates(getDefaultTemplates());
+        } else {
+          setTemplates(templatesData);
+        }
       } else {
-        // Fallback for old format or direct array
-        const templatesData = Array.isArray(response.data) ? response.data : [];
-        console.log('🔄 Using fallback format:', templatesData);
-        setTemplates(templatesData);
+        // Handle case where templates might be in res.data directly or nested differently
+        const potentialArray = Array.isArray(response.data) ? response.data : 
+                             (response.data?.data?.templates ? response.data.data.templates : []);
+        console.log('🔄 Extracted fallback templates:', potentialArray);
+        
+        if (potentialArray.length === 0) {
+          setTemplates(getDefaultTemplates());
+        } else {
+          setTemplates(potentialArray);
+        }
       }
     } catch (err) {
       console.error('❌ Failed to fetch email templates:', err);
@@ -94,15 +106,20 @@ const EmailTemplates: React.FC = () => {
       id: '1',
       name: 'Employee Registration',
       subject: 'Welcome to {{CompanyName}} - Complete Your Registration',
-      body: `<p>Dear {{EmployeeName}},</p>
-<p>Welcome to {{CompanyName}}! We're excited to have you join our team.</p>
-<p>Please click the link below to complete your registration and set up your account:</p>
-<p><a href="{{RegistrationLink}}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Complete Registration</a></p>
-<p>This link will expire in 24 hours.</p>
-<p>Best regards,<br>{{CompanyName}} Team</p>`,
+      body: `Hi {{EmployeeName}},
+
+Welcome to {{CompanyName}}! We're excited to have you join our team.
+
+Please click the link below to complete your registration and set up your account:
+{{RegistrationLink}}
+
+This link will expire in 24 hours.
+
+Best regards,
+{{CompanyName}} Team`,
       category: 'Registration',
       variables: ['EmployeeName', 'CompanyName', 'RegistrationLink'],
-      isActive: true,
+      status: "active",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     },
@@ -110,19 +127,22 @@ const EmailTemplates: React.FC = () => {
       id: '2',
       name: 'Leave Approval',
       subject: 'Your Leave Request Has Been Approved',
-      body: `<p>Dear {{EmployeeName}},</p>
-<p>Your leave request from {{StartDate}} to {{EndDate}} has been approved.</p>
-<p><strong>Leave Details:</strong></p>
-<ul>
-  <li>Type: {{LeaveType}}</li>
-  <li>Duration: {{NumberOfDays}} days</li>
-  <li>Approver: {{ApproverName}}</li>
-</ul>
-<p>Please ensure all your work is handed over before your leave.</p>
-<p>Best regards,<br>HR Team</p>`,
+      body: `Hi {{EmployeeName}},
+
+Your leave request from {{StartDate}} to {{EndDate}} has been approved.
+
+Leave Details:
+Type: {{LeaveType}}
+Duration: {{NumberOfDays}} days
+Approver: {{ApproverName}}
+
+Please ensure all your work is handed over before your leave.
+
+Best regards,
+HR Team`,
       category: 'Leave',
       variables: ['EmployeeName', 'StartDate', 'EndDate', 'LeaveType', 'NumberOfDays', 'ApproverName'],
-      isActive: true,
+      status: "active",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     },
@@ -130,14 +150,19 @@ const EmailTemplates: React.FC = () => {
       id: '3',
       name: 'Leave Rejection',
       subject: 'Your Leave Request Has Been Rejected',
-      body: `<p>Dear {{EmployeeName}},</p>
-<p>Your leave request from {{StartDate}} to {{EndDate}} has been rejected.</p>
-<p><strong>Reason:</strong> {{RejectionReason}}</p>
-<p>If you have any questions or would like to discuss this further, please contact HR.</p>
-<p>Best regards,<br>HR Team</p>`,
+      body: `Hi {{EmployeeName}},
+
+Your leave request from {{StartDate}} to {{EndDate}} has been rejected.
+
+Reason: {{RejectionReason}}
+
+If you have any questions or would like to discuss this further, please contact HR.
+
+Best regards,
+HR Team`,
       category: 'Leave',
       variables: ['EmployeeName', 'StartDate', 'EndDate', 'RejectionReason'],
-      isActive: true,
+      status: "active",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     },
@@ -145,15 +170,21 @@ const EmailTemplates: React.FC = () => {
       id: '4',
       name: 'Timesheet Reminder',
       subject: 'Reminder: Submit Your Timesheet for {{WeekPeriod}}',
-      body: `<p>Dear {{EmployeeName}},</p>
-<p>This is a friendly reminder to submit your timesheet for the period {{WeekPeriod}}.</p>
-<p>Please log in to your dashboard and submit your timesheet by the deadline: {{Deadline}}.</p>
-<p><a href="{{DashboardLink}}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Go to Dashboard</a></p>
-<p>If you have already submitted your timesheet, please disregard this email.</p>
-<p>Best regards,<br>Management Team</p>`,
+      body: `Hi {{EmployeeName}},
+
+This is a friendly reminder to submit your timesheet for the period {{WeekPeriod}}.
+
+Please log in to your dashboard and submit your timesheet by the deadline: {{Deadline}}.
+
+Log in here: {{DashboardLink}}
+
+If you have already submitted your timesheet, please disregard this email.
+
+Best regards,
+Management Team`,
       category: 'Timesheet',
       variables: ['EmployeeName', 'WeekPeriod', 'Deadline', 'DashboardLink'],
-      isActive: true,
+      status: "active",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     },
@@ -161,19 +192,17 @@ const EmailTemplates: React.FC = () => {
       id: '5',
       name: 'Reimbursement Status',
       subject: 'Your Reimbursement Request Has Been {{Status}}',
-      body: `<p>Dear {{EmployeeName}},</p>
-<p>Your reimbursement request for {{Amount}} ({{Description}}) has been {{Status}}.</p>
-<p><strong>Request Details:</strong></p>
-<ul>
-  <li>Amount: {{Amount}}</li>
-  <li>Description: {{Description}}</li>
-  <li>Submitted: {{SubmissionDate}}</li>
-  {{#if ApprovedAmount}}
-  <li>Approved Amount: {{ApprovedAmount}}</li>
-  {{/if}}
-</ul>
-<p>{{#if StatusMessage}}<strong>Note:</strong> {{StatusMessage}}{{/if}}</p>
-<p>Best regards,<br>Finance Team</p>`,
+      body: `Hi {{EmployeeName}},
+
+Your reimbursement request for {{Amount}} ({{Description}}) has been {{Status}}.
+
+Request Details:
+Amount: {{Amount}}
+Description: {{Description}}
+Submission Date: {{SubmissionDate}}
+
+Best regards,
+Finance Team`,
       category: 'Reimbursement',
       variables: ['EmployeeName', 'Amount', 'Description', 'Status', 'SubmissionDate', 'ApprovedAmount', 'StatusMessage'],
       isActive: true,
@@ -184,13 +213,19 @@ const EmailTemplates: React.FC = () => {
       id: '6',
       name: 'Password Reset',
       subject: 'Reset Your Password - {{CompanyName}}',
-      body: `<p>Dear {{EmployeeName}},</p>
-<p>We received a request to reset your password for your {{CompanyName}} account.</p>
-<p>Click the link below to reset your password:</p>
-<p><a href="{{ResetLink}}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
-<p>This link will expire in 1 hour for security reasons.</p>
-<p>If you didn't request this password reset, please ignore this email.</p>
-<p>Best regards,<br>{{CompanyName}} IT Team</p>`,
+      body: `Hi {{EmployeeName}},
+
+We received a request to reset your password for your {{CompanyName}} account.
+
+Click the link below to reset your password:
+{{ResetLink}}
+
+This link will expire soon for security reasons.
+
+If you didn't request this password reset, please ignore this email.
+
+Best regards,
+{{CompanyName}} IT Team`,
       category: 'Security',
       variables: ['EmployeeName', 'CompanyName', 'ResetLink'],
       isActive: true,
@@ -464,13 +499,13 @@ const EmailTemplates: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-secondary-700 mb-2">Email Body (HTML)</label>
+              <label className="block text-sm font-bold text-secondary-700 mb-2">Email Body (Plain Text)</label>
               <textarea
                 value={editorData.body}
                 onChange={(e) => setEditorData(prev => ({ ...prev, body: e.target.value }))}
                 rows={12}
-                className="w-full px-4 py-3 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm font-medium font-mono"
-                placeholder="HTML email content..."
+                className="w-full px-4 py-3 border border-secondary-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm font-medium font-sans"
+                placeholder="Write your email in plain text..."
               />
             </div>
 
@@ -543,10 +578,11 @@ const EmailTemplates: React.FC = () => {
             </div>
             <div className="p-4 bg-white border border-secondary-200 rounded-lg">
               <p className="text-sm font-bold text-secondary-700 mb-2">Body:</p>
-              <div 
-                className="text-sm text-secondary-900 prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: previewData.body }}
-              />
+              <pre 
+                className="text-sm text-secondary-900 whitespace-pre-wrap font-sans bg-secondary-50 p-4 rounded-xl border border-secondary-100"
+              >
+                {previewData.body}
+              </pre>
             </div>
             <div className="flex justify-end">
               <Button

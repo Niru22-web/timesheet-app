@@ -13,7 +13,17 @@ import {
   DocumentIcon,
   FolderOpenIcon,
   ArrowDownTrayIcon,
-  CloudArrowUpIcon
+  CloudArrowUpIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  CalendarIcon,
+  MapPinIcon,
+  UserGroupIcon,
+  ChatBubbleLeftRightIcon,
+  BriefcaseIcon,
+  BuildingOfficeIcon,
+  AcademicCapIcon,
+  IdentificationIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,6 +36,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import Modal from '../components/ui/Modal';
 import Avatar from '../components/ui/Avatar';
 import ResponsiveTable from '../components/ui/ResponsiveTable';
+import { TableSkeleton, Skeleton } from '../components/ui/Skeleton';
 
 interface EmployeeDocument {
   id: string;
@@ -167,6 +178,9 @@ const Employees: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documentCategory, setDocumentCategory] = useState('Other');
   const [uploadingDocument, setUploadingDocument] = useState(false);
+  
+  // New state for selected employee in right panel
+  const [rightPanelEmployee, setRightPanelEmployee] = useState<Employee | null>(null);
   
   // Document categories
   const documentCategories = [
@@ -784,7 +798,16 @@ const Employees: React.FC = () => {
     setSelectedEmployee(employee);
     setEditedEmployeeData(employee);
     setShowDetailsModal(true);
+    // Also set right panel employee
+    setRightPanelEmployee(employee);
     // Fetch full employee details to ensure complete data is available
+    if (employee.id) {
+      fetchFullEmployeeDetails(employee.id);
+    }
+  };
+
+  const handleSelectEmployee = (employee: Employee) => {
+    setRightPanelEmployee(employee);
     if (employee.id) {
       fetchFullEmployeeDetails(employee.id);
     }
@@ -1201,8 +1224,34 @@ const Employees: React.FC = () => {
     return matchesSearch && matchesRole;
   });
 
-  if (!employees || loading) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>;
+  if (loading && employees.length === 0) {
+    return (
+      <div className="flex flex-col space-y-4 animate-fade-in min-h-screen">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 flex-none">
+          <div className="space-y-2">
+            <Skeleton variant="rectangular" height={32} width={200} />
+            <Skeleton variant="rectangular" height={16} width={150} />
+          </div>
+          <Skeleton variant="rectangular" height={40} width={120} />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-none">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="p-4 bg-white border border-secondary-200 rounded-xl">
+              <div className="flex items-center gap-4">
+                <Skeleton variant="circular" width={40} height={40} />
+                <div className="flex-1">
+                  <Skeleton variant="text" width="40%" />
+                  <Skeleton variant="text" width="60%" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <TableSkeleton rows={8} columns={5} />
+      </div>
+    );
   }
   
   if (error) {
@@ -1216,313 +1265,520 @@ const Employees: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col space-y-4 animate-fade-in min-h-screen">
+    <div className="flex flex-col h-screen bg-gray-50 animate-fade-in">
       {/* Top Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 flex-none">
-        <div>
-          <h1 className="text-2xl font-bold text-secondary-900 tracking-tight">{APP_CONFIG.COMPANY_NAME}</h1>
-          <p className="text-sm text-secondary-500 font-medium">Employee Management</p>
-        </div>
+      <div className="flex-none px-6 py-4 bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Employee Database</h1>
+            <p className="text-sm text-gray-500 font-medium mt-1">Manage your team members</p>
+          </div>
 
-        <div className="flex items-center gap-2">
-          {pendingApprovals.length > 0 && (
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-10 border-warning-200 text-warning-700 hover:bg-warning-50"
-              onClick={() => setShowPendingApprovals(!showPendingApprovals)}
-              leftIcon={<PlusIcon className="w-4 h-4" />}
-            >
-              {showPendingApprovals ? 'Hide' : 'Show'} Pending ({pendingApprovals.length})
-            </Button>
-          )}
-          {canEditEmployee() && (
-            <Button
-              variant="primary"
-              size="sm"
-              className="h-10 px-6 font-bold"
-              onClick={() => setShowAddModal(true)}
-              leftIcon={<PlusIcon className="w-4 h-4" />}
-            >
-              Add Employee
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            {pendingApprovals.length > 0 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-10 border-amber-200 text-amber-700 hover:bg-amber-50 bg-white"
+                onClick={() => setShowPendingApprovals(!showPendingApprovals)}
+                leftIcon={<PlusIcon className="w-4 h-4" />}
+              >
+                {showPendingApprovals ? 'Hide' : 'Show'} Pending ({pendingApprovals.length})
+              </Button>
+            )}
+            {canEditEmployee() && (
+              <Button
+                variant="primary"
+                size="sm"
+                className="h-10 px-6 font-medium bg-blue-600 hover:bg-blue-700 border-blue-600"
+                onClick={() => setShowAddModal(true)}
+                leftIcon={<PlusIcon className="w-4 h-4" />}
+              >
+                Add Employee
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* KPI Cards Section */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-none">
-        {kpis.map((kpi, i) => (
-          <Card key={i} className="px-5 py-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4">
-              <div className={`w-10 h-10 rounded-lg ${kpi.bg} ${kpi.color} flex items-center justify-center shadow-sm`}>
-                <kpi.icon className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-secondary-500 uppercase tracking-wider">{kpi.label}</p>
-                <p className="text-xl font-bold text-secondary-900 leading-none mt-1">{kpi.value}</p>
+      <div className="flex-none px-6 py-4 bg-gray-50">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {kpis.map((kpi, i) => (
+            <div key={i} className="bg-white rounded-xl px-5 py-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl ${kpi.bg} ${kpi.color} flex items-center justify-center`}>
+                  <kpi.icon className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{kpi.label}</p>
+                  <p className="text-2xl font-bold text-gray-900 leading-none mt-1">{kpi.value}</p>
+                </div>
               </div>
             </div>
-          </Card>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* Pending Approvals Section */}
-      {showPendingApprovals && pendingApprovals.length > 0 && (
-        <Card className="p-6 border-warning-200 bg-warning-50/30">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-lg bg-warning-100 text-warning-600 flex items-center justify-center shadow-sm">
-              <PlusIcon className="w-5 h-5" />
-            </div>
-            <h2 className="text-xl font-bold text-secondary-900 tracking-tight">Pending Employee Approvals</h2>
-            <div className="ml-auto">
-              <span className="text-sm font-bold text-warning-700 bg-warning-100 px-3 py-1 rounded-full">
-                {pendingApprovals.length} Waiting
-              </span>
+      {/* Main Content Area - Split Layout */}
+      <div className="flex-1 flex min-h-0 overflow-hidden flex-col lg:flex-row" style={{ width: '100%', overflowX: 'hidden', gap: '16px' }}>
+        <style jsx>{`
+          @media (max-width: 1024px) {
+            .main-layout {
+              flex-direction: column;
+            }
+            .left-section {
+              width: 100% !important;
+            }
+            .right-section {
+              width: 100% !important;
+              max-width: none !important;
+              min-width: auto !important;
+            }
+          }
+        `}</style>
+        {/* Left Section - Employee Table (65%) */}
+        <div className="left-section flex-shrink-0 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col" style={{ width: '65%', boxSizing: 'border-box', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+          {/* Search and Filter Bar */}
+          <div className="flex-none px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 relative group">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                <input
+                  type="text"
+                  placeholder="Search employees..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                />
+              </div>
+
+              <div className="relative group">
+                <FunnelIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                <select
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  className="pl-10 pr-8 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none appearance-none font-medium text-gray-700 cursor-pointer hover:border-gray-300"
+                >
+                  <option>All Roles</option>
+                  <option>Admin</option>
+                  <option>Manager</option>
+                  <option>User</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            {pendingApprovals.map((employee) => (
-              <div key={employee.id} className="bg-white rounded-lg p-4 border border-warning-200 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <Avatar 
-                      name={`${employee?.firstName || ''} ${employee?.lastName || ''}`}
-                      size="sm" 
-                      src={employee?.profile?.employeePhotoUrl ? `http://localhost:3001${employee.profile.employeePhotoUrl}` : undefined}
-                    />
-                    <div>
-                      <h3 className="font-bold text-secondary-900">
-                        {employee?.firstName && employee?.lastName 
-                          ? `${employee.firstName} ${employee.lastName}` 
-                          : employee?.officeEmail || 'No name available'}
-                      </h3>
-                      <p className="text-sm text-secondary-600">{employee?.officeEmail || 'No email available'}</p>
-                      <p className="text-xs text-secondary-500">{employee?.designation || 'No designation'} • {employee?.employeeId || 'No ID'}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <p className="text-xs font-bold text-warning-600 uppercase tracking-wider">Registered</p>
-                      <p className="text-sm text-secondary-500">
-                        {new Date(employee.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="h-8 px-3 text-success-700 border-success-200 hover:bg-success-50"
-                        onClick={() => handleApproveEmployee(employee.id)}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="h-8 px-3 text-danger-700 border-danger-200 hover:bg-danger-50"
-                        onClick={() => handleRejectEmployee(employee.id)}
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  </div>
+          {/* Table Area */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {loading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : error ? (
+              <div className="flex-1 flex items-center justify-center text-red-600">
+                <div className="text-center">
+                  <div className="text-lg font-medium mb-2">Error loading employees</div>
+                  <div className="text-sm">{error}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Modern Table */}
+                <div className="flex-1 overflow-x-auto">
+                  <table className="w-full min-w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Employee</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Role</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Department</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-100">
+                      {filteredEmployees.map((employee, index) => (
+                        <tr
+                          key={employee.id}
+                          className={`hover:bg-blue-50 cursor-pointer transition-colors ${
+                            rightPanelEmployee?.id === employee.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                          } ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}
+                          onClick={() => handleSelectEmployee(employee)}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center min-w-0">
+                              <Avatar
+                                name={`${employee.firstName || ''} ${employee.lastName || ''}`}
+                                size="sm"
+                                className="flex-shrink-0"
+                              />
+                              <div className="ml-4 min-w-0 flex-1">
+                                <div className="text-sm font-medium text-gray-900 truncate">
+                                  {employee.firstName && employee.lastName ? `${employee.firstName} ${employee.lastName}` :
+                                   employee.firstName || employee.lastName || employee.name || 'No name'}
+                                </div>
+                                <div className="text-sm text-gray-500 truncate">{employee.email}</div>
+                                <div className="text-xs text-gray-400 mt-1">ID: {employee.employeeId}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {employee.role}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            <div className="truncate">{employee.designation}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {(() => {
+                              const statusConfig: Record<string, { variant: 'success' | 'danger' | 'warning' | 'secondary'; label: string }> = {
+                                'Active': { variant: 'success', label: 'Active' },
+                                'active': { variant: 'success', label: 'Active' },
+                                'Inactive': { variant: 'danger', label: 'Inactive' },
+                                'On Leave': { variant: 'warning', label: 'On Leave' },
+                                'pending': { variant: 'warning', label: 'Pending' },
+                                'rejected': { variant: 'danger', label: 'Rejected' }
+                              };
+                              const config = statusConfig[employee.status] || { variant: 'secondary', label: employee.status };
+                              return <StatusBadge status={config.variant} text={config.label} />;
+                            })()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => handleViewEmployee(employee)}
+                                className="text-gray-400 hover:text-blue-600"
+                              >
+                                <EyeIcon className="w-4 h-4" />
+                              </Button>
+                              {canEditEmployee() && (
+                                <>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => handleEditEmployee(employee)}
+                                    className="text-gray-400 hover:text-blue-600"
+                                  >
+                                    <PencilSquareIcon className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => handleViewDocuments(employee)}
+                                    className="text-gray-400 hover:text-purple-600"
+                                  >
+                                    <FolderOpenIcon className="w-4 h-4" />
+                                  </Button>
+                                </>
+                              )}
+                              {isAdmin() && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleDeleteEmployee(employee.id, `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Unknown')}
+                                  className="text-gray-400 hover:text-red-600"
+                                >
+                                  <TrashIcon className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
                 
-                {employee.profile && (
-                  <div className="mt-4 pt-4 border-t border-secondary-100">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                      <div>
-                        <span className="font-bold text-secondary-500">Education:</span>
-                        <p className="text-secondary-700">{employee?.profile?.education || 'Not specified'}</p>
-                      </div>
-                      <div>
-                        <span className="font-bold text-secondary-500">Mobile:</span>
-                        <p className="text-secondary-700">{employee?.profile?.personalMobile || 'Not specified'}</p>
-                      </div>
-                      <div>
-                        <span className="font-bold text-secondary-500">PAN:</span>
-                        <p className="text-secondary-700">{employee?.profile?.pan || 'Not specified'}</p>
-                      </div>
-                      <div>
-                        <span className="font-bold text-secondary-500">Documents:</span>
-                        <p className="text-secondary-700">
-                          {employee?.profile?.panFileUrl ? '✓ PAN' : ''}
-                          {employee?.profile?.aadhaarFileUrl ? ' ✓ Aadhaar' : ''}
-                          {employee?.profile?.employeePhotoUrl ? ' ✓ Photo' : ''}
-                          {employee?.profile?.bankStatementFileUrl ? ' ✓ Bank Statement' : ''}
-                          {!employee?.profile?.panFileUrl && !employee?.profile?.aadhaarFileUrl && !employee?.profile?.employeePhotoUrl && !employee?.profile?.bankStatementFileUrl ? 'None' : ''}
-                        </p>
-                      </div>
+                {filteredEmployees.length === 0 && (
+                  <div className="flex-1 flex items-center justify-center text-gray-500">
+                    <div className="text-center">
+                      <UsersIcon className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p className="text-lg font-medium">No employees found</p>
+                      <p className="text-sm mt-2">Try adjusting your search or filters</p>
                     </div>
                   </div>
                 )}
               </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* Main Content Area: Search and Filter */}
-      <Card className="flex flex-col flex-1 overflow-hidden min-h-0">
-        <div className="p-4 bg-white border-b border-secondary-100 flex flex-col md:flex-row gap-3">
-          <div className="flex-1 relative group">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 group-focus-within:text-primary-500 transition-colors" />
-            <input
-              type="text"
-              placeholder="Search by name or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-secondary-50/50 border border-secondary-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
-            />
+            )}
           </div>
 
-          <div className="relative group">
-            <FunnelIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 group-focus-within:text-primary-500 transition-colors" />
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="pl-10 pr-8 py-2 bg-secondary-50/50 border border-secondary-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none appearance-none font-medium text-secondary-700 cursor-pointer"
-            >
-              <option>All Roles</option>
-              <option>Admin</option>
-              <option>Manager</option>
-              <option>User</option>
-            </select>
+          {/* Table Footer */}
+          <div className="flex-none px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+            <p className="text-xs font-medium text-gray-500">
+              Showing {filteredEmployees.length} of {employees.length} employees
+            </p>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              <span className="text-xs font-medium text-gray-500">Live data</span>
+            </div>
           </div>
         </div>
 
-        {/* Table Area: Responsive Table */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
-          {loading ? (
-            <div className="h-40 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            </div>
-          ) : error ? (
-            <div className="text-center py-12 text-danger-600">
-              <div className="text-lg font-medium mb-2">Error loading employees</div>
-              <div className="text-sm">{error}</div>
+        {/* Right Section - Employee Details Panel (35%) */}
+        <div className="right-section flex-shrink-0 flex flex-col" style={{ width: '35%', minWidth: '320px', maxWidth: '420px', boxSizing: 'border-box', position: 'relative', right: 0 }}>
+          {rightPanelEmployee ? (
+            <div className="flex-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 280px)', overflowY: 'auto', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+              {/* Employee Profile Header */}
+              <div className="relative bg-gradient-to-br from-blue-500 to-indigo-600 overflow-hidden" style={{ width: '100%', borderRadius: '12px 12px 0 0' }}>
+                <div className="flex flex-col items-center" style={{ padding: '32px 24px' }}>
+                  <Avatar
+                    name={`${rightPanelEmployee.firstName || ''} ${rightPanelEmployee.lastName || ''}`}
+                    size="xl"
+                    className="ring-4 ring-white/20"
+                  />
+                  <h3 className="mt-4 text-xl font-bold text-white">
+                    {rightPanelEmployee.firstName && rightPanelEmployee.lastName 
+                      ? `${rightPanelEmployee.firstName} ${rightPanelEmployee.lastName}` 
+                      : 'Unknown'}
+                  </h3>
+                  <p className="text-blue-100 text-sm font-medium mt-1">
+                    {rightPanelEmployee.designation || 'No designation'}
+                  </p>
+                  <div className="flex items-center gap-2 mt-3">
+                    <StatusBadge 
+                      status={rightPanelEmployee.status === 'Active' || rightPanelEmployee.status === 'active' ? 'success' : 'secondary'} 
+                      text={rightPanelEmployee.status || 'Unknown'} 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="px-6 py-4 border-b border-gray-100">
+                <div className="flex justify-center gap-3">
+                  <button className="p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
+                    <EnvelopeIcon className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                  </button>
+                  <button className="p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
+                    <PhoneIcon className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                  </button>
+                  <button className="p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
+                    <ChatBubbleLeftRightIcon className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Employee Details */}
+              <div className="overflow-y-auto" style={{ padding: '20px', height: 'calc(100% - 280px)' }}>
+                {/* About Section */}
+                <div style={{ marginBottom: '16px' }}>
+                  <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2" style={{ marginBottom: '12px' }}>
+                    <UserGroupIcon className="w-4 h-4 text-blue-600" />
+                    About
+                  </h4>
+                  <div className="space-y-3" style={{ marginBottom: '16px' }}>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                      <span className="text-sm text-gray-500">Age / Gender</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {enhancedEmployeeDetails?.profile?.dob 
+                          ? `${new Date().getFullYear() - new Date(enhancedEmployeeDetails.profile.dob).getFullYear()} years / ${enhancedEmployeeDetails.profile.gender || 'Not specified'}`
+                          : 'Not specified'
+                        }
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                      <span className="text-sm text-gray-500">Date of Birth</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {enhancedEmployeeDetails?.profile?.dob 
+                          ? new Date(enhancedEmployeeDetails.profile.dob).toLocaleDateString()
+                          : 'Not specified'
+                        }
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                      <span className="text-sm text-gray-500">Address</span>
+                      <span className="text-sm font-medium text-gray-900 text-right max-w-[60%]">
+                        {enhancedEmployeeDetails?.profile?.permanentAddress || 'Not specified'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Work Section */}
+                <div style={{ marginBottom: '16px' }}>
+                  <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2" style={{ marginBottom: '12px' }}>
+                    <BriefcaseIcon className="w-4 h-4 text-blue-600" />
+                    Work
+                  </h4>
+                  <div className="space-y-3" style={{ marginBottom: '16px' }}>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                      <span className="text-sm text-gray-500">Employee ID</span>
+                      <span className="text-sm font-medium text-gray-900">{rightPanelEmployee.employeeId}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                      <span className="text-sm text-gray-500">Department</span>
+                      <span className="text-sm font-medium text-gray-900">{rightPanelEmployee.department}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                      <span className="text-sm text-gray-500">Email</span>
+                      <span className="text-sm font-medium text-gray-900 text-right max-w-[60%] break-words">
+                        {rightPanelEmployee.email}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Team Section */}
+                <div style={{ marginBottom: '16px' }}>
+                  <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2" style={{ marginBottom: '12px' }}>
+                    <BuildingOfficeIcon className="w-4 h-4 text-blue-600" />
+                    Team
+                  </h4>
+                  <div className="space-y-3" style={{ marginBottom: '16px' }}>
+                    {rightPanelEmployee.reportingPartner && (
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <Avatar name="Partner" size="sm" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">Reporting Partner</p>
+                          <p className="text-xs text-gray-500">{rightPanelEmployee.reportingPartner}</p>
+                        </div>
+                      </div>
+                    )}
+                    {rightPanelEmployee.reportingManager && (
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <Avatar name="Manager" size="sm" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">Reporting Manager</p>
+                          <p className="text-xs text-gray-500">{rightPanelEmployee.reportingManager}</p>
+                        </div>
+                      </div>
+                    )}
+                    {!rightPanelEmployee.reportingPartner && !rightPanelEmployee.reportingManager && (
+                      <p className="text-sm text-gray-500 text-center py-4">No team members assigned</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
-            <ResponsiveTable
-              data={filteredEmployees}
-              columns={[
-                {
-                  key: 'name',
-                  label: 'Name',
-                  render: (value: string, row: Employee) => (
-                    <div className="flex items-center gap-3">
-                      <Avatar name={`${row.firstName || ''} ${row.lastName || ''}`} size="sm" />
-                      <div>
-                        <div className="font-medium text-secondary-900">
-                          {row.firstName && row.lastName ? `${row.firstName} ${row.lastName}` : 
-                           row.firstName || row.lastName || row.name || 'No name'}
-                        </div>
-                        <div className="text-xs text-secondary-500">{row.email}</div>
-                      </div>
-                    </div>
-                  )
-                },
-                {
-                  key: 'role',
-                  label: 'Role',
-                  render: (value: string) => (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                      {value}
-                    </span>
-                  )
-                },
-                {
-                  key: 'designation',
-                  label: 'Designation'
-                },
-                {
-                  key: 'department',
-                  label: 'Department'
-                },
-                {
-                  key: 'status',
-                  label: 'Status',
-                  render: (value: string) => {
-                    const statusConfig: Record<string, { variant: 'success' | 'danger' | 'warning' | 'secondary'; label: string }> = {
-                      'Active': { variant: 'success', label: 'Active' },
-                      'active': { variant: 'success', label: 'Active' },
-                      'Inactive': { variant: 'danger', label: 'Inactive' },
-                      'On Leave': { variant: 'warning', label: 'On Leave' },
-                      'pending': { variant: 'warning', label: 'Pending' },
-                      'rejected': { variant: 'danger', label: 'Rejected' }
-                    };
-                    const config = statusConfig[value] || { variant: 'secondary', label: value };
-                    return <StatusBadge status={config.variant} text={config.label} />;
-                  }
-                }
-              ]}
-              actions={(row: Employee) => {
-                const handleEditEmployeeLocal = (employee: Employee) => {
-                  console.log('Edit employee clicked:', employee);
-                  setEditingEmployee(employee);
-                  setShowEditModal(true);
-                };
-                
-                return (
-                  <>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleViewEmployee(row)}
-                      touchFriendly
-                    >
-                      <EyeIcon className="w-4 h-4" />
-                    </Button>
-                    {canEditEmployee() && (
-                      <>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => handleEditEmployeeLocal(row)}
-                          touchFriendly
-                        >
-                          <PencilSquareIcon className="w-4 h-4" />
-                        </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleViewDocuments(row)}
-                        touchFriendly
-                      >
-                        <FolderOpenIcon className="w-4 h-4" />
-                      </Button>
-                    </>
-                  )}
-                  {isAdmin() && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleDeleteEmployee(row.id, `${row.firstName || ''} ${row.lastName || ''}`.trim() || 'Unknown')}
-                      touchFriendly
-                    >
-                      <TrashIcon className="w-4 h-4" />
-                    </Button>
-                  )}
-                </>
-                );
-              }}
-              emptyMessage="No employees found"
-            />
+            <div className="flex-1 bg-white rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center" style={{ height: 'calc(100vh - 280px)', overflowY: 'auto', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <UsersIcon className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Select an Employee</h3>
+                <p className="text-sm text-gray-500 px-8">
+                  Click on any employee from the table to view their detailed profile
+                </p>
+              </div>
+            </div>
           )}
         </div>
+      </div>
 
-        {/* Action Footer for Table (Optional) */}
-        <div className="px-6 py-2 border-t border-secondary-100 bg-secondary-50/30 flex items-center justify-between flex-none">
-          <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Showing {filteredEmployees.length} of {employees.length} Active Profiles</p>
-          <div className="flex items-center gap-2 opacity-60">
-            <span className="w-2 h-2 rounded-full bg-success-500" />
-            <span className="text-[10px] font-bold text-secondary-500 uppercase tracking-wider">Database Synchronized</span>
+      {/* Pending Approvals Section - Overlay */}
+      {showPendingApprovals && pendingApprovals.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                    <PlusIcon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Pending Employee Approvals</h2>
+                    <p className="text-sm text-gray-500">Review and approve new employee registrations</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPendingApprovals(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <span className="text-gray-400">✕</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <div className="space-y-4">
+                {pendingApprovals.map((employee) => (
+                  <div key={employee.id} className="bg-white border border-blue-200 rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <Avatar 
+                          name={`${employee?.firstName || ''} ${employee?.lastName || ''}`}
+                          size="lg" 
+                          src={employee?.profile?.employeePhotoUrl ? `http://localhost:3001${employee.profile.employeePhotoUrl}` : undefined}
+                        />
+                        <div>
+                          <h3 className="font-bold text-gray-900 text-lg">
+                            {employee?.firstName && employee?.lastName 
+                              ? `${employee.firstName} ${employee.lastName}` 
+                              : employee?.officeEmail || 'No name available'}
+                          </h3>
+                          <p className="text-sm text-gray-600">{employee?.officeEmail || 'No email available'}</p>
+                          <p className="text-xs text-gray-500 mt-1">{employee?.designation || 'No designation'} • {employee?.employeeId || 'No ID'}</p>
+                        </div>
+                      </div>
+                      
+
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Registered</p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(employee.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="h-9 px-4 text-blue-700 border-blue-200 hover:bg-blue-50"
+                            onClick={() => handleApproveEmployee(employee.id)}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="h-9 px-4 text-red-700 border-red-200 hover:bg-red-50"
+                            onClick={() => handleRejectEmployee(employee.id)}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {employee.profile && (
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                          <div>
+                            <span className="font-medium text-gray-500">Education:</span>
+                            <p className="text-gray-700 mt-1">{employee?.profile?.education || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-500">Mobile:</span>
+                            <p className="text-gray-700 mt-1">{employee?.profile?.personalMobile || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-500">PAN:</span>
+                            <p className="text-gray-700 mt-1">{employee?.profile?.pan || 'Not specified'}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-500">Documents:</span>
+                            <p className="text-gray-700 mt-1">
+                              {employee?.profile?.panFileUrl ? '✓ PAN' : ''}
+                              {employee?.profile?.aadhaarFileUrl ? ' ✓ Aadhaar' : ''}
+                              {employee?.profile?.employeePhotoUrl ? ' ✓ Photo' : ''}
+                              {employee?.profile?.bankStatementFileUrl ? ' ✓ Bank Statement' : ''}
+                              {!employee?.profile?.panFileUrl && !employee?.profile?.aadhaarFileUrl && !employee?.profile?.employeePhotoUrl && !employee?.profile?.bankStatementFileUrl ? 'None' : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
-      </Card>
+      )}
 
       {/* Add/Edit Modal (Simple Language) */}
       <Modal
