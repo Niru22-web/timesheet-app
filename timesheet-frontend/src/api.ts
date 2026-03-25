@@ -4,7 +4,7 @@ import { getErrorMessage, ERROR_MESSAGES } from "./utils/messageUtils";
 import { dispatchError, handleSuccess } from "./utils/globalErrorHandler";
 
 const API: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api',
   withCredentials: true
 });
 

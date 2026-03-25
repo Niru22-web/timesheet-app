@@ -1,0 +1,43 @@
+=== PRODUCTION SETUP INSTRUCTIONS ===
+
+1. UPDATE FRONTEND .env.production FILE:
+Create/Update this file in timesheet-frontend/ directory:
+
+# Frontend Environment Variables - Production
+VITE_API_URL=http://13.232.211.142:5000/api
+VITE_NODE_ENV=production
+
+2. UPDATE FRONTEND .env FILE (for development):
+Create/Update this file in timesheet-frontend/ directory:
+
+# Frontend Environment Variables - Development
+VITE_API_URL=http://13.232.211.142:5000/api
+VITE_NODE_ENV=development
+
+3. BACKEND CHANGES COMPLETED:
+✅ Server now binds to 0.0.0.0 (accessible externally)
+✅ CORS updated to allow http://13.232.211.142:9000 (your frontend port)
+✅ Server logs show external access URL
+
+4. REBUILD FRONTEND:
+cd timesheet-frontend
+npm install
+npm run build
+
+5. SERVE FRONTEND (PORT 9000):
+npx serve -s dist -l 9000
+OR use PM2:
+pm2 start "npx serve -s dist -l 9000" --name timesheet-frontend
+
+6. RESTART BACKEND:
+pm2 restart timesheet-backend
+
+7. TEST ACCESS:
+Frontend: http://13.232.211.142:9000
+Backend API: http://13.232.211.142:5000/api/health
+
+8. TROUBLESHOOTING:
+If still getting network errors:
+- Check AWS Security Group allows ports 5000 and 9000
+- Verify backend is running: pm2 logs timesheet-backend
+- Check frontend build contains correct API URL

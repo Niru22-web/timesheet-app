@@ -38,7 +38,7 @@ import { prisma } from "./config/prisma";
 const app = express();
 
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176"],
+  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://13.232.211.142:3000", "http://13.232.211.142:5173", "http://13.232.211.142:9000"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -406,14 +406,15 @@ if (!process.env.JWT_SECRET) {
 }
 
 function startServer(port: number) {
-  const server = app.listen(port, () => {
+  const server = app.listen(port, '0.0.0.0', () => {
     console.log(`🚀 Server running successfully on port ${port}`);
-    console.log(`📡 API available at: http://localhost:${port}/api`);
+    console.log(`📡 API available at: http://0.0.0.0:${port}/api`);
+    console.log(`🌐 External access: http://13.232.211.142:${port}/api`);
     console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`�️  Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
+    console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
     
     // Log all environment variables (without sensitive data)
-    console.log('�🔧 Environment Configuration:');
+    console.log('🔧 Environment Configuration:');
     console.log(`   PORT: ${port}`);
     console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
     console.log(`   JWT_SECRET: ${process.env.JWT_SECRET ? 'SET' : 'NOT SET'}`);
@@ -422,7 +423,7 @@ function startServer(port: number) {
     // Log the actual port for frontend to use
     if (port !== DEFAULT_PORT) {
       console.log(`⚠️  Default port ${DEFAULT_PORT} was busy, using port ${port}`);
-      console.log(`💡 Update your frontend API URL to: http://localhost:${port}/api`);
+      console.log(`💡 Update your frontend API URL to: http://13.232.211.142:${port}/api`);
     }
   });
 
