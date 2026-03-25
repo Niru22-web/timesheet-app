@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .upload-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .file-input {
+            margin: 10px 0;
+            padding: 10px;
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .file-input:hover {
+            border-color: #007bff;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        h2 {
+            color: #555;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📁 Employee File Upload Test</h1>
+    
+    <div class="upload-container">
+        <h2>Test File Upload Functionality</h2>
+        <p>This test validates the improved file upload handling for employee registration.</p>
+        
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="upload-container">
+                <h3>Required Files</h3>
+                <label>PAN Card (PDF/JPG/PNG - Max 5MB):</label>
+                <input type="file" name="panFile" class="file-input" accept=".pdf,.jpg,.jpeg,.png" required>
+                
+                <label>Aadhaar Card (PDF/JPG/PNG - Max 5MB):</label>
+                <input type="file" name="aadhaarFile" class="file-input" accept=".pdf,.jpg,.jpeg,.png" required>
+                
+                <label>Employee Photo (JPG/PNG - Max 5MB):</label>
+                <input type="file" name="employeePhoto" class="file-input" accept=".jpg,.jpeg,.png" required>
+            </div>
+            
+            <div class="upload-container">
+                <h3>Optional Files</h3>
+                <label>Bank Statement (PDF/JPG/PNG - Max 5MB):</label>
+                <input type="file" name="bankStatementFile" class="file-input" accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+            
+            <button type="submit">🚀 Upload Files</button>
+        </form>
+        
+        <div id="result"></div>
+    </div>
+
+    <div class="upload-container">
+        <h2>📋 Test Cases</h2>
+        <h3>✅ What to Test:</h3>
+        <ul>
+            <li><strong>File Name Sanitization:</strong> Upload files with spaces, special characters (e.g., "My Document (Final).pdf")</li>
+            <li><strong>File Size Validation:</strong> Try uploading files larger than 5MB</li>
+            <li><strong>File Type Validation:</strong> Try uploading invalid file types (e.g., .txt, .exe)</li>
+            <li><strong>Employee Photo Validation:</strong> Try uploading PDF for employee photo (should fail)</li>
+            <li><strong>Multiple Files:</strong> Upload all required files plus optional bank statement</li>
+        </ul>
+        
+        <h3>🔧 Expected Improvements:</h3>
+        <ul>
+            <li>✅ Files with special characters and spaces are sanitized properly</li>
+            <li>✅ Clear error messages for invalid file types and sizes</li>
+            <li>✅ Employee photos accept only image files</li>
+            <li>✅ Bank statement uploads work correctly</li>
+            <li>✅ No crashes on invalid file names</li>
+        </ul>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = '<div class="result">Uploading files... ⏳</div>';
+            
+            try {
+                const response = await fetch('http://localhost:3002/test-upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Upload Successful!</h3>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Upload Failed</h3>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>💥 Network Error</h3>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Real JWT Profile Photo Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .token-section { background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 10px 0; }
+        .token { word-break: break-all; background: #e9ecef; padding: 10px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .file-input { margin: 10px 0; padding: 10px; border: 2px dashed #ccc; border-radius: 5px; display: block; width: 100%; }
+        .result { margin: 20px 0; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 12px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🔑 Real JWT Profile Photo Test</h1>
+    
+    
+        <div class="token-section">
+            <h3>Niranjan Mulam (Admin)</h3>
+            <p><strong>ID:</strong> 9d8fa7a7-0a8b-4e19-84f9-3127748ddaf3</p>
+            <p><strong>Token:</strong></p>
+            <div class="token">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjlkOGZhN2E3LTBhOGItNGUxOS04NGY5LTMxMjc3NDhkZGFmMyIsInJvbGUiOiJBZG1pbiIsImlhdCI6MTc3MzM4MTczNiwiZXhwIjoxNzczNDY4MTM2fQ.tAxFQsTYYqIWEilfz-Tf2vDN1oEuCt9qnIVf5TKRqwo</div>
+            <button onclick="setToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjlkOGZhN2E3LTBhOGItNGUxOS04NGY5LTMxMjc3NDhkZGFmMyIsInJvbGUiOiJBZG1pbiIsImlhdCI6MTc3MzM4MTczNiwiZXhwIjoxNzczNDY4MTM2fQ.tAxFQsTYYqIWEilfz-Tf2vDN1oEuCt9qnIVf5TKRqwo', 'Niranjan Mulam')">Use This Token</button>
+        </div>
+    
+        <div class="token-section">
+            <h3>Netrawati Indulkar (Partner)</h3>
+            <p><strong>ID:</strong> 679709d3-a4f8-44d8-84f2-4a0b41b82fac</p>
+            <p><strong>Token:</strong></p>
+            <div class="token">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3OTcwOWQzLWE0ZjgtNDRkOC04NGYyLTRhMGI0MWI4MmZhYyIsInJvbGUiOiJQYXJ0bmVyIiwiaWF0IjoxNzczMzgxNzM2LCJleHAiOjE3NzM0NjgxMzZ9.0y-kDpDL7koDsu758y3_P8_0mWAu8ZBVWaff8NWtgik</div>
+            <button onclick="setToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3OTcwOWQzLWE0ZjgtNDRkOC04NGYyLTRhMGI0MWI4MmZhYyIsInJvbGUiOiJQYXJ0bmVyIiwiaWF0IjoxNzczMzgxNzM2LCJleHAiOjE3NzM0NjgxMzZ9.0y-kDpDL7koDsu758y3_P8_0mWAu8ZBVWaff8NWtgik', 'Netrawati Indulkar')">Use This Token</button>
+        </div>
+    
+        <div class="token-section">
+            <h3>Lisa Wilson (Employee)</h3>
+            <p><strong>ID:</strong> 5a7859ac-b521-47de-80a4-aef4e4144ad5</p>
+            <p><strong>Token:</strong></p>
+            <div class="token">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVhNzg1OWFjLWI1MjEtNDdkZS04MGE0LWFlZjRlNDE0NGFkNSIsInJvbGUiOiJFbXBsb3llZSIsImlhdCI6MTc3MzM4MTczNiwiZXhwIjoxNzczNDY4MTM2fQ.4Qrz6uh5JN8b61NzICSEOnoQdAmS-655hjzyE-IlcPc</div>
+            <button onclick="setToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVhNzg1OWFjLWI1MjEtNDdkZS04MGE0LWFlZjRlNDE0NGFkNSIsInJvbGUiOiJFbXBsb3llZSIsImlhdCI6MTc3MzM4MTczNiwiZXhwIjoxNzczNDY4MTM2fQ.4Qrz6uh5JN8b61NzICSEOnoQdAmS-655hjzyE-IlcPc', 'Lisa Wilson')">Use This Token</button>
+        </div>
+    
+    
+    <div class="token-section">
+        <h3>📤 Upload Test</h3>
+        <input type="file" id="profilePhoto" class="file-input" accept=".jpg,.jpeg,.png">
+        <button onclick="uploadPhoto()">Upload Profile Photo</button>
+        <button onclick="clearAuth()">Clear Auth</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function setToken(token, userName) {
+            localStorage.setItem('authToken', token);
+            document.getElementById('result').innerHTML = '<div class="success">✅ Token set for ' + userName + '</div>';
+        }
+        
+        function clearAuth() {
+            localStorage.removeItem('authToken');
+            document.getElementById('result').innerHTML = '<div class="error">🗑️ Token cleared</div>';
+        }
+        
+        function uploadPhoto() {
+            const file = document.getElementById('profilePhoto').files[0];
+            if (!file) {
+                document.getElementById('result').innerHTML = '<div class="error">❌ Please select a file</div>';
+                return;
+            }
+            
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                document.getElementById('result').innerHTML = '<div class="error">❌ No token set</div>';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('profilePhoto', file);
+            
+            document.getElementById('result').innerHTML = '<div class="result">Uploading...</div>';
+            
+            fetch('http://localhost:5000/api/employees/profile-photo', {
+                method: 'PUT',
+                headers: { 'Authorization': 'Bearer ' + token },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('result').innerHTML = '<div class="success">' + JSON.stringify(data, null, 2) + '</div>';
+            })
+            .catch(err => {
+                document.getElementById('result').innerHTML = '<div class="error">' + err.message + '</div>';
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,407 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id                 String              @id @default(uuid())
+  employeeId         String              @unique
+  firstName          String
+  lastName           String
+  officeEmail        String              @unique
+  designation        String
+  role               String
+  status             String              @default("pending")
+  password           String?
+  createdAt          DateTime            @default(now())
+  department         String              @default("General")
+  reportingManager   String?
+  reportingPartner   String?
+  emailConnections   EmailConnection[]
+  profile            EmployeeProfile?
+  leaves             Leave[]
+  leaveBalance       LeaveBalance?
+  projects           ProjectUser[]
+  registrationTokens RegistrationToken[]
+  reimbursements     Reimbursement[]
+  approvedTimelogs   Timelog[]           @relation("TimelogApprover")
+  timelogs           Timelog[]
+  managedTimelogs    Timelog[]           @relation("TimelogReportingManager")
+  partnerTimelogs    Timelog[]           @relation("TimelogReportingPartner")
+  documents          EmployeeDocument[]
+  userPermission     UserPermission?
+  notifications      Notification[]
+}
+
+model EmployeeProfile {
+  id                       String   @id @default(uuid())
+  employeeId               String   @unique
+  dob                      DateTime
+  doj                      DateTime
+  education                String
+  maritalStatus            String
+  gender                   String
+  permanentAddress         String
+  currentAddress           String
+  pan                      String
+  aadhaar                  String
+  panFileUrl               String?
+  aadhaarFileUrl           String?
+  currentPinCode           String?
+  guardianAddress          String?
+  guardianName             String?
+  guardianNumber           String?
+  personalEmail            String?
+  personalMobile           String?
+  employeePhotoUrl         String?
+  accountHolderName        String?
+  bankAccountNumber        String?
+  bankName                 String?
+  branchName               String?
+  ifscCode                 String?
+  bankStatementFileUrl     String?
+  emergencyContactName     String?
+  emergencyContactPhone    String?
+  emergencyContactRelation String?
+  salary                   Float?
+  seniorityLevel           String?
+  experience               String?
+  employmentType           String?
+  skills                   String[] @default([])
+  employee                 Employee @relation(fields: [employeeId], references: [id])
+}
+
+model Client {
+  id        String    @id @default(uuid())
+  clientId  String    @unique
+  name      String
+  alias     String
+  gstStatus String
+  gstin     String?
+  pan       String
+  address   String?
+  country   String?
+  pin       String?
+  state     String?
+  status    String    @default("Active")
+  partnerId String?   // For partner ownership
+  createdBy String    // Who created this client
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  projects  Project[]
+}
+
+model Project {
+  id            String              @id @default(uuid())
+  projectId     String              @unique
+  name          String
+  status        String
+  startDate     DateTime
+  billable      Boolean
+  clientId      String
+  contactPerson String?
+  createdBy     String?
+  endDate       DateTime?
+  jobs          Job[]
+  client        Client              @relation(fields: [clientId], references: [id])
+  attachments   ProjectAttachment[]
+  users         ProjectUser[]
+}
+
+model ProjectAttachment {
+  id         String   @id @default(uuid())
+  projectId  String
+  fileName   String
+  filePath   String
+  fileSize   Int
+  mimeType   String
+  uploadedAt DateTime @default(now())
+  uploadedBy String?
+  project    Project  @relation(fields: [projectId], references: [id])
+}
+
+model ProjectUser {
+  id         String   @id @default(uuid())
+  projectId  String
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  project    Project  @relation(fields: [projectId], references: [id])
+}
+
+model Job {
+  id          String    @id @default(uuid())
+  jobId       String    @unique
+  name        String
+  status      String
+  billable    Boolean
+  projectId   String
+  description String?
+  endDate     DateTime?
+  startDate   DateTime?
+  combinedId  String    @unique
+  createdBy   String?
+  project     Project   @relation(fields: [projectId], references: [id])
+  timelogs    Timelog[]
+}
+
+model Timelog {
+  id                 String    @id @default(uuid())
+  hours              Float
+  description        String
+  date               DateTime
+  employeeId         String
+  jobId              String
+  reportingManagerId String?
+  reportingPartnerId String?
+  approvedAt         DateTime?
+  approvedBy         String?
+  billableStatus     String    @default("billable")
+  clientId           String
+  combinedJobCode    String
+  createdAt          DateTime  @default(now())
+  projectId          String
+  submissionStatus   String    @default("not_submitted")
+  submittedAt        DateTime?
+  updatedAt          DateTime  @updatedAt
+  weekStart          DateTime
+  workItem           String?
+  approver           Employee? @relation("TimelogApprover", fields: [approvedBy], references: [id])
+  employee           Employee  @relation(fields: [employeeId], references: [id])
+  job                Job       @relation(fields: [jobId], references: [id])
+  reportingManager   Employee? @relation("TimelogReportingManager", fields: [reportingManagerId], references: [id])
+  reportingPartner   Employee? @relation("TimelogReportingPartner", fields: [reportingPartnerId], references: [id])
+}
+
+model Reimbursement {
+  id          String   @id @default(uuid())
+  claimId     String   @unique
+  category    String
+  amount      Float
+  description String?
+  date        DateTime @default(now())
+  status      String   @default("pending")
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+}
+
+model RegistrationToken {
+  id         String   @id @default(uuid())
+  token      String   @unique
+  email      String
+  employeeId String
+  expiresAt  DateTime
+  isUsed     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  employee   Employee @relation(fields: [employeeId], references: [id])
+}
+
+model Leave {
+  id           String    @id @default(uuid())
+  leaveId      String    @unique
+  type         String
+  fromDate     DateTime
+  toDate       DateTime
+  duration     String
+  totalDays    Float
+  reason       String
+  status       String    @default("pending")
+  appliedDate  DateTime  @default(now())
+  approvedBy   String?
+  approvedDate DateTime?
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+}
+
+model LeaveBalance {
+  id              String   @id @default(uuid())
+  employeeId      String   @unique
+  createdAt       DateTime @default(now())
+  remainingLeaves Int      @default(21)
+  totalLeaves     Int      @default(21)
+  updatedAt       DateTime @updatedAt
+  usedLeaves      Int      @default(0)
+  year            Int
+  employee        Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+}
+
+model EmailConnection {
+  id           String   @id @default(uuid())
+  employeeId   String
+  provider     String
+  email        String
+  accessToken  String
+  refreshToken String
+  tokenExpiry  DateTime
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  employee     Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+
+  @@unique([employeeId, provider])
+}
+
+model EmailTemplate {
+  id        String   @id @default(uuid())
+  name      String
+  category  String
+  subject   String
+  body      String
+  variables String[] @default([])
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("email_templates")
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  email     String
+  token     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("password_resets")
+}
+
+model UserPermission {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  dashboardView      Boolean  @default(true)
+  dashboardCreate    Boolean  @default(false)
+  dashboardEdit      Boolean  @default(false)
+  dashboardDelete    Boolean  @default(false)
+  timesheetView      Boolean  @default(true)
+  timesheetCreate    Boolean  @default(true)
+  timesheetEdit      Boolean  @default(true)
+  timesheetDelete    Boolean  @default(false)
+  projectsView       Boolean  @default(true)
+  projectsCreate     Boolean  @default(false)
+  projectsEdit       Boolean  @default(false)
+  projectsDelete     Boolean  @default(false)
+  reportsView        Boolean  @default(true)
+  reportsCreate      Boolean  @default(false)
+  reportsEdit        Boolean  @default(false)
+  reportsDelete      Boolean  @default(false)
+  employeesView       Boolean  @default(false)
+  employeesCreate    Boolean  @default(false)
+  employeesEdit      Boolean  @default(false)
+  employeesDelete    Boolean  @default(false)
+  employees          Boolean  @default(false)
+  adminPanelView     Boolean  @default(false)
+  adminPanelCreate   Boolean  @default(false)
+  adminPanelEdit     Boolean  @default(false)
+  adminPanelDelete   Boolean  @default(false)
+  emailTemplatesView Boolean  @default(false)
+  emailTemplatesCreate Boolean @default(false)
+  emailTemplatesEdit Boolean @default(false)
+  emailTemplatesDelete Boolean @default(false)
+  clientsView        Boolean  @default(false)
+  clientsCreate      Boolean  @default(false)
+  clientsEdit        Boolean  @default(false)
+  clientsDelete      Boolean  @default(false)
+  jobsView           Boolean  @default(false)
+  jobsCreate         Boolean  @default(false)
+  jobsEdit           Boolean  @default(false)
+  jobsDelete         Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               Employee @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_permissions")
+}
+
+model RolePermission {
+  id             String   @id @default(uuid())
+  role           String   @unique
+  dashboardView      Boolean  @default(true)
+  dashboardCreate    Boolean  @default(false)
+  dashboardEdit      Boolean  @default(false)
+  dashboardDelete    Boolean  @default(false)
+  timesheetView      Boolean  @default(true)
+  timesheetCreate    Boolean  @default(true)
+  timesheetEdit      Boolean  @default(true)
+  timesheetDelete    Boolean  @default(false)
+  projectsView       Boolean  @default(true)
+  projectsCreate     Boolean  @default(false)
+  projectsEdit       Boolean  @default(false)
+  projectsDelete     Boolean  @default(false)
+  reportsView        Boolean  @default(true)
+  reportsCreate      Boolean  @default(false)
+  reportsEdit        Boolean  @default(false)
+  reportsDelete      Boolean  @default(false)
+  employeesView       Boolean  @default(false)
+  employeesCreate    Boolean  @default(false)
+  employeesEdit      Boolean  @default(false)
+  employeesDelete    Boolean  @default(false)
+  employees          Boolean  @default(false)
+  adminPanelView     Boolean  @default(false)
+  adminPanelCreate   Boolean  @default(false)
+  adminPanelEdit     Boolean  @default(false)
+  adminPanelDelete   Boolean  @default(false)
+  emailTemplatesView Boolean  @default(false)
+  emailTemplatesCreate Boolean @default(false)
+  emailTemplatesEdit Boolean @default(false)
+  emailTemplatesDelete Boolean @default(false)
+  clientsView        Boolean  @default(false)
+  clientsCreate      Boolean  @default(false)
+  clientsEdit        Boolean  @default(false)
+  clientsDelete      Boolean  @default(false)
+  jobsView           Boolean  @default(false)
+  jobsCreate         Boolean  @default(false)
+  jobsEdit           Boolean  @default(false)
+  jobsDelete         Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("role_permissions")
+}
+
+model EmailLog {
+  id           String   @id @default(uuid())
+  recipient    String
+  subject      String
+  status       String   @default("pending")
+  errorMessage String?
+  sentAt       DateTime @default(now())
+  provider     String   @default("outlook")
+  category     String   @default("registration")
+  employeeId   String?
+
+  @@map("email_logs")
+}
+
+model EmployeeDocument {
+  id         String   @id @default(uuid())
+  employeeId String
+  title      String
+  fileName   String
+  filePath   String
+  fileSize   Int
+  mimeType   String
+  uploadedAt DateTime @default(now())
+  uploadedBy String?
+  category   String   @default("Other")
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("employee_documents")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  message   String
+  type      String   // Task, Approval, Alert
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  userId    String
+  relatedId String?
+  actionUrl String?
+  user      Employee @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}

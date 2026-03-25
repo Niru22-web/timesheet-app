@@ -1,0 +1,25 @@
+# Database Configuration
+DATABASE_URL="postgresql://username:password@localhost:5432/timesheet_db"
+
+# JWT Configuration
+JWT_SECRET="your-super-secret-jwt-key-here"
+JWT_EXPIRES_IN="7d"
+
+# OAuth Configuration (Required for Email Sending)
+OUTLOOK_CLIENT_ID="your-outlook-client-id"
+OUTLOOK_CLIENT_SECRET="your-outlook-client-secret"
+MICROSOFT_REDIRECT_URI="http://localhost:5000/api/email/oauth/outlook/callback"
+
+GMAIL_CLIENT_ID="your-gmail-client-id"
+GMAIL_CLIENT_SECRET="your-gmail-client-secret"
+GOOGLE_REDIRECT_URI="http://localhost:5000/api/email/oauth/google/callback"
+
+# Frontend URL
+FRONTEND_URL="http://localhost:5173"
+
+# Server Configuration
+PORT="5000"
+NODE_ENV="development"
+
+# Note: Email sending now uses only OAuth connections (Outlook/Gmail)
+# No SMTP configuration needed - emails are sent via Microsoft Graph API or Gmail API

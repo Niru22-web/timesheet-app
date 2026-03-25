@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Photo Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .file-input {
+            margin: 10px 0;
+            padding: 10px;
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .file-input:hover {
+            border-color: #007bff;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        h2 {
+            color: #555;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .preview {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .preview img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+        }
+        .auth-section {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>📸 Profile Photo Upload Test</h1>
+    
+    <div class="test-container">
+        <h2>Test Profile Photo Upload</h2>
+        <p>This test validates the profile photo upload functionality with proper user authentication.</p>
+        
+        <form id="profilePhotoForm">
+            <div class="auth-section">
+                <h3>Step 1: Authentication (Mock)</h3>
+                <p><strong>Note:</strong> This simulates a logged-in user with a valid JWT token.</p>
+                
+                <label>User ID (from JWT):</label>
+                <input type="text" id="userId" placeholder="Enter user ID (e.g., employee UUID)" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px;" value="test-user-id">
+                
+                <label>Mock JWT Token:</label>
+                <textarea id="token" placeholder="Paste JWT token here" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; height: 80px;">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6InRlc3QtdXNlciIsImVzZXJuYW1lIjoiSm9obiBEb2UiLCJyb2xlIjoiRW1wbG95ZWUiLCJzdGF0dXMiOiJhY3RpdmUiLCJpYXQiOjE3MDc2MDAwMH19fQ</textarea>
+                
+                <button type="button" onclick="setAuth()">Set Authentication</button>
+            </div>
+            
+            <div class="test-container">
+                <h3>Step 2: Upload Profile Photo</h3>
+                <label>Profile Photo (JPG, JPEG, PNG - Max 5MB):</label>
+                <input type="file" id="profilePhoto" class="file-input" accept=".jpg,.jpeg,.png">
+                
+                <div class="preview" id="preview"></div>
+                
+                <button type="submit" id="uploadBtn">📤 Upload Profile Photo</button>
+            </div>
+        </form>
+        
+        <div id="result"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>📋 Test Cases</h2>
+        <h3>✅ What to Test:</h3>
+        <ul>
+            <li><strong>Authentication:</strong> Test with valid/invalid JWT tokens</li>
+            <li><strong>File Type Validation:</strong> Try uploading non-image files (should fail)</li>
+            <li><strong>File Size Validation:</strong> Try uploading files larger than 5MB (should fail)</li>
+            <li><strong>File Name Handling:</strong> Upload files with spaces and special characters</li>
+            <li><strong>Profile Creation:</strong> Test when user has no existing profile</li>
+            <li><strong>Profile Update:</strong> Test when user has existing profile</li>
+        </ul>
+        
+        <h3>🔧 Expected Features:</h3>
+        <ul>
+            <li>✅ Only authenticated users can upload photos</li>
+            <li>✅ Users can only update their own photos</li>
+            <li>✅ Creates profile if it doesn't exist</li>
+            <li>✅ Updates existing profile if it exists</li>
+            <li>✅ Proper validation for file types and sizes</li>
+            <li>✅ Sanitized file names for storage</li>
+            <li>✅ Clear error messages for debugging</li>
+        </ul>
+    </div>
+
+    <script>
+        let authToken = '';
+        let currentUserId = '';
+
+        function setAuth() {
+            const token = document.getElementById('token').value.trim();
+            const userId = document.getElementById('userId').value.trim();
+            
+            if (!token || !userId) {
+                alert('Please enter both token and user ID');
+                return;
+            }
+            
+            authToken = token;
+            currentUserId = userId;
+            
+            document.getElementById('uploadBtn').disabled = false;
+            
+            document.getElementById('result').innerHTML = `
+                <div class="success">
+                    <h3>✅ Authentication Set</h3>
+                    <p>User ID: ${userId}</p>
+                    <p>Token: ${token.substring(0, 50)}...</p>
+                </div>
+            `;
+        }
+
+        // Handle file selection and preview
+        document.getElementById('profilePhoto').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('preview');
+            
+            if (file) {
+                // Validate file type
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                if (!allowedTypes.includes(file.type)) {
+                    preview.innerHTML = '<div class="error">❌ Only JPEG, JPG, and PNG files are allowed</div>';
+                    return;
+                }
+
+                // Validate file size
+                if (file.size > 5 * 1024 * 1024) {
+                    preview.innerHTML = '<div class="error">❌ File size must be less than 5MB</div>';
+                    return;
+                }
+
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `
+                        <p>✅ File selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</p>
+                        <img src="${e.target.result}" alt="Preview">
+                    `;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = '';
+            }
+        });
+
+        // Handle form submission
+        document.getElementById('profilePhotoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('profilePhoto');
+            const file = fileInput.files[0];
+            const resultDiv = document.getElementById('result');
+            
+            if (!authToken) {
+                resultDiv.innerHTML = '<div class="error">❌ Please set authentication first</div>';
+                return;
+            }
+            
+            if (!file) {
+                resultDiv.innerHTML = '<div class="error">❌ Please select a profile photo</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="result">Uploading profile photo... ⏳</div>';
+            
+            try {
+                const formData = new FormData();
+                formData.append('profilePhoto', file);
+                
+                const response = await fetch('http://localhost:5000/api/employees/profile-photo', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        // Don't set Content-Type for FormData, let browser set it
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Profile Photo Uploaded Successfully!</h3>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Upload Failed</h3>
+                            <pre>${JSON.stringify(result, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>💥 Network Error</h3>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

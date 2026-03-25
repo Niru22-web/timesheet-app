@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Photo Upload - Fixed</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border: 1px solid #bee5eb;
+        }
+        h1 { color: #333; text-align: center; }
+        h2 { color: #555; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .file-input {
+            margin: 10px 0;
+            padding: 10px;
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .file-input:hover { border-color: #007bff; }
+        .preview {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .preview img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        .token-display {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 11px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>📸 Profile Photo Upload - Fixed</h1>
+    
+    <div class="container">
+        <div class="success">
+            <h3>✅ Backend Endpoint Fixed</h3>
+            <p>The <code>/api/employees/profile-photo</code> endpoint is now working correctly.</p>
+            <p>Server response: <strong>401 Unauthorized</strong> (endpoint exists, requires authentication)</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Test Profile Photo Upload</h2>
+        
+        <div class="info">
+            <h3>🔑 Authentication Required</h3>
+            <p>Use one of the real JWT tokens below to test the upload functionality:</p>
+        </div>
+        
+        <div class="token-section">
+            <h4>👨‍💼 Niranjan Mulam (Admin)</h4>
+            <div class="token-display">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjlkOGZhN2E3LTBhOGItNGUxOS04NGY5LTMxMjc3NDhkZGFmMyIsInJvbGUiOiJBZG1pbiIsImlhdCI6MTc3Mjg4MTkzMCwiZXhwIjoxNzcyOTY4MzMwfQ.ftLlDdQijYVRicZSdDfyCC3dp5uIyXbjckdH8zQaVoog</div>
+            <button onclick="setToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjlkOGZhN2E3LTBhOGItNGUxOS04NGY5LTMxMjc3NDhkZGFmMyIsInJvbGUiOiJBZG1pbiIsImlhdCI6MTc3Mjg4MTkzMCwiZXhwIjoxNzcyOTY4MzMwfQ.ftLlDdQijYVRicZSdDfyCC3dp5uIyXbjckdH8zQaVoog', 'Niranjan Mulam')">Use Admin Token</button>
+        </div>
+        
+        <div class="token-section">
+            <h4>👩‍💼 Lisa Wilson (Employee)</h4>
+            <div class="token-display">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVhNzg1OWFjLWI1MjEtNDdkZS04MGE0LWFlZjRlNDE0NGFkNSIsInJvbGUiOiJFbXBsb3llZSIsImlhdCI6MTc3Mjg4MTkzMCwiZXhwIjoxNzcyOTY4MzMwfQ.7yFc3utxVdd20MbwLLWm6isWdp9YAB20YQRqbcb41sT0</div>
+            <button onclick="setToken('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVhNzg1OWFjLWI1MjEtNDdkZS04MGE0LWFlZjRlNDE0NGFkNSIsInJvbGUiOiJFbXBsb3llZSIsImlhdCI6MTc3Mjg4MTkzMCwiZXhwIjoxNzcyOTY4MzMwfQ.7yFc3utxVdd20MbwLLWm6isWdp9YAB20YQRqbcb41sT0', 'Lisa Wilson')">Use Employee Token</button>
+        </div>
+        
+        <div id="authStatus"></div>
+    </div>
+
+    <div class="container">
+        <h2>Upload Profile Photo</h2>
+        <input type="file" id="profilePhoto" class="file-input" accept=".jpg,.jpeg,.png">
+        <div class="preview" id="preview"></div>
+        <button onclick="uploadPhoto()" id="uploadBtn" disabled>📤 Upload Profile Photo</button>
+        <button onclick="clearAuth()">🗑️ Clear Auth</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        let currentToken = '';
+        let currentUser = '';
+
+        function setToken(token, userName) {
+            currentToken = token;
+            currentUser = userName;
+            localStorage.setItem('authToken', token);
+            
+            document.getElementById('authStatus').innerHTML = '<div class="success">✅ Authenticated as ' + userName + '</div>';
+            document.getElementById('uploadBtn').disabled = false;
+            document.getElementById('result').innerHTML = '<div class="info">📝 Token set. Now select a photo and upload.</div>';
+        }
+        
+        function clearAuth() {
+            currentToken = '';
+            currentUser = '';
+            localStorage.removeItem('authToken');
+            document.getElementById('authStatus').innerHTML = '<div class="error">🗑️ Authentication cleared</div>';
+            document.getElementById('uploadBtn').disabled = true;
+            document.getElementById('result').innerHTML = '';
+        }
+        
+        function uploadPhoto() {
+            const file = document.getElementById('profilePhoto').files[0];
+            if (!file) {
+                document.getElementById('result').innerHTML = '<div class="error">❌ Please select a photo file</div>';
+                return;
+            }
+            
+            if (!currentToken) {
+                document.getElementById('result').innerHTML = '<div class="error">❌ Please authenticate first</div>';
+                return;
+            }
+            
+            // Validate file
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!allowedTypes.includes(file.type)) {
+                document.getElementById('result').innerHTML = '<div class="error">❌ Only JPEG, JPG, and PNG files are allowed</div>';
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                document.getElementById('result').innerHTML = '<div class="error">❌ File size must be less than 5MB</div>';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('profilePhoto', file);
+            
+            document.getElementById('result').innerHTML = '<div class="info">📤 Uploading photo for ' + currentUser + '...</div>';
+            document.getElementById('uploadBtn').disabled = true;
+            
+            fetch('http://localhost:5000/api/employees/profile-photo', {
+                method: 'PUT',
+                headers: { 
+                    'Authorization': 'Bearer ' + currentToken
+                },
+                body: formData
+            })
+            .then(res => {
+                console.log('Response status:', res.status);
+                return res.json();
+            })
+            .then(data => {
+                document.getElementById('uploadBtn').disabled = false;
+                if (data.message) {
+                    document.getElementById('result').innerHTML = '<div class="success">✅ Upload Successful!\\n\\n' + JSON.stringify(data, null, 2) + '</div>';
+                } else {
+                    document.getElementById('result').innerHTML = '<div class="error">❌ Upload Failed:\\n\\n' + JSON.stringify(data, null, 2) + '</div>';
+                }
+            })
+            .catch(err => {
+                console.error('Upload error:', err);
+                document.getElementById('uploadBtn').disabled = false;
+                document.getElementById('result').innerHTML = '<div class="error">💥 Network Error:\\n\\n' + err.message + '</div>';
+            });
+        }
+        
+        // File preview
+        document.getElementById('profilePhoto').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('preview');
+            
+            if (file) {
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                if (!allowedTypes.includes(file.type)) {
+                    preview.innerHTML = '<div class="error">❌ Only JPEG, JPG, and PNG files are allowed</div>';
+                    return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                    preview.innerHTML = '<div class="error">❌ File size must be less than 5MB</div>';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.innerHTML = `
+                        <p>✅ File selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)</p>
+                        <img src="${e.target.result}" alt="Preview">
+                    `;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = '';
+            }
+        });
+        
+        // Check for existing token
+        window.onload = function() {
+            const storedToken = localStorage.getItem('authToken');
+            if (storedToken) {
+                try {
+                    const parts = storedToken.split('.');
+                    if (parts.length === 3) {
+                        const payload = JSON.parse(atob(parts[1]));
+                        currentToken = storedToken;
+                        currentUser = payload.id;
+                        document.getElementById('authStatus').innerHTML = '<div class="info">ℹ️ Found existing token for user ID: ' + payload.id + '</div>';
+                        document.getElementById('uploadBtn').disabled = false;
+                    }
+                } catch (e) {
+                    console.log('Invalid stored token');
+                }
+            }
+        };
+    </script>
+</body>
+</html>
