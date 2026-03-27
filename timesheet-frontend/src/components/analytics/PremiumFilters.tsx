@@ -244,7 +244,7 @@ const PremiumFilters: React.FC<PremiumFiltersProps> = ({
   const applyDatePreset = (preset: string) => {
     const today = new Date();
     let from: Date;
-    let to: Date = today;
+    const to: Date = today;
 
     switch (preset) {
       case 'today':

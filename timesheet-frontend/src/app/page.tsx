@@ -81,7 +81,7 @@ export default function ProfilePage() {
           <a
             href={profile.panFileUrl}
             target="_blank"
-            className="text-blue-600 underline"
+            className="text-blue-600 underline" rel="noreferrer"
           >
             View PAN
           </a>
@@ -91,7 +91,7 @@ export default function ProfilePage() {
           <a
             href={profile.aadhaarFileUrl}
             target="_blank"
-            className="text-blue-600 underline"
+            className="text-blue-600 underline" rel="noreferrer"
           >
             View Aadhaar
           </a>

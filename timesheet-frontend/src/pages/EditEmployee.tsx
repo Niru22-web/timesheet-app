@@ -704,7 +704,7 @@ const EditEmployee: React.FC = () => {
                   onChange={(e) => {
                     const newRole = e.target.value;
                     console.log('🔄 Role changed to:', newRole);
-                    let updates: any = { role: newRole };
+                    const updates: any = { role: newRole };
                     if (newRole === 'Partner') {
                       updates.reportingPartner = '';
                       updates.reportingManager = '';
@@ -777,7 +777,7 @@ const EditEmployee: React.FC = () => {
                     setSelectedPartner(pId);
                     setSelectedManager(''); // Reset manager when partner changes
                     
-                    let updates: any = { reportingPartner: pId };
+                    const updates: any = { reportingPartner: pId };
                     if (employee.role === 'Manager') {
                       updates.reportingManager = pId;
                       setSelectedManager(pId);

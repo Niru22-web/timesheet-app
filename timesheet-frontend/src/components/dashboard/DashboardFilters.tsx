@@ -175,7 +175,7 @@ const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   const applyDatePreset = (preset: 'today' | 'week' | 'month' | 'quarter' | 'year') => {
     const today = new Date();
     let from: Date;
-    let to: Date = today;
+    const to: Date = today;
 
     switch (preset) {
       case 'today':
