@@ -143,7 +143,7 @@ export const sendEmail = async (options: DirectEmailOptions): Promise<boolean> =
     
     return false;
     
-  } catch (error) {
+  } catch (error: any) {
     const endTime = Date.now();
     console.log('❌ === EMAIL SENDING FAILED ===');
     console.log('⏱️ Time taken:', endTime - startTime, 'ms');

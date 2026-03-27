@@ -1,14 +1,8 @@
 import React from 'react';
-import CommonDashboard from '../components/CommonDashboard';
+import ModernRoleDashboard from '../components/dashboard/ModernRoleDashboard';
 
 const EmployeeDashboard: React.FC = () => {
-    return (
-        <CommonDashboard 
-            userRole="employee"
-            title="Employee Dashboard"
-            subtitle="My personal view and tasks"
-        />
-    );
+    return <ModernRoleDashboard userRole="employee" />;
 };
 
 export default EmployeeDashboard;

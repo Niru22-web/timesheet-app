@@ -16,6 +16,7 @@ import Card from './ui/Card';
 import Avatar from './ui/Avatar';
 import Badge from './ui/Badge';
 import DashboardLayout from './DashboardLayout';
+import NotificationWidget from './ui/NotificationWidget';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -320,122 +321,14 @@ const CommonDashboard: React.FC<{ userRole?: string, title?: string, subtitle?: 
 
         {/* Right Section (1/3) */}
         <div className="space-y-8">
-          
-          {/* My Activity Panel */}
-          <Card className="p-8 border-none shadow-premium bg-white rounded-3xl flex flex-col h-full overflow-hidden">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-bold text-gray-900">My Activity</h3>
-              <Badge variant="primary" className="rounded-lg">All</Badge>
-            </div>
-
-            <div className="space-y-8 overflow-auto pb-4">
-              
-              {/* Upcoming Tasks Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  <Calendar size={14} />
-                  Upcoming Tasks
-                </div>
-                <div className="space-y-3">
-                  {tasks.length > 0 ? (
-                    tasks.slice(0, 3).map((task: any) => (
-                      <ActivityItem 
-                        key={task.id}
-                        title={task.name} 
-                        time={task.endDate ? `Due by ${new Date(task.endDate).toLocaleDateString()}` : "Ongoing"} 
-                        icon={<div className="bg-blue-100 text-blue-600 p-2 rounded-xl"><Briefcase size={16} /></div>} 
-                      />
-                    ))
-                  ) : (
-                    <>
-                      <ActivityItem 
-                        title="Finish UI Redesign" 
-                        time="Today, 04:00 PM" 
-                        icon={<div className="bg-blue-100 text-blue-600 p-2 rounded-xl"><Briefcase size={16} /></div>} 
-                      />
-                      <ActivityItem 
-                        title="Project Kickoff" 
-                        time="Tomorrow, 10:30 AM" 
-                        icon={<div className="bg-purple-100 text-purple-600 p-2 rounded-xl"><Target size={16} /></div>} 
-                      />
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Upcoming Meetings Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  <MessageSquare size={14} />
-                  Upcoming Meetings
-                </div>
-                <div className="space-y-3">
-                  <ActivityItem 
-                    title="Weekly Sync" 
-                    time="Friday, 02:00 PM" 
-                    icon={<Avatar name="John Doe" size="sm" />} 
-                  />
-                  <ActivityItem 
-                    title="Client Review" 
-                    time="Monday, 11:00 AM" 
-                    icon={<Avatar name="Alice Smith" size="sm" />} 
-                  />
-                </div>
-              </div>
-
-              {/* Latest Updates Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  <Bell size={14} />
-                  Latest Updates
-                </div>
-                {activities.length > 0 ? (
-                  <div className="space-y-3">
-                    {activities.map((act: any) => (
-                      <ActivityItem 
-                        key={act.id}
-                        title={act.message}
-                        time={new Date(act.createdAt).toLocaleDateString()}
-                        icon={<div className="bg-green-100 text-green-600 p-2 rounded-xl"><Bell size={16} /></div>}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400 text-center py-4 italic">No recent updates</p>
-                )}
-              </div>
-
-            </div>
-
-            <div className="mt-auto pt-8">
-              <Button 
-                variant="ghost" 
-                fullWidth 
-                className="flex items-center justify-center gap-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-2xl py-4"
-              >
-                View all notifications
-                <ArrowRight size={16} />
-              </Button>
-            </div>
-          </Card>
-
+          <div className="h-full min-h-[500px]">
+            <NotificationWidget />
+          </div>
         </div>
 
       </div>
     </DashboardLayout>
   );
 };
-
-const ActivityItem: React.FC<{ title: string; time: string; icon: React.ReactNode }> = ({ title, time, icon }) => (
-  <div className="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-all group cursor-pointer border border-transparent hover:border-gray-200">
-    <div className="flex-shrink-0">
-      {icon}
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-sm font-bold text-gray-800 truncate mb-1 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{title}</p>
-      <p className="text-xs font-medium text-gray-500">{time}</p>
-    </div>
-  </div>
-);
 
 export default CommonDashboard;

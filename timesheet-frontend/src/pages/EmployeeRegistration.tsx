@@ -359,10 +359,10 @@ const EmployeeRegistration: React.FC = () => {
 
   if (isFetchingInfo) {
     return (
-      <div className="min-h-screen bg-secondary-50 flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-bold text-secondary-500">Retrieving employee credentials...</p>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-medium text-gray-600">Retrieving employee credentials...</p>
         </div>
       </div>
     );
@@ -370,575 +370,625 @@ const EmployeeRegistration: React.FC = () => {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-secondary-50 flex items-center justify-center p-6 animate-fade-in text-center">
-        <Card className="w-full max-w-md p-10 space-y-6 shadow-3xl">
-          <div className="w-20 h-20 bg-warning-50 text-warning-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
+      <div className="h-screen flex items-center justify-center bg-gray-50 p-6">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-10 space-y-6 text-center">
+          <div className="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto">
             <CheckBadgeIcon className="w-12 h-12" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-secondary-900 leading-tight">Registration Submitted!</h2>
-            <p className="text-secondary-500 mt-2 font-medium">Your profile has been submitted for admin approval. You will be notified once your account is activated. Redirecting to login...</p>
+            <h2 className="text-2xl font-semibold text-gray-900">Registration Submitted!</h2>
+            <p className="text-gray-600 mt-2">Your profile has been submitted for admin approval. You will be notified once your account is activated. Redirecting to login...</p>
           </div>
-        </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-secondary-50 py-12 px-4 sm:px-6 lg:px-8 relative overflow-x-hidden">
-      {/* Aesthetic Background Elements */}
-      <div className="fixed top-0 right-0 w-1/3 h-1/2 bg-primary-600/[0.03] rounded-full blur-[120px] -mr-32 -mt-32 pointer-events-none" />
-      <div className="fixed bottom-0 left-0 w-1/3 h-1/2 bg-primary-600/[0.02] rounded-full blur-[120px] -ml-32 -mb-32 pointer-events-none" />
-
-      <div className="max-w-4xl mx-auto relative z-10">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-extrabold text-secondary-900 tracking-tight">Personnel Registration</h1>
-          <p className="text-secondary-500 font-medium mt-3">Please complete your identity profile to activate your account credentials.</p>
+    <div className="h-screen flex items-center justify-center bg-gray-50">
+      <style>{`
+        .form-container::-webkit-scrollbar {
+          width: 8px;
+        }
+        .form-container::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 4px;
+        }
+        .form-container::-webkit-scrollbar-thumb {
+          background: #cbd5f5;
+          border-radius: 10px;
+          border: 2px solid #f1f5f9;
+        }
+        .form-container::-webkit-scrollbar-thumb:hover {
+          background: #a5b4fc;
+        }
+        .form-container::-webkit-scrollbar-corner {
+          background: #f1f5f9;
+        }
+      `}</style>
+      
+      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden">
+        {/* Fixed Header */}
+        <div className="px-8 py-6 border-b border-gray-100 bg-white">
+          <h1 className="text-2xl font-semibold text-gray-900">Complete Your Registration</h1>
+          <p className="text-sm text-gray-600 mt-1">Fill in your details to get started</p>
+          <div className="mt-3">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              Step 1 of 1
+            </span>
+          </div>
         </div>
 
         {errors.global && (
-          <div className="mb-6 bg-danger-50 text-danger-700 p-4 rounded-xl border border-danger-100 flex items-center gap-3 animate-shake">
+          <div className="mx-8 mt-4 bg-red-50 text-red-700 p-4 rounded-lg border border-red-100 flex items-center gap-3">
             <ShieldCheckIcon className="w-5 h-5" />
-            <span className="text-sm font-bold">{errors.global}</span>
+            <span className="text-sm font-medium">{errors.global}</span>
           </div>
         )}
 
-        {employeeInfo && (
-          <Card className="p-8 shadow-xl border-t-4 border-primary-500">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 bg-primary-50 text-primary-600 rounded-lg">
-                <BriefcaseIcon className="w-5 h-5" />
-              </div>
-              <h2 className="text-xl font-bold text-secondary-900 tracking-tight">Employee Information (System Generated)</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Input
-                label="Employee Code"
-                value={employeeInfo.employeeId || 'AUTO-GENERATED'}
-                disabled
-                leftIcon={<IdentificationIcon />}
-              />
-              <Input
-                label="First Name"
-                value={employeeInfo.firstName || ''}
-                disabled
-                leftIcon={<UserIcon />}
-              />
-              <Input
-                label="Last Name"
-                value={employeeInfo.lastName || ''}
-                disabled
-                leftIcon={<UserIcon />}
-              />
-              <Input
-                label="Email ID"
-                value={employeeInfo.officeEmail || ''}
-                disabled
-                leftIcon={<EnvelopeIcon />}
-              />
-              <Input
-                label="Designation"
-                value={employeeInfo.designation || ''}
-                disabled
-                leftIcon={<BriefcaseIcon />}
-              />
-              <Input
-                label="Date of Joining"
-                value={employeeInfo.profile?.doj ? employeeInfo.profile.doj.split('T')[0] : (employeeInfo.dateOfJoining || new Date().toISOString().split('T')[0])}
-                type="date"
-                disabled
-                leftIcon={<CalendarIcon />}
-              />
-              {employeeInfo.profile?.dob && (
-                <Input
-                  label="Date of Birth"
-                  value={employeeInfo.profile.dob.split('T')[0]}
-                  type="date"
-                  disabled
-                  leftIcon={<CalendarIcon />}
-                />
-              )}
-              <Input
-                label="Department"
-                value={employeeInfo.department || 'Accounting'}
-                disabled
-                leftIcon={<BriefcaseIcon />}
-              />
-              <Input
-                label="Software Role"
-                value={employeeInfo.role}
-                disabled
-                leftIcon={<ShieldCheckIcon />}
-              />
-              <Input
-                label="Reporting Manager"
-                value={employeeInfo.reportingManager?.name || 'Not Assigned'}
-                disabled
-                leftIcon={<UserIcon />}
-              />
-              <Input
-                label="Reporting Partner"
-                value={employeeInfo.reportingPartner?.name || 'Not Assigned'}
-                disabled
-                leftIcon={<UserIcon />}
-              />
-            </div>
-          </Card>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-8 pb-20">
-          {/* Section 1: Security Setup */}
-          <Card className="p-8 shadow-xl border-t-4 border-primary-500">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 bg-primary-50 text-primary-600 rounded-lg">
-                <LockClosedIcon className="w-5 h-5" />
-              </div>
-              <h2 className="text-xl font-bold text-secondary-900 tracking-tight">Account Security Setup</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Input
-                name="password"
-                label="Create Password"
-                type="password"
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={handleInputChange}
-                error={errors.password}
-                leftIcon={<LockClosedIcon />}
-              />
-              <Input
-                name="confirmPassword"
-                label="Confirm Password"
-                type="password"
-                placeholder="••••••••"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                error={errors.confirmPassword}
-                leftIcon={<ShieldCheckIcon />}
-              />
-            </div>
-          </Card>
-
-          {/* Section 2: Education Details */}
-          <Card className="p-8 shadow-xl">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                <AcademicCapIcon className="w-5 h-5" />
-              </div>
-              <h2 className="text-xl font-bold text-secondary-900 tracking-tight">Educational Qualification</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <Select
-                name="education"
-                label="Highest Qualification"
-                value={formData.education}
-                onChange={handleInputChange}
-                error={errors.education}
-                leftIcon={<AcademicCapIcon />}
-              >
-                <option value="">Select Qualification</option>
-                <option value="Associate">Associate</option>
-                <option value="Graduate">Graduate</option>
-                <option value="Post Graduate">Post Graduate</option>
-                <option value="Professional (CA/CS/CMA)">Professional (CA/CS/CMA)</option>
-                <option value="PhD">PhD</option>
-              </Select>
-              <Input
-                name="institutionName"
-                label="Institution Name"
-                placeholder="University/College Name"
-                value={formData.institutionName}
-                onChange={handleInputChange}
-                error={errors.institutionName}
-                leftIcon={<BriefcaseIcon />}
-              />
-              <Input
-                name="yearOfCompletion"
-                label="Year of Completion"
-                type="number"
-                placeholder="2023"
-                value={formData.yearOfCompletion}
-                onChange={handleInputChange}
-                error={errors.yearOfCompletion}
-                leftIcon={<CalendarIcon />}
-              />
-            </div>
-          </Card>
-
-          {/* Section 2: Personal Identity */}
-          <Card className="p-8 shadow-xl">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                <UserIcon className="w-5 h-5" />
-              </div>
-              <h2 className="text-xl font-bold text-secondary-900 tracking-tight">Personal Identity Details</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <Input
-                name="dob"
-                label="Date of Birth"
-                type="date"
-                value={formData.dob}
-                onChange={handleInputChange}
-                error={errors.dob}
-                leftIcon={<CalendarIcon />}
-              />
-              <Input
-                name="doj"
-                label="Date of Joining"
-                type="date"
-                value={formData.doj}
-                onChange={handleInputChange}
-                error={errors.doj}
-                leftIcon={<CalendarIcon />}
-              />
-              <Select
-                name="gender"
-                label="Gender"
-                value={formData.gender}
-                onChange={handleInputChange}
-                error={errors.gender}
-                leftIcon={<ArrowsRightLeftIcon />}
-              >
-                <option value="">Select gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </Select>
-              <Select
-                name="maritalStatus"
-                label="Marital Status"
-                value={formData.maritalStatus}
-                onChange={handleInputChange}
-                error={errors.maritalStatus}
-                leftIcon={<HeartIcon />}
-              >
-                <option value="">Select status</option>
-                <option value="Single">Single</option>
-                <option value="Married">Married</option>
-              </Select>
-            </div>
-          </Card>
-
-          {/* Section 3: Contact Details */}
-          <Card className="p-8 shadow-xl">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                <EnvelopeIcon className="w-5 h-5" />
-              </div>
-              <h2 className="text-xl font-bold text-secondary-900 tracking-tight">Personal Contact Info</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              <Input
-                name="personalEmail"
-                label="Self Email ID (Optional)"
-                type="email"
-                placeholder="yourname@gmail.com"
-                value={formData.personalEmail}
-                onChange={handleInputChange}
-                error={errors.personalEmail}
-                leftIcon={<EnvelopeIcon />}
-              />
-              <Input
-                name="personalMobile"
-                label="Self Mobile Number (Optional)"
-                placeholder="+91 00000 00000"
-                value={formData.personalMobile}
-                onChange={(e) => {
-                  const formatted = formatMobile(e.target.value);
-                  setFormData(prev => ({ ...prev, personalMobile: formatted }));
-                }}
-                error={errors.personalMobile}
-                leftIcon={<PhoneIcon />}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-8">
-              <Input
-                name="currentAddress"
-                label="Address - Current"
-                placeholder="Street address in Mumbai..."
-                multiline
-                rows={2}
-                value={formData.currentAddress}
-                onChange={handleInputChange}
-                error={errors.currentAddress}
-                leftIcon={<MapPinIcon />}
-              />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <Input
-                  name="currentPinCode"
-                  label="PIN Code of Current Address (Optional)"
-                  placeholder="400001"
-                  value={formData.currentPinCode}
-                  onChange={handleInputChange}
-                  error={errors.currentPinCode}
-                  leftIcon={<IdentificationIcon />}
-                />
-              </div>
-              <Input
-                name="permanentAddress"
-                label="Address - Permanent"
-                placeholder="Complete secondary address..."
-                multiline
-                rows={2}
-                value={formData.permanentAddress}
-                onChange={handleInputChange}
-                error={errors.permanentAddress}
-                leftIcon={<MapPinIcon />}
-              />
-            </div>
-          </Card>
-
-          {/* Section 4: Guardian Details */}
-          <Card className="p-8 shadow-xl">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
-                <ShieldCheckIcon className="w-5 h-5" />
-              </div>
-              <h2 className="text-xl font-bold text-secondary-900 tracking-tight">Guardian Information (Local) - Optional</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-              <Input
-                name="guardianName"
-                label="Guardian Name (Optional)"
-                placeholder="Relation's name"
-                value={formData.guardianName}
-                onChange={handleInputChange}
-                error={errors.guardianName}
-                leftIcon={<UserIcon />}
-              />
-              <Input
-                name="guardianNumber"
-                label="Guardian Contact Number (Optional)"
-                placeholder="+91 00000 00000"
-                value={formData.guardianNumber}
-                onChange={(e) => {
-                  const formatted = formatMobile(e.target.value);
-                  setFormData(prev => ({ ...prev, guardianNumber: formatted }));
-                }}
-                error={errors.guardianNumber}
-                leftIcon={<PhoneIcon />}
-              />
-              <div className="md:col-span-2">
-                <Input
-                  name="guardianAddress"
-                  label="Guardian/Relation Address (Optional)"
-                  placeholder="Address in Mumbai..."
-                  multiline
-                  rows={2}
-                  value={formData.guardianAddress}
-                  onChange={handleInputChange}
-                  error={errors.guardianAddress}
-                  leftIcon={<MapPinIcon />}
-                />
-              </div>
-            </div>
-          </Card>
-
-          {/* Section 5: Identification & Documents */}
-          <Card className="p-8 shadow-xl border-b-4 border-indigo-500">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                <IdentificationIcon className="w-5 h-5" />
-              </div>
-              <h2 className="text-xl font-bold text-secondary-900 tracking-tight">Identification Verification & Documents</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              <Input
-                name="pan"
-                label="PAN Card Number"
-                placeholder="ABCDE1234F"
-                value={formData.pan}
-                onChange={handleInputChange}
-                error={errors.pan}
-                leftIcon={<IdentificationIcon />}
-              />
-              <Input
-                name="aadhaar"
-                label="Aadhaar Card Number"
-                placeholder="1234 5678 9012"
-                value={formData.aadhaar}
-                onChange={(e) => {
-                  const formatted = formatAadhaar(e.target.value);
-                  setFormData(prev => ({ ...prev, aadhaar: formatted }));
-                }}
-                error={errors.aadhaar}
-                leftIcon={<IdentificationIcon />}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-secondary-700 block px-1">Attach PAN Copy</label>
-                <div className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${files.panFile ? 'border-primary-500 bg-primary-50/30' : 'border-secondary-200 hover:border-primary-400 bg-secondary-50/50'}`}>
-                  <input
-                    type="file"
-                    name="panFile"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                  />
-                  <div className="flex flex-col items-center text-center gap-2">
-                    <DocumentArrowUpIcon className={`w-8 h-8 ${files.panFile ? 'text-primary-600' : 'text-secondary-400'}`} />
-                    <p className="text-sm font-bold text-secondary-700">{files.panFile ? files.panFile.name : 'Upload PAN (PDF, Image)'}</p>
-                    <p className="text-[10px] text-secondary-400 uppercase font-bold tracking-wider">Format: PDF/JPG/PNG · Max 5MB</p>
-                  </div>
+        {/* Scrollable Form Content */}
+        <div className="form-container overflow-y-auto px-8 py-6 space-y-6" style={{ maxHeight: '60vh' }}>
+          
+          {employeeInfo && (
+            <div className="bg-gray-50 rounded-xl p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                  <BriefcaseIcon className="w-5 h-5" />
                 </div>
-                {errors.panFile && <p className="text-xs font-bold text-danger-500">{errors.panFile}</p>}
+                <h2 className="text-lg font-medium text-gray-900">Employee Information</h2>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-secondary-700 block px-1">Attach Aadhaar Copy</label>
-                <div className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${files.aadhaarFile ? 'border-primary-500 bg-primary-50/30' : 'border-secondary-200 hover:border-primary-400 bg-secondary-50/50'}`}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700">Employee Code</label>
                   <input
-                    type="file"
-                    name="aadhaarFile"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    type="text"
+                    value={employeeInfo.employeeId || 'AUTO-GENERATED'}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 text-sm"
                   />
-                  <div className="flex flex-col items-center text-center gap-2">
-                    <DocumentArrowUpIcon className={`w-8 h-8 ${files.aadhaarFile ? 'text-primary-600' : 'text-secondary-400'}`} />
-                    <p className="text-sm font-bold text-secondary-700">{files.aadhaarFile ? files.aadhaarFile.name : 'Upload Aadhaar (PDF, Image)'}</p>
-                    <p className="text-[10px] text-secondary-400 uppercase font-bold tracking-wider">Format: PDF/JPG/PNG · Max 5MB</p>
-                  </div>
                 </div>
-                {errors.aadhaarFile && <p className="text-xs font-bold text-danger-500">{errors.aadhaarFile}</p>}
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-secondary-700 block px-1">Employee Photo</label>
-                <div className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${files.employeePhoto ? 'border-primary-500 bg-primary-50/30' : 'border-secondary-200 hover:border-primary-400 bg-secondary-50/50'}`}>
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700">First Name</label>
                   <input
-                    type="file"
-                    name="employeePhoto"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    accept=".jpg,.jpeg,.png"
+                    type="text"
+                    value={employeeInfo.firstName || ''}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 text-sm"
                   />
-                  <div className="flex flex-col items-center text-center gap-2">
-                    <UserIcon className={`w-8 h-8 ${files.employeePhoto ? 'text-primary-600' : 'text-secondary-400'}`} />
-                    <p className="text-sm font-bold text-secondary-700">{files.employeePhoto ? files.employeePhoto.name : 'Upload Photo (JPG, PNG)'}</p>
-                    <p className="text-[10px] text-secondary-400 uppercase font-bold tracking-wider">Format: JPG/PNG · Max 5MB</p>
-                  </div>
                 </div>
-                {errors.employeePhoto && <p className="text-xs font-bold text-danger-500">{errors.employeePhoto}</p>}
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-secondary-700 block px-1">Bank Statement (Optional)</label>
-                <div className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${files.bankStatementFile ? 'border-primary-500 bg-primary-50/30' : 'border-secondary-200 hover:border-primary-400 bg-secondary-50/50'}`}>
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700">Last Name</label>
                   <input
-                    type="file"
-                    name="bankStatementFile"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    type="text"
+                    value={employeeInfo.lastName || ''}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 text-sm"
                   />
-                  <div className="flex flex-col items-center text-center gap-2">
-                    <DocumentArrowUpIcon className={`w-8 h-8 ${files.bankStatementFile ? 'text-primary-600' : 'text-secondary-400'}`} />
-                    <p className="text-sm font-bold text-secondary-700">{files.bankStatementFile ? files.bankStatementFile.name : 'Upload Bank Statement (PDF, Image)'}</p>
-                    <p className="text-[10px] text-secondary-400 uppercase font-bold tracking-wider">Format: PDF/JPG/PNG · Max 5MB</p>
-                  </div>
                 </div>
-                {errors.bankStatementFile && <p className="text-xs font-bold text-danger-500">{errors.bankStatementFile}</p>}
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700">Email ID</label>
+                  <input
+                    type="text"
+                    value={employeeInfo.officeEmail || ''}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700">Designation</label>
+                  <input
+                    type="text"
+                    value={employeeInfo.designation || ''}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700">Department</label>
+                  <input
+                    type="text"
+                    value={employeeInfo.department || 'Accounting'}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 text-sm"
+                  />
+                </div>
               </div>
             </div>
-          </Card>
+          )}
 
-          {/* Section 5: Bank Details */}
-          <Card className="p-8 shadow-xl border-t-4 border-emerald-500">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                <BriefcaseIcon className="w-5 h-5" />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Account Setup Section */}
+            <div className="bg-white rounded-xl">
+              <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-100">
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                  <LockClosedIcon className="w-5 h-5" />
+                </div>
+                <h2 className="text-lg font-medium text-gray-900">Account Setup</h2>
               </div>
-              <h2 className="text-xl font-bold text-secondary-900 tracking-tight">Bank Details (Optional)</h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    Create Password *
+                  </label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                      errors.password ? 'border-red-500' : ''
+                    }`}
+                  />
+                  {errors.password && (
+                    <p className="text-xs text-red-600 mt-1">{errors.password}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                    Confirm Password *
+                  </label>
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    placeholder="Confirm your password"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                      errors.confirmPassword ? 'border-red-500' : ''
+                    }`}
+                  />
+                  {errors.confirmPassword && (
+                    <p className="text-xs text-red-600 mt-1">{errors.confirmPassword}</p>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Input
-                name="bankName"
-                label="Bank Name"
-                placeholder="State Bank of India"
-                value={formData.bankName}
-                onChange={handleInputChange}
-                error={errors.bankName}
-                leftIcon={<BriefcaseIcon />}
-              />
-              <Input
-                name="accountHolderName"
-                label="Account Holder Name"
-                placeholder="John Doe"
-                value={formData.accountHolderName}
-                onChange={handleInputChange}
-                error={errors.accountHolderName}
-                leftIcon={<UserIcon />}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Input
-                name="bankAccountNumber"
-                label="Bank Account Number"
-                placeholder="1234567890123456"
-                value={formData.bankAccountNumber}
-                onChange={handleInputChange}
-                error={errors.bankAccountNumber}
-                leftIcon={<IdentificationIcon />}
-              />
-              <Input
-                name="ifscCode"
-                label="IFSC Code"
-                placeholder="SBIN0001234"
-                value={formData.ifscCode}
-                onChange={handleInputChange}
-                error={errors.ifscCode}
-                leftIcon={<ShieldCheckIcon />}
-              />
+            {/* Personal Information Section */}
+            <div className="bg-white rounded-xl">
+              <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-100">
+                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                  <UserIcon className="w-5 h-5" />
+                </div>
+                <h2 className="text-lg font-medium text-gray-900">Personal Information</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label htmlFor="dob" className="block text-sm font-medium text-gray-700">
+                    Date of Birth *
+                  </label>
+                  <input
+                    id="dob"
+                    name="dob"
+                    type="date"
+                    value={formData.dob}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                      errors.dob ? 'border-red-500' : ''
+                    }`}
+                  />
+                  {errors.dob && (
+                    <p className="text-xs text-red-600 mt-1">{errors.dob}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="doj" className="block text-sm font-medium text-gray-700">
+                    Date of Joining *
+                  </label>
+                  <input
+                    id="doj"
+                    name="doj"
+                    type="date"
+                    value={formData.doj}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                      errors.doj ? 'border-red-500' : ''
+                    }`}
+                  />
+                  {errors.doj && (
+                    <p className="text-xs text-red-600 mt-1">{errors.doj}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="gender" className="block text-sm font-medium text-gray-700">
+                    Gender *
+                  </label>
+                  <select
+                    id="gender"
+                    name="gender"
+                    value={formData.gender}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                      errors.gender ? 'border-red-500' : ''
+                    }`}
+                  >
+                    <option value="">Select gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  {errors.gender && (
+                    <p className="text-xs text-red-600 mt-1">{errors.gender}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="maritalStatus" className="block text-sm font-medium text-gray-700">
+                    Marital Status *
+                  </label>
+                  <select
+                    id="maritalStatus"
+                    name="maritalStatus"
+                    value={formData.maritalStatus}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                      errors.maritalStatus ? 'border-red-500' : ''
+                    }`}
+                  >
+                    <option value="">Select status</option>
+                    <option value="Single">Single</option>
+                    <option value="Married">Married</option>
+                  </select>
+                  {errors.maritalStatus && (
+                    <p className="text-xs text-red-600 mt-1">{errors.maritalStatus}</p>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-1 gap-8">
-              <Input
-                name="branchName"
-                label="Branch Name"
-                placeholder="Main Branch, Mumbai"
-                value={formData.branchName}
-                onChange={handleInputChange}
-                error={errors.branchName}
-                leftIcon={<MapPinIcon />}
-              />
-            </div>
-          </Card>
+            {/* Contact Details Section */}
+            <div className="bg-white rounded-xl">
+              <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-100">
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                  <EnvelopeIcon className="w-5 h-5" />
+                </div>
+                <h2 className="text-lg font-medium text-gray-900">Contact Details</h2>
+              </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <Button
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label htmlFor="personalEmail" className="block text-sm font-medium text-gray-700">
+                    Personal Email (Optional)
+                  </label>
+                  <input
+                    id="personalEmail"
+                    name="personalEmail"
+                    type="email"
+                    placeholder="yourname@gmail.com"
+                    value={formData.personalEmail}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                      errors.personalEmail ? 'border-red-500' : ''
+                    }`}
+                  />
+                  {errors.personalEmail && (
+                    <p className="text-xs text-red-600 mt-1">{errors.personalEmail}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="personalMobile" className="block text-sm font-medium text-gray-700">
+                    Personal Mobile (Optional)
+                  </label>
+                  <input
+                    id="personalMobile"
+                    name="personalMobile"
+                    type="tel"
+                    placeholder="+91 00000 00000"
+                    value={formData.personalMobile}
+                    onChange={(e) => {
+                      const formatted = formatMobile(e.target.value);
+                      setFormData(prev => ({ ...prev, personalMobile: formatted }));
+                    }}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                      errors.personalMobile ? 'border-red-500' : ''
+                    }`}
+                  />
+                  {errors.personalMobile && (
+                    <p className="text-xs text-red-600 mt-1">{errors.personalMobile}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 mt-4">
+                <div className="space-y-1">
+                  <label htmlFor="currentAddress" className="block text-sm font-medium text-gray-700">
+                    Current Address *
+                  </label>
+                  <textarea
+                    id="currentAddress"
+                    name="currentAddress"
+                    placeholder="Enter your current address"
+                    rows={3}
+                    value={formData.currentAddress}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors resize-none ${
+                      errors.currentAddress ? 'border-red-500' : ''
+                    }`}
+                  />
+                  {errors.currentAddress && (
+                    <p className="text-xs text-red-600 mt-1">{errors.currentAddress}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="permanentAddress" className="block text-sm font-medium text-gray-700">
+                    Permanent Address *
+                  </label>
+                  <textarea
+                    id="permanentAddress"
+                    name="permanentAddress"
+                    placeholder="Enter your permanent address"
+                    rows={3}
+                    value={formData.permanentAddress}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors resize-none ${
+                      errors.permanentAddress ? 'border-red-500' : ''
+                    }`}
+                  />
+                  {errors.permanentAddress && (
+                    <p className="text-xs text-red-600 mt-1">{errors.permanentAddress}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Job Details Section */}
+            <div className="bg-white rounded-xl">
+              <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-100">
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
+                  <AcademicCapIcon className="w-5 h-5" />
+                </div>
+                <h2 className="text-lg font-medium text-gray-900">Job Details</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label htmlFor="education" className="block text-sm font-medium text-gray-700">
+                    Education *
+                  </label>
+                  <select
+                    id="education"
+                    name="education"
+                    value={formData.education}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                      errors.education ? 'border-red-500' : ''
+                    }`}
+                  >
+                    <option value="">Select Qualification</option>
+                    <option value="Associate">Associate</option>
+                    <option value="Graduate">Graduate</option>
+                    <option value="Post Graduate">Post Graduate</option>
+                    <option value="Professional (CA/CS/CMA)">Professional (CA/CS/CMA)</option>
+                    <option value="PhD">PhD</option>
+                  </select>
+                  {errors.education && (
+                    <p className="text-xs text-red-600 mt-1">{errors.education}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="institutionName" className="block text-sm font-medium text-gray-700">
+                    Institution Name *
+                  </label>
+                  <input
+                    id="institutionName"
+                    name="institutionName"
+                    type="text"
+                    placeholder="University/College Name"
+                    value={formData.institutionName}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                      errors.institutionName ? 'border-red-500' : ''
+                    }`}
+                  />
+                  {errors.institutionName && (
+                    <p className="text-xs text-red-600 mt-1">{errors.institutionName}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="yearOfCompletion" className="block text-sm font-medium text-gray-700">
+                    Year of Completion *
+                  </label>
+                  <input
+                    id="yearOfCompletion"
+                    name="yearOfCompletion"
+                    type="number"
+                    placeholder="2023"
+                    value={formData.yearOfCompletion}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                      errors.yearOfCompletion ? 'border-red-500' : ''
+                    }`}
+                  />
+                  {errors.yearOfCompletion && (
+                    <p className="text-xs text-red-600 mt-1">{errors.yearOfCompletion}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Identification Section */}
+            <div className="bg-white rounded-xl">
+              <div className="flex items-center gap-3 mb-6 pb-3 border-b border-gray-100">
+                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                  <IdentificationIcon className="w-5 h-5" />
+                </div>
+                <h2 className="text-lg font-medium text-gray-900">Identification Details</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label htmlFor="pan" className="block text-sm font-medium text-gray-700">
+                    PAN Number *
+                  </label>
+                  <input
+                    id="pan"
+                    name="pan"
+                    type="text"
+                    placeholder="ABCDE1234F"
+                    value={formData.pan}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                      errors.pan ? 'border-red-500' : ''
+                    }`}
+                  />
+                  {errors.pan && (
+                    <p className="text-xs text-red-600 mt-1">{errors.pan}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="aadhaar" className="block text-sm font-medium text-gray-700">
+                    Aadhaar Number *
+                  </label>
+                  <input
+                    id="aadhaar"
+                    name="aadhaar"
+                    type="text"
+                    placeholder="1234 5678 9012"
+                    value={formData.aadhaar}
+                    onChange={(e) => {
+                      const formatted = formatAadhaar(e.target.value);
+                      setFormData(prev => ({ ...prev, aadhaar: formatted }));
+                    }}
+                    className={`w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                      errors.aadhaar ? 'border-red-500' : ''
+                    }`}
+                  />
+                  {errors.aadhaar && (
+                    <p className="text-xs text-red-600 mt-1">{errors.aadhaar}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700">PAN Card Document *</label>
+                  <div className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${
+                    files.panFile ? 'border-blue-500 bg-blue-50/30' : 'border-gray-300 hover:border-blue-400 bg-gray-50/50'
+                  }`}>
+                    <input
+                      type="file"
+                      name="panFile"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                    />
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <DocumentArrowUpIcon className={`w-8 h-8 ${files.panFile ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <p className="text-sm font-medium text-gray-700">
+                        {files.panFile ? files.panFile.name : 'Upload PAN (PDF, Image)'}
+                      </p>
+                      <p className="text-xs text-gray-500">Format: PDF/JPG/PNG · Max 5MB</p>
+                    </div>
+                  </div>
+                  {errors.panFile && (
+                    <p className="text-xs text-red-600 mt-1">{errors.panFile}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700">Aadhaar Card Document *</label>
+                  <div className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${
+                    files.aadhaarFile ? 'border-blue-500 bg-blue-50/30' : 'border-gray-300 hover:border-blue-400 bg-gray-50/50'
+                  }`}>
+                    <input
+                      type="file"
+                      name="aadhaarFile"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                    />
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <DocumentArrowUpIcon className={`w-8 h-8 ${files.aadhaarFile ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <p className="text-sm font-medium text-gray-700">
+                        {files.aadhaarFile ? files.aadhaarFile.name : 'Upload Aadhaar (PDF, Image)'}
+                      </p>
+                      <p className="text-xs text-gray-500">Format: PDF/JPG/PNG · Max 5MB</p>
+                    </div>
+                  </div>
+                  {errors.aadhaarFile && (
+                    <p className="text-xs text-red-600 mt-1">{errors.aadhaarFile}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700">Employee Photo *</label>
+                  <div className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${
+                    files.employeePhoto ? 'border-blue-500 bg-blue-50/30' : 'border-gray-300 hover:border-blue-400 bg-gray-50/50'
+                  }`}>
+                    <input
+                      type="file"
+                      name="employeePhoto"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      accept=".jpg,.jpeg,.png"
+                    />
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <UserIcon className={`w-8 h-8 ${files.employeePhoto ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <p className="text-sm font-medium text-gray-700">
+                        {files.employeePhoto ? files.employeePhoto.name : 'Upload Photo (JPG, PNG)'}
+                      </p>
+                      <p className="text-xs text-gray-500">Format: JPG/PNG · Max 5MB</p>
+                    </div>
+                  </div>
+                  {errors.employeePhoto && (
+                    <p className="text-xs text-red-600 mt-1">{errors.employeePhoto}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700">Bank Statement (Optional)</label>
+                  <div className={`relative border-2 border-dashed rounded-xl p-6 transition-all ${
+                    files.bankStatementFile ? 'border-blue-500 bg-blue-50/30' : 'border-gray-300 hover:border-blue-400 bg-gray-50/50'
+                  }`}>
+                    <input
+                      type="file"
+                      name="bankStatementFile"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                    />
+                    <div className="flex flex-col items-center text-center gap-2">
+                      <DocumentArrowUpIcon className={`w-8 h-8 ${files.bankStatementFile ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <p className="text-sm font-medium text-gray-700">
+                        {files.bankStatementFile ? files.bankStatementFile.name : 'Upload Bank Statement (PDF, Image)'}
+                      </p>
+                      <p className="text-xs text-gray-500">Format: PDF/JPG/PNG · Max 5MB</p>
+                    </div>
+                  </div>
+                  {errors.bankStatementFile && (
+                    <p className="text-xs text-red-600 mt-1">{errors.bankStatementFile}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* Sticky Footer */}
+        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-8 py-4">
+          <div className="flex justify-end gap-3">
+            <button
               type="button"
-              variant="secondary"
-              fullWidth
-              className="h-14 font-bold border-secondary-200 text-secondary-600"
               onClick={() => navigate('/login')}
+              className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
             >
-              Cancel Activation
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              fullWidth
-              isLoading={isLoading}
-              className="h-14 font-extrabold shadow-lg shadow-primary-500/20"
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isLoading}
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Activate My Account
-            </Button>
+              {isLoading ? "Processing..." : "Complete Registration"}
+            </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

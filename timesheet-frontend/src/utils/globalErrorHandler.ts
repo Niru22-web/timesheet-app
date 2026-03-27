@@ -112,8 +112,18 @@ export const handleServerError = (error: any) => {
 
 // Main error dispatcher
 export const dispatchError = (error: any) => {
+  // 1. Detect Network Errors (No response from server)
+  if (!error.response) {
+    console.error('🌐 Network Error / Server unreachable:', error);
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      return handleError(error, 'Server timed out. Please try again.');
+    }
+    return handleError(error, 'Server not reachable. Please ensure the backend is running.');
+  }
+
   const status = error.response?.status;
   
+  // 2. Handle HTTP status errors
   switch (status) {
     case 400:
       return handleValidationError(error);
@@ -129,6 +139,7 @@ export const dispatchError = (error: any) => {
     case 504:
       return handleServerError(error);
     default:
+      // Fallback for everything else
       if (error.code === 'NETWORK_ERROR' || !navigator.onLine) {
         return handleNetworkError(error);
       }

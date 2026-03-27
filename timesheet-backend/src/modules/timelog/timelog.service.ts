@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { generateCombinedId } from '../../utils/jobIdGenerator';
+import { notifyReportingManager } from '../../services/notification.service';
 
 const prisma = new PrismaClient();
 
@@ -423,6 +424,13 @@ export class TimelogService {
         throw new Error('Cannot log time for future dates');
       }
 
+      // Calculate weekStart (Monday of the week)
+      const dateForWeek = new Date(workDate);
+      const day = dateForWeek.getDay();
+      const diff = dateForWeek.getDate() - day + (day === 0 ? -6 : 1);
+      const weekStart = new Date(dateForWeek.setDate(diff));
+      weekStart.setHours(0, 0, 0, 0);
+
       const timelog = await prisma.timelog.create({
         data: {
           hours: timelogData.hours,
@@ -431,7 +439,13 @@ export class TimelogService {
           employeeId,
           jobId: timelogData.jobId,
           reportingManagerId,
-          reportingPartnerId
+          reportingPartnerId,
+          clientId: job.project.clientId,
+          projectId: job.projectId,
+          combinedJobCode: job.combinedId,
+          weekStart: weekStart,
+          workItem: timelogData.workItem || null,
+          billableStatus: timelogData.billableStatus || 'billable'
         },
         include: {
           employee: {
@@ -554,6 +568,28 @@ export class TimelogService {
         }
 
         timelogData.date = workDate;
+
+        // Recalculate weekStart
+        const dateForWeek = new Date(workDate);
+        const day = dateForWeek.getDay();
+        const diff = dateForWeek.getDate() - day + (day === 0 ? -6 : 1);
+        const weekStart = new Date(dateForWeek.setDate(diff));
+        weekStart.setHours(0, 0, 0, 0);
+        timelogData.weekStart = weekStart;
+      }
+
+      // If jobId is being updated, fetch new job details to update related fields
+      if (timelogData.jobId) {
+        const job = await prisma.job.findUnique({
+          where: { id: timelogData.jobId },
+          include: { project: true }
+        });
+        
+        if (job) {
+          timelogData.clientId = job.project.clientId;
+          timelogData.projectId = job.projectId;
+          timelogData.combinedJobCode = job.combinedId;
+        }
       }
 
       const timelog = await prisma.timelog.update({
@@ -824,7 +860,7 @@ export class TimelogService {
 
   async getTimesheetReports(userEmail: string, userRole: string, filters?: any) {
     try {
-      let timelogs;
+      let timelogs: any[] = [];
 
       // Role-based data access
       if (['Admin', 'Partner', 'Owner'].includes(userRole)) {
@@ -839,8 +875,6 @@ export class TimelogService {
         });
         if (employee) {
           timelogs = await this.getTimelogsByUser(employee.id, filters);
-        } else {
-          timelogs = [];
         }
       }
 
@@ -967,7 +1001,7 @@ export class TimelogService {
       });
 
       // Generate missing timesheet entries
-      const missingEntries = [];
+      const missingEntries: any[] = [];
       const currentDate = new Date(fromDate);
 
       while (currentDate <= toDate) {
@@ -997,6 +1031,46 @@ export class TimelogService {
     } catch (error) {
       console.error('Error fetching missing timesheets:', error);
       throw error;
+    }
+  }
+
+  async submitTimelog(id: string, employeeId: string) {
+    try {
+      const timelog = await prisma.timelog.findUnique({
+        where: { id },
+        include: { employee: true } // We need the employee to notify their manager
+      });
+
+      if (!timelog) {
+        throw new Error('Timelog entry not found');
+      }
+
+      if (timelog.employeeId !== employeeId) {
+        throw new Error('You can only submit your own timelogs');
+      }
+
+      const updated = await prisma.timelog.update({
+        where: { id },
+        data: {
+          submissionStatus: 'submitted',
+          submittedAt: new Date()
+        }
+      });
+
+      // Trigger Manager Notification
+      const employeeName = `${timelog.employee.firstName} ${timelog.employee.lastName || ''}`.trim();
+      await notifyReportingManager(
+        employeeId,
+        'Timesheet Submitted 📝',
+        `${employeeName} has submitted a timesheet entry for review.`,
+        'timesheet',
+        `/timesheet-approvals`
+      );
+
+      return updated;
+    } catch (error) {
+       console.error('Error submitting timelog:', error);
+       throw error;
     }
   }
 }

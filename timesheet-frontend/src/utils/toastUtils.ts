@@ -20,7 +20,6 @@ export const useToastUtils = (): ToastUtils => {
     
     // Show loading toast
     toast.showToast({
-      id,
       message: `⏳ ${message}`,
       type: 'info',
       duration: 0 // Don't auto-close loading toasts
@@ -30,8 +29,7 @@ export const useToastUtils = (): ToastUtils => {
   };
 
   const success = (id: string, message: string): void => {
-    toast.update({
-      id,
+    toast.update(id, {
       message: `✅ ${message}`,
       type: 'success',
       duration: 3000
@@ -39,8 +37,7 @@ export const useToastUtils = (): ToastUtils => {
   };
 
   const error = (id: string, message: string): void => {
-    toast.update({
-      id,
+    toast.update(id, {
       message: `❌ ${message}`,
       type: 'error',
       duration: 0 // Error toasts stay until dismissed
@@ -65,8 +62,7 @@ export const useToastUtils = (): ToastUtils => {
       displayMessage = `⚠️ ${message}`;
     }
 
-    toast.update({
-      id,
+    toast.update(id, {
       message: displayMessage,
       type,
       duration: isLoading ? 0 : (type === 'error' ? 0 : 3000)

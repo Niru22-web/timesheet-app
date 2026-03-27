@@ -5,7 +5,8 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   deleteNotification,
-  getUnreadCount
+  getUnreadCount,
+  approveEmployeeFromNotification
 } from './notification.controller';
 import { authenticate } from '../../middleware/auth.middleware';
 
@@ -21,5 +22,8 @@ router.patch('/:id/read', markNotificationAsRead);
 router.patch('/read-all', markAllNotificationsAsRead);
 router.delete('/:id', deleteNotification);
 router.get('/unread-count', getUnreadCount);
+
+// Approval actions from notifications
+router.post('/approve-employee', approveEmployeeFromNotification);
 
 export default router;

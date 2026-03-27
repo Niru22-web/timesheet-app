@@ -5,6 +5,7 @@ import { prisma } from "../../config/prisma";
 import { generateToken } from "../../config/jwt";
 import { sendPasswordResetEmail, sendEmail } from "../../services/email.service";
 import EmailService from "../email/email.service";
+import { notifyAdmins } from "../../services/notification.service";
 
 export const login = async (req: Request, res: Response) => {
   console.log('🔐 Login request received:');
@@ -273,6 +274,16 @@ Timesheet System Team
       console.error("❌ Failed to send registration email:", emailError);
       // Don't fail the registration if email fails, but log the error
     }
+
+    // Trigger Admin Notification for approval
+    const fullName = `${employee.firstName} ${employee.lastName || ''}`.trim();
+    await notifyAdmins(
+      'New User Registration 🎉',
+      `${fullName} has registered and is pending approval.`,
+      'employee_approval',
+      undefined, // No action URL needed since approval will be from notification
+      employee.id
+    );
 
     res.status(201).json({
       message: "User registered successfully",

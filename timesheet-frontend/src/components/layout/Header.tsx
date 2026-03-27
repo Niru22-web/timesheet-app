@@ -47,7 +47,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
   const pageTitle = getPageTitle();
 
   return (
-    <header className="hidden md:flex flex-none items-center justify-between px-10 h-20 bg-white border-b border-secondary-100">
+    <header className="header hidden md:flex items-center justify-between px-6 bg-white border-b border-secondary-100 shadow-sm transition-shadow z-10 sticky top-0">
       {/* Left Section - Page Title */}
       <div className="flex items-center gap-4">
         <h1 className="text-2xl font-bold text-secondary-900">{pageTitle}</h1>

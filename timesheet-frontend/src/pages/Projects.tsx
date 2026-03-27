@@ -92,8 +92,8 @@ const Projects: React.FC = () => {
       const [projectsRes, clientsRes, employeesRes, allEmployeesRes] = await Promise.all([
         API.get('/projects'),
         API.get('/clients'),
-        API.get('/employees'), // Changed from /employees/team which doesn't exist
-        API.get('/employees') // For dropdown (all employees)
+        API.get('/employees'), // Filtered by user role
+        API.get('/employees?all=true') // For dropdown (all employees in the firm)
       ]);
       console.log('API responses:', {
         projects: projectsRes.data,
@@ -571,6 +571,172 @@ const Projects: React.FC = () => {
               className="h-9 font-extrabold shadow-md shadow-primary-500/10"
             >
               Initiate Project Record
+            </Button>
+          </div>
+        </form>
+      </Modal>
+      
+      {/* Edit Project Modal */}
+      <Modal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingProject(null);
+          setFormData({
+            name: '',
+            clientId: '',
+            status: 'Started',
+            startDate: new Date().toISOString().split('T')[0],
+            billable: 'Billable',
+            contactPerson: '',
+            assignedUsers: []
+          });
+        }}
+        title="Modify Project Master"
+        size="lg"
+      >
+        <form onSubmit={handleUpdateProject} className="space-y-3 pt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              label="Select Client *"
+              value={formData.clientId}
+              onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+              required
+            >
+              <option value="">{loading ? "Loading clients..." : "Choose a Client Registry"}</option>
+              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Select>
+            <Input
+              label="Project Title *"
+              placeholder="e.g. Statutory Audit FY 2024-25"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <Select
+              label="Project Status *"
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              required
+            >
+              <option value="Started">Started</option>
+              <option value="In-Discussion">In-Discussion</option>
+              <option value="Completed">Completed</option>
+            </Select>
+            <Input
+              label="Start Date *"
+              type="date"
+              value={formData.startDate ? formData.startDate.split('T')[0] : ''}
+              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              required
+            />
+            <Select
+              label="Billing Category *"
+              value={formData.billable}
+              onChange={(e) => setFormData({ ...formData, billable: e.target.value })}
+              required
+            >
+              <option value="Billable">Billable</option>
+              <option value="Non-Billable">Non-Billable</option>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Client Contact Person"
+              placeholder="Primary Point of Contact"
+              value={formData.contactPerson}
+              onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+              leftIcon={<IdentificationIcon />}
+            />
+            <Input
+              label="Commissioned By"
+              value={user?.name || 'System User'}
+              disabled
+              placeholder="Captured from session"
+              leftIcon={<ShieldCheckIcon />}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-secondary-700 block ml-0.5">Assign Delivery Team (Optional)</label>
+            <Select
+              value=""
+              onChange={(e) => {
+                if (e.target.value && !formData.assignedUsers.includes(e.target.value)) {
+                  setFormData(prev => ({
+                    ...prev,
+                    assignedUsers: [...prev.assignedUsers, e.target.value]
+                  }));
+                }
+              }}
+            >
+              <option value="" disabled>Choose team members...</option>
+              {allEmployees.map(emp => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.firstName} {emp.lastName} ({emp.employeeId})
+                </option>
+              ))}
+            </Select>
+            
+            {/* Show selected team members */}
+            <div className="mt-2 flex flex-wrap gap-2">
+              {formData.assignedUsers.map(userId => {
+                const emp = allEmployees.find(e => e.id === userId);
+                return emp ? (
+                  <div key={userId} className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-700 rounded-full text-xs font-medium">
+                    {emp.firstName} {emp.lastName}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          assignedUsers: prev.assignedUsers.filter(id => id !== userId)
+                        }));
+                      }}
+                      className="ml-1 text-primary-500 hover:text-primary-700"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : null;
+              })}
+            </div>
+            <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest pl-1">{formData.assignedUsers.length} Resource(s) Allocated</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <Input
+              label="Unique Project ID"
+              value={editingProject?.projectId || ''}
+              disabled
+              placeholder="Auto-assigned ID"
+            />
+          </div>
+
+          <div className="pt-3 flex gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              fullWidth
+              onClick={() => {
+                setShowEditModal(false);
+                setEditingProject(null);
+              }}
+              className="h-9 border-secondary-200"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              className="h-9 font-extrabold shadow-md shadow-primary-500/10"
+            >
+              Update Project Record
             </Button>
           </div>
         </form>

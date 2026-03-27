@@ -45,21 +45,8 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({ childr
         setPermissions({});
       }
     } catch (error: any) {
-      console.error('❌ Error fetching permissions:', error);
-      
-      // Handle network errors specifically
-      if (error.code === 'ERR_NETWORK' || error.message?.includes('ERR_CONNECTION_REFUSED')) {
-        alert('❌ Network connection failed. Please check if the backend server is running and accessible.');
-      } else if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
-        alert('❌ Connection refused. The server may be down or not accepting connections.');
-      } else if (error.response?.status === 500) {
-        alert('❌ Server error occurred. Please try again later.');
-      } else {
-        // Generic error handling
-        const errorMessage = error.response?.data?.error || error.message || 'Failed to fetch permissions';
-        alert(`❌ ${errorMessage}`);
-      }
-      
+      console.warn('⚠️ Could not fetch permissions (Server may be down):', error.message);
+      // Set empty permissions on error - allows app to continue with restricted access
       setPermissions({});
     } finally {
       setLoading(false);

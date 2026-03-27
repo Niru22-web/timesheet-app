@@ -13,7 +13,8 @@ import {
   downloadTimelogTemplate,
   uploadTimelogFile,
   getTimesheetReports,
-  getMissingTimesheets
+  getMissingTimesheets,
+  submitTimelog
 } from './timelog.controller';
 
 const router = Router();
@@ -23,6 +24,7 @@ router.get('/', authenticate, getTimelogs);
 router.post('/', authenticate, createTimelog);
 router.put('/:id', authenticate, updateTimelog);
 router.delete('/:id', authenticate, deleteTimelog);
+router.patch('/:id/submit', authenticate, submitTimelog);
 
 // Hierarchical data access
 router.get('/accessible/clients', authenticate, getAccessibleClients);

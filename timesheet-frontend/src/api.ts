@@ -4,9 +4,17 @@ import { getErrorMessage, ERROR_MESSAGES } from "./utils/messageUtils";
 import { dispatchError, handleSuccess } from "./utils/globalErrorHandler";
 
 const API: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api',
-  withCredentials: true
+  baseURL: import.meta.env.VITE_API_URL || '',
+  withCredentials: true,
+  timeout: 15000, // 15 seconds timeout
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  }
 });
+
+// Debug: Log API Base URL on startup
+console.log(' API Base URL configured as:', API.defaults.baseURL);
 
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
@@ -65,7 +73,13 @@ API.interceptors.response.use(
       // Check if this is a login failure - don't logout immediately
       const isLoginRequest = error.config?.url?.includes('/auth/login');
       
-      if (!isLoginRequest) {
+      // Don't auto-logout on 401 errors for approval/employee management operations
+      // These might be authorization errors (user doesn't have permission) not authentication errors
+      const isApprovalOperation = error.config?.url?.includes('/employees/approve-employee') ||
+                                 error.config?.url?.includes('/employees/reject-employee') ||
+                                 error.config?.url?.includes('/notifications/approve-employee');
+      
+      if (!isLoginRequest && !isApprovalOperation) {
         console.log('401 Unauthorized - Clearing auth and redirecting to login');
         
         // Clear authentication data
@@ -80,7 +94,7 @@ API.interceptors.response.use(
           window.location.href = '/login';
         }
       } else {
-        console.log('401 on login request - not redirecting');
+        console.log('401 on login or approval request - not redirecting');
       }
     }
     

@@ -44,6 +44,7 @@ import EmailConfiguration from './pages/EmailConfiguration';
 import EmailTemplates from './pages/EmailTemplates';
 import UserAccessControl from './pages/UserAccessControl';
 import OAuthCallback from './pages/OAuthCallback';
+import Analytics from './pages/Analytics';
 
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -55,10 +56,10 @@ const App: React.FC = () => {
     return (
         <ThemeProvider>
             <ToastProvider>
-                <NotificationProvider>
-                    <LoadingProvider>
-                        <AuthProvider>
-                            <PermissionsProvider>
+        <AuthProvider>
+            <NotificationProvider>
+                <LoadingProvider>
+                    <PermissionsProvider>
                                 <Router>
                                 <Routes>
                                     {/* Default Route - Redirect to login */}
@@ -73,25 +74,33 @@ const App: React.FC = () => {
                                     <Route path="/complete-registration" element={<EmployeeRegistration />} />
                                     <Route path="/oauth-callback" element={<OAuthCallback />} />
 
-                                    {/* Dashboard Routes - Use DashboardLayout (handled internally) */}
+                                    {/* Dashboard Routes - Use FrozenLayout for consistency */}
                                     <Route path="/admin" element={
                                         <PrivateRoute>
-                                            <ErrorBoundary><AdminDashboard /></ErrorBoundary>
+                                            <FrozenLayout>
+                                                <ErrorBoundary><AdminDashboard /></ErrorBoundary>
+                                            </FrozenLayout>
                                         </PrivateRoute>
                                     } />
                                     <Route path="/manager" element={
                                         <PrivateRoute>
-                                            <ErrorBoundary><ManagerDashboard /></ErrorBoundary>
+                                            <FrozenLayout>
+                                                <ErrorBoundary><ManagerDashboard /></ErrorBoundary>
+                                            </FrozenLayout>
                                         </PrivateRoute>
                                     } />
                                     <Route path="/partner" element={
                                         <PrivateRoute>
-                                            <ErrorBoundary><PartnerDashboard /></ErrorBoundary>
+                                            <FrozenLayout>
+                                                <ErrorBoundary><PartnerDashboard /></ErrorBoundary>
+                                            </FrozenLayout>
                                         </PrivateRoute>
                                     } />
                                     <Route path="/employee" element={
                                         <PrivateRoute>
-                                            <ErrorBoundary><EmployeeDashboard /></ErrorBoundary>
+                                            <FrozenLayout>
+                                                <ErrorBoundary><EmployeeDashboard /></ErrorBoundary>
+                                            </FrozenLayout>
                                         </PrivateRoute>
                                     } />
 
@@ -230,15 +239,24 @@ const App: React.FC = () => {
                                             </FrozenLayout>
                                         </PrivateRoute>
                                     } />
+                                    <Route path="/analytics" element={
+                                        <PrivateRoute>
+                                                <FrozenLayout>
+                                                    <ErrorBoundary>
+                                                        <Analytics />
+                                                    </ErrorBoundary>
+                                                </FrozenLayout>
+                                        </PrivateRoute>
+                                    } />
 
                                     {/* Catch-all route */}
                                     <Route path="*" element={<Navigate to="/login" replace />} />
                                 </Routes>
                             </Router>
                         </PermissionsProvider>
-                    </AuthProvider>
-                </LoadingProvider>
-            </NotificationProvider>
+                    </LoadingProvider>
+                </NotificationProvider>
+            </AuthProvider>
         </ToastProvider>
     </ThemeProvider>
     );

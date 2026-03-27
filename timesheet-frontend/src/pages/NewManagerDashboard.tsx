@@ -1,14 +1,8 @@
 import React from 'react';
-import CommonDashboard from '../components/CommonDashboard';
+import ModernRoleDashboard from '../components/dashboard/ModernRoleDashboard';
 
 const ManagerDashboard: React.FC = () => {
-  return (
-    <CommonDashboard 
-      userRole="manager"
-      title="Manager Dashboard"
-      subtitle="Team management and project oversight"
-    />
-  );
+  return <ModernRoleDashboard userRole="manager" />;
 };
 
 export default ManagerDashboard;

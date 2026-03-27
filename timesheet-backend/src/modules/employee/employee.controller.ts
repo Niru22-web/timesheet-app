@@ -425,21 +425,25 @@ export const getEmployees = async (req: any, res: Response) => {
 
     // Apply role-based filtering (MANDATORY)
     const userRole = req.user?.role?.toLowerCase();
+    const showAll = req.query.all === 'true';
     
-    if (userRole === 'admin' || userRole === 'owner') {
-      // Admin/Owner can see all employees
-      console.log('👑 Admin/Owner role - showing all employees');
+    console.log(`🚥 Filtering mode: ${showAll ? 'SHOW ALL' : 'ROLE-BASED'} | Role: ${userRole}`);
+
+    if (showAll || userRole === 'admin' || userRole === 'owner') {
+      // Admin/Owner or explicit 'all' request (for project assignment) can see all employees
+      console.log('👑 Full list authorized - bypassing role constraints');
+      whereClause = {};
     } else if (userRole === 'partner') {
       // Partner can see employees where they are the reporting partner
-      console.log('🤝 Partner role - filtering by reportingPartner');
+      console.log(`🤝 Partner view - filtering by partner ID: ${req.user?.id}`);
       whereClause.reportingPartner = req.user?.id;
     } else if (userRole === 'manager') {
       // Manager can see employees where they are the reporting manager
-      console.log('👨‍💼 Manager role - filtering by reportingManager');
+      console.log(`👨‍💼 Manager view - filtering by manager ID: ${req.user?.id}`);
       whereClause.reportingManager = req.user?.id;
     } else {
-      // Employee role can only see themselves
-      console.log('👤 Employee role - showing only self');
+      // Default: Employee role can only see themselves
+      console.log(`👤 Employee view - restricted to ID: ${req.user?.id}`);
       whereClause.id = req.user?.id;
     }
 

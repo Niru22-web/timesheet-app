@@ -30,6 +30,7 @@ const Layout: React.FC = () => {
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // Detect mobile screen size
   React.useEffect(() => {
@@ -43,6 +44,17 @@ const Layout: React.FC = () => {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Handle scroll effect for header shadow
+  React.useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      setIsScrolled(scrollTop > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Debug logging
@@ -108,7 +120,7 @@ const Layout: React.FC = () => {
   })).filter(group => group.items.length > 0);
 
   return (
-    <div className="app-layout">
+    <div className="h-screen flex overflow-hidden">
       {/* Mobile Header */}
       <MobileHeader 
         isSidebarOpen={isSidebarOpen} 
@@ -123,10 +135,10 @@ const Layout: React.FC = () => {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Fixed Position */}
       <aside className={`
-        sidebar bg-slate-50 border-r border-slate-200 transform transition-all duration-300 ease-in-out z-50
-        md:relative md:translate-x-0
+        sidebar bg-white border-r border-slate-200 transform transition-transform duration-300 ease-in-out z-50
+        fixed inset-y-0 left-0 md:relative md:translate-x-0 w-64
         ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
       `}>
         <div className="h-full flex flex-col">
@@ -222,33 +234,75 @@ const Layout: React.FC = () => {
       </aside>
 
       {/* Main Content Area */}
-      <main className="main-content flex flex-col">
-        {/* Header Component */}
-        <Header />
-
-        {/* Dynamic Outlet */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-secondary-50 shadow-inner custom-scrollbar relative">
-          {/* Soft decorative background element */}
-          <div className="absolute top-0 right-0 w-1/3 h-1/2 bg-primary-600/[0.03] rounded-full blur-[120px] -mr-32 -mt-32 pointer-events-none" />
-          <div className="relative z-10 max-w-7xl mx-auto h-full">
-            <Outlet />
+      <div className="flex-1 flex flex-col ml-0 md:ml-64">
+        {/* Header - Fixed Position */}
+        <header className={`hidden md:flex items-center justify-between px-6 bg-white border-b border-slate-200 transition-shadow z-50 fixed top-0 left-64 right-0 h-16 ${isScrolled ? 'shadow-md' : 'shadow-sm'}`}>
+          {/* Left Section - Page Title */}
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-slate-900">
+              {location.pathname === '/' || location.pathname.includes('/admin') || location.pathname.includes('/manager') || location.pathname.includes('/partner') || location.pathname.includes('/employee') 
+                ? 'Dashboard' 
+                : location.pathname.includes('/timesheet') 
+                  ? 'Timesheet' 
+                  : location.pathname.includes('/employees') 
+                    ? 'Employees' 
+                    : location.pathname.includes('/projects') 
+                      ? 'Projects' 
+                      : location.pathname.includes('/jobs') 
+                        ? 'Jobs' 
+                        : location.pathname.includes('/clients') 
+                          ? 'Clients' 
+                          : location.pathname.includes('/reimbursement') 
+                            ? 'Reimbursement' 
+                            : location.pathname.includes('/leave-management') 
+                              ? 'Leave Management' 
+                              : location.pathname.includes('/reports') 
+                                ? 'Reports' 
+                                : location.pathname.includes('/profile') 
+                                  ? 'Profile' 
+                                  : location.pathname.includes('/admin-panel') 
+                                    ? 'Admin Panel' 
+                                    : location.pathname.includes('/email-configuration') 
+                                      ? 'Email Configuration' 
+                                      : location.pathname.includes('/email-templates') 
+                                        ? 'Email Templates' 
+                                        : 'Dashboard'
+              }
+            </h1>
           </div>
 
-          <footer className="mt-12 md:mt-16 py-6 md:py-8 border-t border-secondary-200/50 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-1000">
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-6 md:w-8 md:h-8 bg-secondary-200 rounded-lg flex items-center justify-center text-secondary-500 font-bold text-xs md:text-sm">A</div>
-              <p className="text-[8px] md:text-[10px] font-bold text-secondary-500 uppercase tracking-[0.2em] italic">{APP_CONFIG.COMPANY_NAME} <span className="mx-1 md:mx-2 opacity-30">/</span> {APP_CONFIG.APP_NAME}</p>
+          {/* Right Section - Notifications Only */}
+          <div className="flex items-center gap-6">
+            {/* Notifications */}
+            <NotificationBell />
+          </div>
+        </header>
+
+        {/* Page Content - Scrollable Only */}
+        <main className="mt-16 md:mt-16 overflow-y-auto h-[calc(100vh-64px)] bg-slate-50">
+          <div className="p-6 md:p-8">
+            {/* Soft decorative background element */}
+            <div className="absolute top-0 right-0 w-1/3 h-1/2 bg-primary-600/[0.03] rounded-full blur-[120px] -mr-32 -mt-32 pointer-events-none" />
+            <div className="relative z-10 max-w-7xl mx-auto">
+              <Outlet />
             </div>
-            <div className="flex flex-col md:flex-row items-center gap-2 md:gap-8">
-              <span className="text-[8px] md:text-[10px] font-bold text-secondary-400 uppercase tracking-widest">© 2026 EnterpriseCore Solutions</span>
-              <div className="flex items-center gap-2">
-                <ShieldCheckIcon className="w-3 h-3 md:w-4 md:h-4 text-secondary-300" />
-                <span className="text-[8px] md:text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Verified Session</span>
+
+            <footer className="mt-12 md:mt-16 py-6 md:py-8 border-t border-slate-200/50 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 opacity-40 grayscale group-hover:grayscale-0 transition-all duration-1000">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 md:w-8 md:h-8 bg-slate-200 rounded-lg flex items-center justify-center text-slate-500 font-bold text-xs md:text-sm">A</div>
+                <p className="text-[8px] md:text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] italic">{APP_CONFIG.COMPANY_NAME} <span className="mx-1 md:mx-2 opacity-30">/</span> {APP_CONFIG.APP_NAME}</p>
               </div>
-            </div>
-          </footer>
-        </div>
-      </main>
+              <div className="flex flex-col md:flex-row items-center gap-2 md:gap-8">
+                <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">© 2026 EnterpriseCore Solutions</span>
+                <div className="flex items-center gap-2">
+                  <ShieldCheckIcon className="w-3 h-3 md:w-4 md:h-4 text-slate-300" />
+                  <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Verified Session</span>
+                </div>
+              </div>
+            </footer>
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

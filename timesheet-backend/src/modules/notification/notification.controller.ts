@@ -4,7 +4,18 @@ import { prisma } from '../../config/prisma';
 // Get notifications for a user
 export const getNotifications = async (req: any, res: Response) => {
   try {
+    // If no user in request, return empty notifications
+    if (!req.user || !req.user.id) {
+      console.log('❌ No user found in notification request');
+      return res.json({
+        success: true,
+        data: [],
+        message: 'Notifications retrieved successfully'
+      });
+    }
+    
     const userId = req.user.id;
+    console.log('🔍 Fetching notifications for userId:', userId);
     
     const notifications = await prisma.notification.findMany({
       where: { userId },
@@ -175,6 +186,73 @@ export const getUnreadCount = async (req: any, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get unread count',
+      error: error.message
+    });
+  }
+};
+
+// Approve employee from notification
+export const approveEmployeeFromNotification = async (req: any, res: Response) => {
+  try {
+    const { employeeId } = req.body;
+    const userId = req.user.id;
+
+    console.log('🔔 Approving employee from notification:', { employeeId, userId });
+
+    // Check if user has admin/manager role
+    const currentUser = await prisma.employee.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (!currentUser || !['admin', 'manager', 'partner', 'owner'].includes(currentUser.role.toLowerCase())) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to approve employees'
+      });
+    }
+
+    // Approve the employee
+    const employee = await prisma.employee.update({
+      where: { id: employeeId },
+      data: { status: 'active' },
+      include: {
+        profile: true
+      }
+    });
+
+    // Create notification for the approved employee
+    await prisma.notification.create({
+      data: {
+        userId: employeeId,
+        message: 'Your account has been approved! You can now login to the system.',
+        type: 'approval',
+        relatedId: employeeId,
+        actionUrl: '/login'
+      }
+    });
+
+    // Mark the original notification as read
+    await prisma.notification.updateMany({
+      where: {
+        userId,
+        type: 'employee_approval',
+        relatedId: employeeId,
+        isRead: false
+      },
+      data: { isRead: true }
+    });
+
+    res.json({
+      success: true,
+      message: 'Employee approved successfully',
+      data: employee
+    });
+  } catch (error: any) {
+    console.error('Error approving employee from notification:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to approve employee',
       error: error.message
     });
   }

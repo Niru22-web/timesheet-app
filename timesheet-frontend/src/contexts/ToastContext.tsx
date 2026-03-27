@@ -8,6 +8,7 @@ interface ToastContextType {
   error: (message: string, action?: Toast['action']) => void;
   warning: (message: string, action?: Toast['action']) => void;
   info: (message: string, action?: Toast['action']) => void;
+  update: (id: string, toast: Partial<Toast>) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -55,6 +56,16 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     showToast({ message, type: 'info', action });
   };
 
+  const update = (id: string, toast: Partial<Toast>) => {
+    setToasts((prev) => 
+      prev.map((t) => 
+        t.id === id 
+          ? { ...t, ...toast }
+          : t
+      )
+    );
+  };
+
   // Register global toast instance for error handlers
   useEffect(() => {
     const toastInstance = { success, error, warning, info };
@@ -67,6 +78,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     error,
     warning,
     info,
+    update,
   };
 
   return (

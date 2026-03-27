@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma';
+import { notifyReportingManager, triggerNotification } from '../../services/notification.service';
 
 // Get leave records based on user role
 export const getLeaves = async (req: any, res: any) => {
@@ -104,6 +105,15 @@ export const createLeave = async (req: any, res: any) => {
       }
     });
 
+    const employeeName = `${newLeave.employee.firstName} ${newLeave.employee.lastName || ''}`.trim();
+    await notifyReportingManager(
+      user.id,
+      'Leave Application 🏖️',
+      `${employeeName} applied for leave from ${new Date(fromDate).toLocaleDateString()} to ${new Date(toDate).toLocaleDateString()}`,
+      'leave',
+      `/approvals/leaves`
+    );
+
     res.status(201).json({
       success: true,
       data: newLeave,
@@ -149,10 +159,17 @@ export const updateLeaveStatus = async (req: any, res: any) => {
       }
     });
 
-    // If leave is approved, update leave balance
     if (status === 'approved') {
       await updateLeaveBalance(updatedLeave.employeeId, updatedLeave.totalDays);
     }
+
+    await triggerNotification({
+      userId: updatedLeave.employeeId,
+      title: `Leave ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+      message: `Your leave application for ${updatedLeave.totalDays} days has been ${status}.`,
+      type: 'leave',
+      actionUrl: '/leave-management'
+    });
 
     res.json({
       success: true,

@@ -317,65 +317,6 @@ const UserAccessControl: React.FC = () => {
     }
   };
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await API.get('/admin/users');
-      if (response.data.success) {
-        setUsers(response.data.users);
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      setErrorMessage('Failed to fetch users');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUserPermissions = async (userId: string) => {
-    try {
-      setLoading(true);
-      setErrorMessage('');
-      const response = await API.get(`/admin/user-permissions/${userId}`);
-      if (response.data.success) {
-        setPermissions(response.data.permissions);
-      }
-    } catch (error) {
-      console.error('Error fetching permissions:', error);
-      setErrorMessage('Failed to fetch user permissions');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchRolePermissions = async (role: string) => {
-    try {
-      setLoading(true);
-      setErrorMessage('');
-      const response = await API.get(`/admin/role-permissions/${role}`);
-      if (response.data.success) {
-        setPermissions(response.data.permissions);
-      }
-    } catch (error) {
-      console.error('Error fetching role permissions:', error);
-      setErrorMessage('Failed to fetch role permissions');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    if (accessType === 'user' && selectedUserId) {
-      fetchUserPermissions(selectedUserId);
-    } else if (accessType === 'role' && selectedRole) {
-      fetchRolePermissions(selectedRole);
-    }
-  }, [selectedUserId, selectedRole, accessType]);
-
   const selectedUser = users.find(u => u.id === selectedUserId);
   const permissionSummary = getPermissionSummary(permissions);
 
@@ -533,33 +474,38 @@ const UserAccessControl: React.FC = () => {
                           <span className="text-gray-500">Status:</span>
                           <span className={`ml-1 font-medium ${getStatusColor(user.status)}`}>
                             {user.status}
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <span className="font-medium">Total Modules:</span> {permissionSummary.totalModules}
-              </div>
-              <div>
-                <span className="font-medium">Accessible:</span> {permissionSummary.grantedModules}
-              </div>
-              <div>
-                <span className="font-medium">Access Level:</span> 
-                <span className={`ml-1 px-2 py-1 rounded-full text-xs ${
-                  permissionSummary.grantedModules === 0 
-                    ? 'bg-red-100 text-red-800'
-                    : permissionSummary.grantedModules === permissionSummary.totalModules 
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {permissionSummary.grantedModules === 0 
-                    ? 'No Access'
-                    : permissionSummary.grantedModules === permissionSummary.totalModules 
-                    ? 'Full Access'
-                    : 'Partial Access'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium">Total Modules:</span> {permissionSummary.totalModules}
+                        </div>
+                        <div>
+                          <span className="font-medium">Accessible:</span> {permissionSummary.grantedModules}
+                        </div>
+                        <div>
+                          <span className="font-medium">Access Level:</span> 
+                          <span className={`ml-1 px-2 py-1 rounded-full text-xs ${
+                            permissionSummary.grantedModules === 0 
+                              ? 'bg-red-100 text-red-800'
+                              : permissionSummary.grantedModules === permissionSummary.totalModules 
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {permissionSummary.grantedModules === 0 
+                              ? 'No Access'
+                              : permissionSummary.grantedModules === permissionSummary.totalModules 
+                              ? 'Full Access'
+                              : 'Partial Access'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              )}
 
       {/* Permissions Table */}
       {((!showBulkMode && accessType === 'user' && selectedUserId) || 

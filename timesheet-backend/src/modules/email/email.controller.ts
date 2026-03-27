@@ -783,7 +783,7 @@ export const checkEmailHealth = async (req: Request, res: Response) => {
       health.connections.outlook = connections.filter(c => c.provider === 'outlook').length;
       health.connections.gmail = connections.filter(c => c.provider === 'gmail').length;
       console.log('📊 Active connections:', health.connections);
-    } catch (dbError) {
+    } catch (dbError: any) {
       console.warn('⚠️ Could not check connections:', dbError.message);
     }
 

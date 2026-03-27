@@ -32,6 +32,7 @@ import emailConnectorRoutes from "./modules/email/email-connector.routes";
 import emailOAuthRoutes from "./routes/emailOAuthRoutes";
 import userPermissionsRoutes from "./modules/userPermissions/userPermissions.routes";
 import notificationRoutes from "./modules/notification/notification.routes";
+import dashboardRoutes from "./modules/dashboard/dashboard.routes";
 import { validateRegistrationToken } from "./modules/employee/registrationToken.controller";
 import { prisma } from "./config/prisma";
 
@@ -41,7 +42,7 @@ app.use(cors({
   origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://13.232.211.142:3000", "http://13.232.211.142:5173", "http://13.232.211.142:9000"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 
 // Handle preflight requests
@@ -49,6 +50,12 @@ app.options("*", cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Request logging middleware for debugging
+app.use((req, res, next) => {
+  console.log(`📡 ${new Date().toISOString().split('T')[1].split('.')[0]} | ${req.method} ${req.url}`);
+  next();
+});
 
 // Serve uploaded files
 app.use('/uploads', express.static('uploads'));
@@ -59,8 +66,13 @@ app.get("/api/test", (req, res) => {
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
+  res.json({ status: "OK" });
+});
+
+// Detailed health check for debugging
+app.get("/api/health-check", (req, res) => {
   res.json({ 
-    status: "Server is running",
+    status: "OK",
     timestamp: new Date().toISOString(),
     port: process.env.PORT || 5000,
     environment: process.env.NODE_ENV || 'development'
@@ -185,8 +197,9 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/tasks", jobRoutes);
 
-// Timelog routes
+// Timelog and Timesheet routes
 app.use("/api/timelogs", timelogRoutes);
+app.use("/api/timesheets", timelogRoutes);
 app.use("/api/timelogs", timelogWeeklyRoutes);
 
 // Leave routes
@@ -197,6 +210,9 @@ app.use("/api/admin", userPermissionsRoutes);
 
 // Notification routes
 app.use("/api/notifications", notificationRoutes);
+
+// Dashboard routes
+app.use("/api/dashboard", dashboardRoutes);
 
 // Registration token routes
 app.get("/api/registration/validate", validateRegistrationToken);
@@ -364,8 +380,8 @@ app.get("/api/reports/employee-summary", authenticate, async (req, res) => {
     ]);
 
     const totalHours = timelogs.reduce((sum, log) => sum + log.hours, 0);
-    const approvedHours = timelogs.filter(log => log.status === 'approved').reduce((sum, log) => sum + log.hours, 0);
-    const pendingHours = timelogs.filter(log => log.status === 'pending').reduce((sum, log) => sum + log.hours, 0);
+    const approvedHours = timelogs.filter((log: any) => log.submissionStatus === 'approved').reduce((sum: number, log: any) => sum + log.hours, 0);
+    const pendingHours = timelogs.filter((log: any) => log.submissionStatus === 'pending').reduce((sum: number, log: any) => sum + log.hours, 0);
     const approvedReimbursements = reimbursements.filter(r => r.status === 'approved').reduce((sum, r) => sum + r.amount, 0);
 
     const reportData = {
@@ -405,35 +421,36 @@ if (!process.env.JWT_SECRET) {
   console.warn('⚠️  JWT_SECRET is not set. Using default secret for development only.');
 }
 
+import http from 'http';
+import { initSocket } from './services/socket.service';
+import { startCronJobs } from './services/cron.service';
+
 function startServer(port: number) {
-  const server = app.listen(port, '0.0.0.0', () => {
-    console.log(`🚀 Server running successfully on port ${port}`);
-    console.log(`📡 API available at: http://0.0.0.0:${port}/api`);
-    console.log(`🌐 External access: http://13.232.211.142:${port}/api`);
-    console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
-    
-    // Log all environment variables (without sensitive data)
-    console.log('🔧 Environment Configuration:');
-    console.log(`   PORT: ${port}`);
-    console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`   JWT_SECRET: ${process.env.JWT_SECRET ? 'SET' : 'NOT SET'}`);
-    console.log(`   DATABASE_URL: ${process.env.DATABASE_URL ? 'SET' : 'NOT SET'}`);
-    
-    // Log the actual port for frontend to use
-    if (port !== DEFAULT_PORT) {
-      console.log(`⚠️  Default port ${DEFAULT_PORT} was busy, using port ${port}`);
-      console.log(`💡 Update your frontend API URL to: http://13.232.211.142:${port}/api`);
-    }
+  const httpServer = http.createServer(app);
+  
+  // Attach Socket.io
+  initSocket(httpServer);
+
+  const server = httpServer.listen(port, '0.0.0.0', () => {
+    console.log('\n----------------------------------------');
+    console.log(`🚀 BACKEND SERVER RUNNING ON PORT ${port}`);
+    console.log(`📡 Base URL: http://localhost:${port}/api`);
+    console.log(`💚 Health Check: http://localhost:${port}/api/health`);
+    console.log(`⚡ WebSocket URL: ws://localhost:${port}`);
+    console.log(`🔧 Mode: ${process.env.NODE_ENV || 'development'}`);
+    console.log('----------------------------------------\n');
+
+    // Start background processes
+    startCronJobs();
   });
 
   server.on("error", (err: any) => {
     if (err.code === "EADDRINUSE") {
-      console.log(`❌ Port ${port} is already in use`);
-      console.log(`🔄 Trying next available port: ${port + 1}...`);
+      console.log(`❌ WARNING: Port ${port} is already in use by another process.`);
+      console.log(`🔄 AUTOMATIC FAILOVER: Trying port ${port + 1} instead...`);
       startServer(port + 1);
     } else {
-      console.error("❌ Server error:", err);
+      console.error("❌ CRITICAL SERVER ERROR:", err);
       process.exit(1);
     }
   });

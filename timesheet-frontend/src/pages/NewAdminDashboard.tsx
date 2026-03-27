@@ -1,15 +1,8 @@
 import React from 'react';
-import CommonDashboard from '../components/CommonDashboard';
+import ModernRoleDashboard from '../components/dashboard/ModernRoleDashboard';
 
 const AdminDashboard: React.FC = () => {
-  console.log("NewAdminDashboard component loaded!");
-  return (
-    <CommonDashboard 
-      userRole="admin"
-      title="Admin Dashboard"
-      subtitle="System administration and overview"
-    />
-  );
+  return <ModernRoleDashboard userRole="admin" />;
 };
 
 export default AdminDashboard;

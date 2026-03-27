@@ -78,15 +78,34 @@ interface Employee {
   profile?: {
     employeePhotoUrl?: string;
     dob?: string;
+    doj?: string;
     education?: string;
     maritalStatus?: string;
     gender?: string;
     permanentAddress?: string;
     currentAddress?: string;
+    currentPinCode?: string;
     pan?: string;
     aadhaar?: string;
     personalEmail?: string;
     personalMobile?: string;
+    guardianNumber?: string;
+    guardianAddress?: string;
+    guardianName?: string;
+    accountHolderName?: string;
+    bankAccountNumber?: string;
+    bankName?: string;
+    branchName?: string;
+    ifscCode?: string;
+    emergencyContactName?: string;
+    emergencyContactPhone?: string;
+    emergencyContactRelation?: string;
+    salary?: number;
+    seniorityLevel?: string;
+    experience?: string;
+    employmentType?: string;
+    skills?: string[];
+    joining_date?: string;
   };
   attachments?: {
     panFile?: string;
@@ -472,46 +491,63 @@ const Employees: React.FC = () => {
   const pendingApprovalsApiCallLogged = useRef(false);
   const fetchPendingApprovals = async () => {
     try {
-      if (!pendingApprovalsApiCallLogged.current) {
-        console.log('Pending approvals API call disabled due to 404 error');
-        pendingApprovalsApiCallLogged.current = true;
+      const response = await API.get('/employees/pending-approvals');
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        setPendingApprovals(response.data.data);
+      } else {
+        setPendingApprovals([]);
       }
-      // const response = await API.get('/employees/pending-approvals');
-      // if (response.data?.data && Array.isArray(response.data.data)) {
-      //   setPendingApprovals(response.data.data);
-      // }
-      setPendingApprovals([]); // Set empty array as fallback
     } catch (error) {
-      if (!pendingApprovalsApiCallLogged.current) {
-        console.error('Error fetching pending approvals:', error);
-        pendingApprovalsApiCallLogged.current = true;
-      }
-      setPendingApprovals([]); // fallback
+      console.error('Error fetching pending approvals:', error);
+      setPendingApprovals([]);
     }
   };
 
+  const [approvingEmployee, setApprovingEmployee] = useState<string | null>(null);
+  const [rejectingEmployee, setRejectingEmployee] = useState<string | null>(null);
+
   const handleApproveEmployee = async (employeeId: string) => {
     console.log('Approve employee clicked:', employeeId);
+    setApprovingEmployee(employeeId);
     try {
       await API.post(`/employees/approve-employee/${employeeId}`);
-      fetchPendingApprovals();
+      
+      // Remove from pending approvals instantly
+      setPendingApprovals(prev => prev.filter(emp => emp.id !== employeeId));
+      
+      // Show success toast
+      toast.success('Employee approved successfully');
+      
+      // Refresh employees list
       fetchEmployees();
     } catch (err) {
       console.error('Failed to approve employee:', err);
       toast.error('Failed to approve employee');
+    } finally {
+      setApprovingEmployee(null);
     }
   };
 
   const handleRejectEmployee = async (employeeId: string) => {
     console.log('Reject employee clicked:', employeeId);
     if (window.confirm('Are you sure you want to reject this employee? This action cannot be undone.')) {
+      setRejectingEmployee(employeeId);
       try {
         await API.post(`/employees/reject-employee/${employeeId}`, { reason: 'Rejected by administrator' });
-        fetchPendingApprovals();
+        
+        // Remove from pending approvals instantly
+        setPendingApprovals(prev => prev.filter(emp => emp.id !== employeeId));
+        
+        // Show success toast
+        toast.success('Employee rejected successfully');
+        
+        // Refresh employees list
         fetchEmployees();
       } catch (err) {
         console.error('Failed to reject employee:', err);
         toast.error('Failed to reject employee');
+      } finally {
+        setRejectingEmployee(null);
       }
     }
   };
@@ -1821,16 +1857,32 @@ const Employees: React.FC = () => {
                             size="sm"
                             className="h-9 px-4 text-blue-700 border-blue-200 hover:bg-blue-50"
                             onClick={() => handleApproveEmployee(employee.id)}
+                            disabled={approvingEmployee === employee.id}
                           >
-                            Approve
+                            {approvingEmployee === employee.id ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent mr-2" />
+                                Approving...
+                              </>
+                            ) : (
+                              'Approve'
+                            )}
                           </Button>
                           <Button
                             variant="secondary"
                             size="sm"
                             className="h-9 px-4 text-red-700 border-red-200 hover:bg-red-50"
                             onClick={() => handleRejectEmployee(employee.id)}
+                            disabled={rejectingEmployee === employee.id}
                           >
-                            Reject
+                            {rejectingEmployee === employee.id ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-red-600 border-t-transparent mr-2" />
+                                Rejecting...
+                              </>
+                            ) : (
+                              'Reject'
+                            )}
                           </Button>
                         </div>
                       </div>

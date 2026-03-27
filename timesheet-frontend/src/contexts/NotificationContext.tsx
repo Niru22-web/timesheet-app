@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import { io, Socket } from 'socket.io-client';
 import API from '../api';
 import { useToast } from './ToastContext';
+import { useAuth } from './AuthContext';
 
 export interface Notification {
   id: string;
+  title?: string;
   message: string;
-  type: 'Task' | 'Approval' | 'Alert';
+  type: string;
   isRead: boolean;
   createdAt: string;
   userId?: string;
@@ -16,7 +19,7 @@ export interface Notification {
 interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
-  filter: 'all' | 'Task' | 'Approval' | 'Alert';
+  filter: string;
   isLoading: boolean;
 }
 
@@ -24,9 +27,10 @@ type NotificationAction =
   | { type: 'ADD_NOTIFICATION'; payload: Notification }
   | { type: 'MARK_AS_READ'; payload: string }
   | { type: 'MARK_ALL_AS_READ' }
-  | { type: 'SET_FILTER'; payload: 'all' | 'Task' | 'Approval' | 'Alert' }
+  | { type: 'SET_FILTER'; payload: string }
   | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
-  | { type: 'SET_LOADING'; payload: boolean };
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'REMOVE_NOTIFICATION'; payload: string };
 
 const initialState: NotificationState = {
   notifications: [],
@@ -64,6 +68,18 @@ const notificationReducer = (state: NotificationState, action: NotificationActio
         unreadCount: 0,
       };
     
+    case 'REMOVE_NOTIFICATION':
+      const filteredNotifications = state.notifications.filter(n => n.id !== action.payload);
+      const removedNotification = state.notifications.find(n => n.id === action.payload);
+      const newUnreadCountAfterRemoval = removedNotification && !removedNotification.isRead 
+        ? Math.max(0, state.unreadCount - 1)
+        : state.unreadCount;
+      return {
+        ...state,
+        notifications: filteredNotifications,
+        unreadCount: newUnreadCountAfterRemoval,
+      };
+    
     case 'SET_FILTER':
       return { ...state, filter: action.payload };
     
@@ -88,9 +104,10 @@ interface NotificationContextType {
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
-  setFilter: (filter: 'all' | 'Task' | 'Approval' | 'Alert') => void;
+  setFilter: (filter: string) => void;
   fetchNotifications: () => void;
   playNotificationSound: () => void;
+  removeNotification: (id: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -110,6 +127,7 @@ interface NotificationProviderProps {
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(notificationReducer, initialState);
   const toast = useToast();
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const playNotificationSound = () => {
     try {
@@ -190,8 +208,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     }
   };
 
-  const setFilter = (filter: 'all' | 'Task' | 'Approval' | 'Alert') => {
+  const setFilter = (filter: string) => {
     dispatch({ type: 'SET_FILTER', payload: filter });
+  };
+
+  const removeNotification = async (id: string) => {
+    dispatch({ type: 'REMOVE_NOTIFICATION', payload: id });
+    try {
+      await API.delete(`/notifications/${id}`);
+    } catch (error) {
+      console.error('Failed to remove notification:', error);
+    }
   };
 
   const fetchNotifications = async () => {
@@ -201,8 +228,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       if (response.data.success) {
         dispatch({ type: 'SET_NOTIFICATIONS', payload: response.data.data });
       }
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+    } catch (error: any) {
+      console.warn('⚠️ Could not fetch notifications (Server may be down):', error.message);
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
@@ -210,28 +237,52 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   // Fetch notifications on mount - only if authenticated
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
+    if (isAuthenticated) {
       fetchNotifications();
-    } else {
-      console.log('📋 No token found, skipping notification fetch');
     }
-  }, []);
+  }, [isAuthenticated]);
 
-  // Setup polling for real-time updates (fallback if no socket.io) - only if authenticated
+  // Setup Socket.io for Real-Time Updates
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.log('📋 No token found, skipping notification polling');
-      return;
-    }
-    
-    const interval = setInterval(() => {
-      fetchNotifications();
-    }, 30000); // Poll every 30 seconds
+    if (!isAuthenticated) return;
 
-    return () => clearInterval(interval);
-  }, []);
+    // Connect to Backend Socket Server
+    // Note: Assuming API base URL is structured as http://host:port/api. We just want http://host:port
+    const socketUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000';
+    
+    const socket: Socket = io(socketUrl, {
+      withCredentials: true
+    });
+
+    socket.on('connect', () => {
+      console.log('✅ Connected to Notification Socket');
+      
+      // We retrieve user ID from token or auth context. Since we use `useAuth`, let's get it:
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(userStr);
+          socket.emit('join_user_room', userObj.id);
+        } catch (e) {}
+      }
+    });
+
+    socket.on('new_notification', (notification) => {
+      // Add live notification state
+      dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
+      playNotificationSound();
+      toast.info(notification.title || 'New Notification', {
+        label: 'View',
+        onClick: () => {
+          if (notification.actionUrl) window.location.href = notification.actionUrl;
+        }
+      });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [isAuthenticated]);
 
   const value: NotificationContextType = {
     state,
@@ -241,6 +292,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     setFilter,
     fetchNotifications,
     playNotificationSound,
+    removeNotification,
   };
 
   return (

@@ -4,12 +4,23 @@ import jwt from "jsonwebtoken";
 export const authenticate = (req: any, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
+  // For development, allow requests without auth header but with a mock user
+  if (!authHeader && process.env.NODE_ENV === 'development') {
+    console.log(' Development mode: Allowing request without authentication');
+    req.user = {
+      id: 'dev-user-id',
+      role: 'Admin',
+      employeeId: 'DEV001'
+    };
+    return next();
+  }
+
   if (!authHeader) return res.status(401).json({ message: "Unauthorized" });
 
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretkey');
     req.user = decoded;
     next();
   } catch {

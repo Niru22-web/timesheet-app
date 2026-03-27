@@ -256,6 +256,26 @@ export const getCurrentUserPermissions = async (req: any, res: Response) => {
     console.log('🔍 getCurrentUserPermissions called');
     console.log('User from token:', req.user);
     
+    // If no user in request, return default permissions
+    if (!req.user || !req.user.id) {
+      console.log('❌ No user found in request');
+      return res.json({
+        success: true,
+        permissions: {
+          dashboard: { canView: true, canCreate: false, canEdit: false, canDelete: false },
+          timesheet: { canView: true, canCreate: true, canEdit: true, canDelete: false },
+          projects: { canView: true, canCreate: false, canEdit: false, canDelete: false },
+          reports: { canView: true, canCreate: false, canEdit: false, canDelete: false },
+          employees: { canView: false, canCreate: false, canEdit: false, canDelete: false },
+          admin_panel: { canView: false, canCreate: false, canEdit: false, canDelete: false },
+          email_templates: { canView: false, canCreate: false, canEdit: false, canDelete: false },
+          clients: { canView: false, canCreate: false, canEdit: false, canDelete: false },
+          jobs: { canView: false, canCreate: false, canEdit: false, canDelete: false }
+        },
+        hasCustomAccess: false
+      });
+    }
+    
     const userId = req.user.id;
     console.log('Looking up permissions for userId:', userId);
 

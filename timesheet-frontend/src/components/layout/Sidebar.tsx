@@ -76,6 +76,10 @@ export default function Sidebar() {
         ]
       },
       { 
+        name: "Analytics", 
+        path: "/analytics"
+      },
+      { 
         name: "Reimbursement", 
         path: "/reimbursement",
         subItems: [

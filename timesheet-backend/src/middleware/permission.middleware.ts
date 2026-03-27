@@ -15,12 +15,12 @@ export const checkPermission = (moduleName: string, permission: 'canView' | 'can
       const userPermission = await prisma.userPermission.findUnique({
         where: { userId },
         select: {
-          dashboard: true,
-          timesheet: true,
-          projects: true,
-          reports: true,
-          adminPanel: true,
-          emailTemplates: true
+          dashboardView: true,
+          timesheetView: true,
+          projectsView: true,
+          reportsView: true,
+          adminPanelView: true,
+          emailTemplatesView: true
         }
       });
 
@@ -91,12 +91,12 @@ export const hasModuleAccess = (moduleName: string) => {
       const userPermission = await prisma.userPermission.findUnique({
         where: { userId },
         select: {
-          dashboard: true,
-          timesheet: true,
-          projects: true,
-          reports: true,
-          adminPanel: true,
-          emailTemplates: true
+          dashboardView: true,
+          timesheetView: true,
+          projectsView: true,
+          reportsView: true,
+          adminPanelView: true,
+          emailTemplatesView: true
         }
       });
 

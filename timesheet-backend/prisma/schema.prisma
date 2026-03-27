@@ -394,6 +394,7 @@ model EmployeeDocument {
 
 model Notification {
   id        String   @id @default(uuid())
+  title     String   @default("Notification")
   message   String
   type      String   // Task, Approval, Alert
   isRead    Boolean  @default(false)

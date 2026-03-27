@@ -22,7 +22,7 @@ const upload = multer({
   }
 });
 
-export const getAllClients = async (req: Request, res: Response) => {
+export const getAllClients = async (req: any, res: Response) => {
   try {
     const clients = await clientService.getAllClients(req.user);
     res.json({

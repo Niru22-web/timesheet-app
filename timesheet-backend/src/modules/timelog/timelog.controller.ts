@@ -115,20 +115,43 @@ export const getTimelogs = async (req: Request, res: Response) => {
   }
 };
 
+function parseHours(hours: any): number {
+  if (typeof hours === 'number') return hours;
+  if (typeof hours !== 'string') return 0;
+
+  // Support HH:MM format
+  if (hours.includes(':')) {
+    const [h, m] = hours.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return 0;
+    return h + (m / 60);
+  }
+
+  // Support decimal string format
+  const parsed = parseFloat(hours);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
 export const createTimelog = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { jobId, hours, description, date } = req.body;
+    const { jobId, hours, description, date, workItem, isBillable } = req.body;
 
-    if (!jobId || !hours || !description || !date) {
+    // Convert hours to number if it's a string (HH:MM or decimal)
+    const parsedHours = parseHours(hours);
+
+    if (!jobId || !parsedHours || !description || !date) {
       return res.status(400).json({ 
-        error: 'Missing required fields',
-        required: ['jobId', 'hours', 'description', 'date']
+        error: 'Missing or invalid required fields',
+        required: ['jobId', 'hours', 'description', 'date'],
+        note: 'Hours must be a valid number or HH:MM format'
       });
     }
 
+    // Map isBillable to billableStatus
+    const billableStatus = isBillable === false ? 'non_billable' : 'billable';
+
     const timelog = await timelogService.createTimelog(
-      { jobId, hours, description, date },
+      { jobId, hours: parsedHours, description, date, workItem, billableStatus },
       user.id
     );
 
@@ -150,7 +173,18 @@ export const updateTimelog = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const user = (req as any).user;
-    const timelogData = req.body;
+    const timelogData = { ...req.body };
+
+    // Convert hours to number if it's present
+    if (timelogData.hours !== undefined) {
+      timelogData.hours = parseHours(timelogData.hours);
+    }
+
+    // Map isBillable if present
+    if (timelogData.isBillable !== undefined) {
+      timelogData.billableStatus = timelogData.isBillable === false ? 'non_billable' : 'billable';
+      delete timelogData.isBillable;
+    }
 
     const timelog = await timelogService.updateTimelog(
       id,
@@ -570,3 +604,14 @@ export const getMissingTimesheets = async (req: Request, res: Response) => {
 
 // Middleware for file upload
 export const uploadTimelogFile = upload.single('file');
+
+export const submitTimelog = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = (req as any).user;
+    await timelogService.submitTimelog(id, user.id);
+    res.json({ success: true, message: 'Timelog submitted successfully' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message || 'Failed to submit' });
+  }
+};

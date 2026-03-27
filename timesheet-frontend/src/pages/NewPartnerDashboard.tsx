@@ -1,14 +1,8 @@
 import React from 'react';
-import CommonDashboard from '../components/CommonDashboard';
+import ModernRoleDashboard from '../components/dashboard/ModernRoleDashboard';
 
 const PartnerDashboard: React.FC = () => {
-  return (
-    <CommonDashboard 
-      userRole="partner"
-      title="Partner Dashboard"
-      subtitle="Client relations and business development"
-    />
-  );
+  return <ModernRoleDashboard userRole="partner" />;
 };
 
 export default PartnerDashboard;
