@@ -25,10 +25,8 @@ const getMicrosoftAuthConfig = () => {
   const clientSecret = process.env.MICROSOFT_CLIENT_SECRET || process.env.OUTLOOK_CLIENT_SECRET || '';
   
   // Use a more dynamic approach for redirect_uri
-  // If set in env, use it. Otherwise, construct it from BACKEND_URL or fallback to localhost
-  const backendUrl = process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:5000';
-  const defaultRedirectUri = `${backendUrl}/api/email/oauth/outlook/callback`;
-  const redirectUri = process.env.MICROSOFT_REDIRECT_URI || defaultRedirectUri;
+  // USER INSTRUCTION: Must lead to /email-configuration on the frontend
+  const redirectUri = `${process.env.CLIENT_URL || 'http://localhost:5173'}/email-configuration`;
   
   const tenantId = process.env.MICROSOFT_TENANT_ID || 'common';
   
