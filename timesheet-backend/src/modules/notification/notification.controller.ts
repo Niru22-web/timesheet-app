@@ -136,6 +136,8 @@ export const deleteNotification = async (req: any, res: Response) => {
     const { id } = req.params;
     const userId = req.user.id;
 
+    console.log(`🗑️ DELETE Notification Request: ID=${id}, UserID=${userId}`);
+
     const notification = await prisma.notification.deleteMany({
       where: { 
         id, 
