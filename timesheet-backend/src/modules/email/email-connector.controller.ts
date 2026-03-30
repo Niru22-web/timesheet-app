@@ -52,10 +52,12 @@ class EmailConnectorController {
       const result = await emailService.handleGoogleCallback(code as string, user.employeeId);
 
       // Redirect to frontend with success
-      res.redirect(`${process.env.FRONTEND_URL}/email-connector?success=true&provider=gmail&email=${result.email}`);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      res.redirect(`${frontendUrl}/email-connector?success=true&provider=gmail&email=${result.email}`);
     } catch (error) {
       console.error('Google callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/email-connector?success=false&provider=gmail&error=Failed to connect Gmail`);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      res.redirect(`${frontendUrl}/email-connector?success=false&provider=gmail&error=Failed to connect Gmail`);
     }
   };
 
@@ -75,10 +77,12 @@ class EmailConnectorController {
       const result = await emailService.handleMicrosoftCallback(code as string, user.employeeId);
 
       // Redirect to frontend with success
-      res.redirect(`${process.env.FRONTEND_URL}/email-connector?success=true&provider=outlook&email=${result.email}`);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      res.redirect(`${frontendUrl}/email-connector?success=true&provider=outlook&email=${result.email}`);
     } catch (error) {
       console.error('Microsoft callback error:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/email-connector?success=false&provider=outlook&error=Failed to connect Outlook`);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      res.redirect(`${frontendUrl}/email-connector?success=false&provider=outlook&error=Failed to connect Outlook`);
     }
   };
 

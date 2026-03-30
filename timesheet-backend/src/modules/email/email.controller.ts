@@ -55,10 +55,12 @@ export const handleGoogleCallback = async (req: Request, res: Response) => {
     const result = await emailService.handleGoogleCallback(code as string, user.employeeId);
 
     // Redirect to frontend with success
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/email-configuration?success=true&provider=gmail&email=${result.email}`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/email-configuration?success=true&provider=gmail&email=${result.email}`);
   } catch (error) {
     console.error('Google callback error:', error);
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/email-configuration?success=false&provider=gmail&error=Failed to connect Gmail`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/email-configuration?success=false&provider=gmail&error=Failed to connect Gmail`);
   }
 };
 
