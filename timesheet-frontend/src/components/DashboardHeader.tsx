@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_CONFIG } from '../config/appConfig';
+import { useNotifications } from '../contexts/NotificationContext';
 import {
   BellIcon,
   Bars3Icon,
   MagnifyingGlassIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
 
 // UI Components
@@ -28,13 +30,20 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
+  const { state: { notifications, unreadCount }, markAsRead, markAllAsRead } = useNotifications();
+
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setIsNotificationOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -44,6 +53,26 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const formatTimeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)} mins ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)} hrs ago`;
+    return `${Math.floor(diff / 86400000)} days ago`;
+  };
+
+  const handleNotificationClick = (notif: any) => {
+    if (!notif.isRead) markAsRead(notif.id);
+    setIsNotificationOpen(false);
+    if (notif.actionUrl) {
+      if (notif.actionUrl.startsWith('/')) {
+         navigate(notif.actionUrl);
+      } else {
+         window.location.href = notif.actionUrl;
+      }
+    }
   };
 
   return (
@@ -86,14 +115,75 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <div className="flex items-center gap-4">
             
             {/* Notifications Button */}
-            <button 
-              title="Notifications"
-              aria-label="View notifications"
-              className="relative p-2.5 rounded-xl hover:bg-secondary-50 text-secondary-500 transition-all duration-200 group active:scale-95"
-            >
-              <BellIcon className="w-5 h-5 group-hover:text-secondary-900" />
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary-600 rounded-full border-2 border-white ring-2 ring-primary-100 ring-offset-0 animate-pulse"></span>
-            </button>
+            <div className="relative" ref={notifRef}>
+              <button 
+                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                title="Notifications"
+                aria-label="View notifications"
+                className={`relative p-2.5 rounded-xl transition-all duration-200 group active:scale-95 ${isNotificationOpen ? 'bg-secondary-100/50' : 'hover:bg-secondary-50 text-secondary-500'}`}
+              >
+                <BellIcon className={`w-5 h-5 ${isNotificationOpen ? 'text-secondary-900' : 'group-hover:text-secondary-900'}`} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary-600 rounded-full border border-white ring-2 ring-primary-100 ring-offset-0 animate-pulse"></span>
+                )}
+              </button>
+
+              {/* Notifications Dropdown menu */}
+              {isNotificationOpen && (
+                 <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white border border-secondary-100 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 origin-top-right z-50 overflow-hidden flex flex-col max-h-[85vh]">
+                    <div className="px-4 py-3 border-b border-secondary-50 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-sm z-10">
+                       <h3 className="font-bold text-secondary-900">Notifications</h3>
+                       {unreadCount > 0 && (
+                          <button 
+                             onClick={() => markAllAsRead()}
+                             className="text-xs font-bold text-primary-600 hover:text-primary-700 transition-colors flex items-center gap-1"
+                          >
+                             <CheckIcon className="w-3 h-3" /> Mark all read
+                          </button>
+                       )}
+                    </div>
+
+                    <div className="overflow-y-auto custom-scrollbar flex-1 divide-y divide-secondary-50">
+                       {notifications.length > 0 ? (
+                          notifications.slice(0, 10).map((notif) => (
+                             <div 
+                                key={notif.id}
+                                onClick={() => handleNotificationClick(notif)}
+                                className={`p-4 hover:bg-secondary-50 transition-colors cursor-pointer relative group ${!notif.isRead ? 'bg-primary-50/10' : ''}`}
+                             >
+                                {!notif.isRead && (
+                                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 rounded-r shadow-[0_0_8px_rgba(79,70,229,0.5)]"></div>
+                                )}
+                                <div className="pr-4">
+                                   <p className={`text-sm tracking-tight ${!notif.isRead ? 'font-bold text-secondary-900' : 'font-medium text-secondary-600 group-hover:text-secondary-900 transition-colors'}`}>
+                                      {notif.message}
+                                   </p>
+                                   <p className="text-[10px] font-bold text-secondary-400 mt-1 uppercase tracking-widest leading-none">
+                                      {formatTimeAgo(notif.createdAt)}
+                                   </p>
+                                </div>
+                             </div>
+                          ))
+                       ) : (
+                          <div className="py-12 px-4 text-center">
+                             <div className="w-12 h-12 bg-secondary-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <BellIcon className="w-6 h-6 text-secondary-300" />
+                             </div>
+                             <p className="text-sm font-bold text-secondary-900">All caught up!</p>
+                             <p className="text-xs text-secondary-500 mt-1">Check back later for new notifications.</p>
+                          </div>
+                       )}
+                    </div>
+                    {notifications.length > 0 && (
+                      <div className="p-3 border-t border-secondary-50 bg-secondary-50/30">
+                        <button className="w-full py-2 text-xs font-bold text-secondary-600 hover:text-secondary-900 transition-colors text-center">
+                           View All Notifications
+                        </button>
+                      </div>
+                    )}
+                 </div>
+              )}
+            </div>
 
             {/* User Dropdown */}
             <div className="relative" ref={dropdownRef}>

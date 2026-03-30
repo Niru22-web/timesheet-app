@@ -4,7 +4,8 @@ import {
   createLeave, 
   updateLeaveStatus, 
   deleteLeave, 
-  getLeaveBalance 
+  getLeaveBalance,
+  adjustLeave
 } from './leave.controller';
 
 const router = Router();
@@ -43,5 +44,8 @@ router.delete('/:id', deleteLeave);
 
 // GET /api/leaves/balance - Get leave balance for current user
 router.get('/balance', getLeaveBalance);
+
+// POST /api/leaves/adjust - Adjust leave balance manually
+router.post('/adjust', adjustLeave);
 
 export default router;

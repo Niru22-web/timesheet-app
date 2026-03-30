@@ -17,7 +17,9 @@ import {
   ChartBarIcon,
   BanknotesIcon,
   ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon
+  ArrowTrendingDownIcon,
+  AdjustmentsVerticalIcon,
+  ChartPieIcon
 } from '@heroicons/react/24/outline';
 
 // UI Components
@@ -38,7 +40,7 @@ interface LeaveRecord {
   duration: 'Full Day' | 'Half Day';
   totalDays: number;
   reason: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'manager_approved' | 'partner_approved' | 'auto_approved' | 'approved' | 'rejected';
   appliedDate: string;
   approvedBy?: string;
   approvedDate?: string;
@@ -51,20 +53,22 @@ interface LeaveRecord {
 }
 
 interface LeaveBalance {
-  openingBalance: number;
-  leavesEarned: number;
-  leavesTaken: number;
-  closingBalance: number;
+  accrued: number;
+  used: number;
+  adjustment: number;
+  available: number;
+  kpiScore: number;
 }
 
 const LeaveManagement: React.FC = () => {
   const { user } = useAuth();
   const [leaveRecords, setLeaveRecords] = useState<LeaveRecord[]>([]);
   const [leaveBalance, setLeaveBalance] = useState<LeaveBalance>({
-    openingBalance: 0,
-    leavesEarned: 0,
-    leavesTaken: 0,
-    closingBalance: 0
+    accrued: 0,
+    used: 0,
+    adjustment: 0,
+    available: 0,
+    kpiScore: 100
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,6 +77,7 @@ const LeaveManagement: React.FC = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
 
   // Master data for employee filter
   const [employees, setEmployees] = useState<any[]>([]);
@@ -87,8 +92,14 @@ const LeaveManagement: React.FC = () => {
     leaveHoursPerDay: 'Full Day'
   });
 
-  // Employee filter state
   const [employeeFilter, setEmployeeFilter] = useState('All Employees');
+
+  // Adjust form state
+  const [adjustData, setAdjustData] = useState({
+    employeeId: '',
+    amount: '',
+    reason: ''
+  });
 
   // Calculated total days
   const [totalDays, setTotalDays] = useState(1);
@@ -159,10 +170,11 @@ const LeaveManagement: React.FC = () => {
       });
       // Set default balance if API fails
       setLeaveBalance({
-        openingBalance: 21,
-        leavesEarned: 0,
-        leavesTaken: 0,
-        closingBalance: 21
+        accrued: 0,
+        used: 0,
+        adjustment: 0,
+        available: 0,
+        kpiScore: 100
       });
     }
   };
@@ -218,9 +230,32 @@ const LeaveManagement: React.FC = () => {
       });
       fetchLeaveRecords();
       fetchLeaveBalance();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to apply leave:', err);
-      alert('Failed to submit leave request. Please try again.');
+      alert(err?.response?.data?.error || 'Failed to submit leave request. Please try again.');
+    }
+  };
+
+  const handleAdjustLeave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adjustData.employeeId || !adjustData.amount || !adjustData.reason) {
+       alert('Please fill all fields');
+       return;
+    }
+    try {
+      await API.post('/leaves/adjust', {
+         employeeId: adjustData.employeeId,
+         amount: parseFloat(adjustData.amount),
+         reason: adjustData.reason
+      });
+      setShowAdjustModal(false);
+      setAdjustData({ employeeId: '', amount: '', reason: '' });
+      fetchLeaveRecords();
+      fetchLeaveBalance();
+      alert('Leave balance adjusted successfully');
+    } catch (err: any) {
+      console.error('Failed to adjust leave:', err);
+      alert(err?.response?.data?.error || 'Failed to adjust leave');
     }
   };
 
@@ -281,25 +316,49 @@ const LeaveManagement: React.FC = () => {
     return false;
   };
 
-  const canApproveReject = (record: LeaveRecord) => {
+  const canApprove = (record: LeaveRecord) => {
     if (!user) return false;
     
-    // Admins can approve/reject any request
-    if (user.role === 'Admin' && record.status === 'pending') {
-      return true;
-    }
+    // Admins can approve any pending/manager_approved
+    if (user.role === 'Admin' && ['pending', 'manager_approved'].includes(record.status)) return true;
     
-    // Managers can approve/reject pending requests of their team members
+    // Managers can approve PENDING requests
     if (user.role === 'Manager' && record.status === 'pending') {
       return record.employee.id !== user.id; // Can't approve own requests
     }
     
-    // Partners can approve/reject pending requests in their hierarchy
-    if (user.role === 'Partner' && record.status === 'pending') {
+    // Partners can approve pending/manager_approved
+    if (['Partner', 'Owner'].includes(user.role) && ['pending', 'manager_approved'].includes(record.status)) {
       return record.employee.id !== user.id; // Can't approve own requests
     }
     
     return false;
+  };
+
+  const canReject = (record: LeaveRecord) => {
+    if (!user) return false;
+    if (user.role === 'Admin' && ['pending', 'manager_approved'].includes(record.status)) return true;
+    if (user.role === 'Manager' && record.status === 'pending') return record.employee.id !== user.id;
+    if (['Partner', 'Owner'].includes(user.role) && ['pending', 'manager_approved'].includes(record.status)) return record.employee.id !== user.id;
+    return false;
+  };
+
+  const renderStatusBadge = (status: string) => {
+     switch (status) {
+        case 'pending':
+           return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-full text-[10px] font-black uppercase tracking-wider">🟡 Pending</span>;
+        case 'manager_approved':
+           return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-[10px] font-black uppercase tracking-wider">🔵 Manager Approved</span>;
+        case 'partner_approved':
+        case 'approved':
+           return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-black uppercase tracking-wider">🟢 Fully Approved</span>;
+        case 'rejected':
+           return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-full text-[10px] font-black uppercase tracking-wider">🔴 Rejected</span>;
+        case 'auto_approved':
+           return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full text-[10px] font-black uppercase tracking-wider">⚡ Auto Approved</span>;
+        default:
+           return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 text-slate-700 border border-slate-200 rounded-full text-[10px] font-black uppercase tracking-wider">{status.replace('_', ' ')}</span>;
+     }
   };
 
   const filteredRecords = leaveRecords.filter(record => {
@@ -320,32 +379,39 @@ const LeaveManagement: React.FC = () => {
 
   const balanceStats = [
     {
-      label: 'Opening Balance',
-      value: leaveBalance.openingBalance.toString(),
+      label: 'Accrued (YTD)',
+      value: leaveBalance.accrued.toString(),
       icon: BanknotesIcon,
       color: 'text-blue-600',
       bg: 'bg-blue-50'
     },
     {
-      label: 'Leaves Earned',
-      value: `+${leaveBalance.leavesEarned}`,
-      icon: ArrowTrendingUpIcon,
-      color: 'text-green-600',
-      bg: 'bg-green-50'
+      label: 'Discipline KPI Score',
+      value: `${leaveBalance.kpiScore}%`,
+      icon: ChartPieIcon,
+      color: 'text-rose-600',
+      bg: 'bg-rose-50'
     },
     {
-      label: 'Leaves Taken',
-      value: `-${leaveBalance.leavesTaken}`,
+      label: 'Used Leave',
+      value: leaveBalance.used.toString(),
       icon: ArrowTrendingDownIcon,
       color: 'text-orange-600',
       bg: 'bg-orange-50'
     },
     {
-      label: 'Closing Balance',
-      value: leaveBalance.closingBalance.toString(),
-      icon: ChartBarIcon,
+      label: 'Adjustments',
+      value: leaveBalance.adjustment > 0 ? `+${leaveBalance.adjustment}` : leaveBalance.adjustment.toString(),
+      icon: AdjustmentsVerticalIcon,
       color: 'text-purple-600',
       bg: 'bg-purple-50'
+    },
+    {
+      label: 'Available Balance',
+      value: leaveBalance.available.toString(),
+      icon: CheckCircleIcon,
+      color: 'text-green-600',
+      bg: 'bg-green-50'
     }
   ];
 
@@ -368,10 +434,21 @@ const LeaveManagement: React.FC = () => {
           >
             <ArrowPathIcon className="w-4 h-4" />
           </Button>
+          {user && ['Admin', 'Manager', 'Partner'].includes(user.role) && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-10 px-4 font-bold whitespace-nowrap"
+              onClick={() => setShowAdjustModal(true)}
+              leftIcon={<AdjustmentsVerticalIcon className="w-4 h-4" />}
+            >
+              Adjust Balance
+            </Button>
+          )}
           <Button
             variant="primary"
             size="sm"
-            className="h-10 px-6 font-bold"
+            className="h-10 px-6 font-bold whitespace-nowrap"
             onClick={() => setShowApplyModal(true)}
             leftIcon={<PlusIcon className="w-4 h-4" />}
           >
@@ -443,9 +520,11 @@ const LeaveManagement: React.FC = () => {
           className="w-48"
         >
           <option>All Status</option>
-          <option>Pending</option>
-          <option>Approved</option>
-          <option>Rejected</option>
+          <option value="pending">Pending</option>
+          <option value="manager_approved">Manager Approved</option>
+          <option value="partner_approved">Fully Approved</option>
+          <option value="auto_approved">Auto Approved</option>
+          <option value="rejected">Rejected</option>
         </Select>
 
         <div className="flex gap-2">
@@ -532,7 +611,7 @@ const LeaveManagement: React.FC = () => {
                       <p className="text-sm text-secondary-600 truncate">{record.reason}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <StatusBadge status={record.status as any} />
+                      {renderStatusBadge(record.status)}
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-secondary-600">{new Date(record.appliedDate).toLocaleDateString()}</span>
@@ -567,25 +646,28 @@ const LeaveManagement: React.FC = () => {
                           </>
                         )}
                         
-                        {canApproveReject(record) && (
-                          <>
-                            <button 
-                              onClick={() => handleUpdateLeave(record.id, 'approved')}
-                              className="p-1.5 text-secondary-400 hover:text-success-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
-                              title="Approve Leave Request"
-                              aria-label="Approve Leave"
-                            >
-                              <CheckCircleIcon className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={() => handleUpdateLeave(record.id, 'rejected')}
-                              className="p-1.5 text-secondary-400 hover:text-danger-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
-                              title="Reject Leave Request"
-                              aria-label="Reject Leave"
-                            >
-                              <XCircleIcon className="w-4 h-4" />
-                            </button>
-                          </>
+                        {canApprove(record) && (
+                          <button 
+                            onClick={() => handleUpdateLeave(record.id, 'approved')}
+                            className="p-1.5 text-secondary-400 hover:text-success-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all flex items-center gap-1"
+                            title={['Partner', 'Admin', 'Owner'].includes(user?.role || '') ? "Final Approve" : "Manager Approve"}
+                            aria-label="Approve Leave"
+                          >
+                            <CheckCircleIcon className="w-4 h-4" />
+                            <span className="hidden xl:inline text-[10px] font-bold uppercase tracking-widest">{['Partner', 'Admin', 'Owner'].includes(user?.role || '') ? "Final Approve" : "Approve"}</span>
+                          </button>
+                        )}
+                        
+                        {canReject(record) && (
+                          <button 
+                            onClick={() => handleUpdateLeave(record.id, 'rejected')}
+                            className="p-1.5 text-secondary-400 hover:text-danger-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all flex items-center gap-1"
+                            title="Reject Leave Request"
+                            aria-label="Reject Leave"
+                          >
+                            <XCircleIcon className="w-4 h-4" />
+                            <span className="hidden xl:inline text-[10px] font-bold uppercase tracking-widest">Reject</span>
+                          </button>
                         )}
                       </div>
                     </td>
@@ -711,6 +793,69 @@ const LeaveManagement: React.FC = () => {
               className="px-6 py-2"
             >
               Submit Request
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Adjust Leave Balance Modal (Admin/Manager/Partner) */}
+      <Modal
+        isOpen={showAdjustModal}
+        onClose={() => setShowAdjustModal(false)}
+        title="Adjust Leave Balance"
+        size="sm"
+      >
+        <form onSubmit={handleAdjustLeave} className="space-y-4">
+          <Select
+            label="Employee"
+            value={adjustData.employeeId}
+            onChange={(e) => setAdjustData({ ...adjustData, employeeId: e.target.value })}
+            required
+            className="rounded-lg border-gray-200"
+          >
+            <option value="" disabled>Select Employee</option>
+            {employees.map(emp => (
+              <option key={emp.id} value={emp.id}>
+                {emp.firstName} {emp.lastName} ({emp.officeEmail})
+              </option>
+            ))}
+          </Select>
+
+          <Input
+            label="Adjustment Amount (Points/Days)"
+            type="number"
+            step="0.5"
+            placeholder="e.g. 2 for bonus, -1 for deduction"
+            value={adjustData.amount}
+            onChange={(e) => setAdjustData({ ...adjustData, amount: e.target.value })}
+            required
+            className="rounded-lg border-gray-200"
+          />
+
+          <Input
+            label="Reason for Adjustment"
+            placeholder="e.g. Extra worked weekend, manual correction..."
+            value={adjustData.reason}
+            onChange={(e) => setAdjustData({ ...adjustData, reason: e.target.value })}
+            required
+            className="rounded-lg border-gray-200"
+          />
+
+          <div className="pt-4 flex gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowAdjustModal(false)}
+              className="px-6 py-2"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              className="px-6 py-2"
+            >
+              Adjust Balance
             </Button>
           </div>
         </form>

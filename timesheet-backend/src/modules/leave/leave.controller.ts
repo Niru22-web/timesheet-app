@@ -1,6 +1,60 @@
 import { prisma } from '../../config/prisma';
 import { notifyReportingManager, triggerNotification } from '../../services/notification.service';
 
+// Utility to calculate dynamically accrued balance from transactions
+const calculateLeaveBalance = async (employeeId: string, currentYear: number) => {
+  const transactions = await prisma.leaveTransaction.findMany({
+    where: { employeeId, year: currentYear }
+  });
+
+  let accrued = 0;
+  let used = 0;
+  let adjustment = 0;
+
+  // Auto-accrue missing months up to current month based on 1.33 points/month (16 total/year)
+  const currentMonth = new Date().getMonth() + 1; // 1-12
+  const accruals = transactions.filter((t: any) => t.type === 'accrual');
+  
+  if (accruals.length < currentMonth) {
+    const missingMonths = currentMonth - accruals.length;
+    for (let i = 0; i < missingMonths; i++) {
+      await prisma.leaveTransaction.create({
+        data: {
+          employeeId,
+          type: 'accrual',
+          amount: 16 / 12,
+          reason: 'Monthly Accrual',
+          year: currentYear
+        }
+      });
+    }
+  }
+
+  // Reketch and calculate
+  const finalTransactions = await prisma.leaveTransaction.findMany({
+    where: { employeeId, year: currentYear }
+  });
+
+  finalTransactions.forEach((t: any) => {
+     if (t.type === 'accrual') accrued += t.amount;
+     else if (t.type === 'used') used += t.amount;
+     else if (t.type === 'adjustment') adjustment += t.amount;
+  });
+
+  let kpiScore = 100;
+  // Calculate Leave Discipline KPI: ((16 - used) / 16) * 100
+  // Max allowed per year = 16
+  kpiScore = Math.max(0, ((16 - used) / 16) * 100);
+
+  return {
+    accrued: parseFloat(accrued.toFixed(2)),
+    used: parseFloat(used.toFixed(2)),
+    adjustment: parseFloat(adjustment.toFixed(2)),
+    available: parseFloat((accrued - used + adjustment).toFixed(2)),
+    kpiScore: parseFloat(kpiScore.toFixed(1))
+  };
+};
+
 // Get leave records based on user role
 export const getLeaves = async (req: any, res: any) => {
   try {
@@ -82,6 +136,22 @@ export const createLeave = async (req: any, res: any) => {
     const count = await prisma.leave.count();
     const leaveId = `LV-${String(count + 1).padStart(3, '0')}`;
 
+    // Validate against available balance
+    const currentYear = new Date().getFullYear();
+    const balance = await calculateLeaveBalance(user.id, currentYear);
+    
+    if (parseFloat(totalDays) > balance.available) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Cannot exceed available leave balance. Available: ${balance.available} Days` 
+      });
+    }
+
+    let status = 'pending';
+    if (['Partner', 'Admin', 'Owner'].includes(user.role)) {
+      status = 'auto_approved';
+    }
+
     const newLeave = await prisma.leave.create({
       data: {
         leaveId,
@@ -91,7 +161,8 @@ export const createLeave = async (req: any, res: any) => {
         fromDate: new Date(fromDate),
         toDate: new Date(toDate),
         totalDays: parseFloat(totalDays),
-        employeeId: user.id
+        employeeId: user.id,
+        status
       },
       include: {
         employee: {
@@ -105,14 +176,28 @@ export const createLeave = async (req: any, res: any) => {
       }
     });
 
+    if (status === 'auto_approved') {
+      await prisma.leaveTransaction.create({
+        data: {
+          employeeId: user.id,
+          type: 'used',
+          amount: parseFloat(totalDays),
+          reason: `Auto approved leave: ${leaveId}`,
+          year: currentYear
+        }
+      });
+    }
+
     const employeeName = `${newLeave.employee.firstName} ${newLeave.employee.lastName || ''}`.trim();
-    await notifyReportingManager(
-      user.id,
-      'Leave Application 🏖️',
-      `${employeeName} applied for leave from ${new Date(fromDate).toLocaleDateString()} to ${new Date(toDate).toLocaleDateString()}`,
-      'leave',
-      `/approvals/leaves`
-    );
+    if (status !== 'auto_approved') {
+      await notifyReportingManager(
+        user.id,
+        'Leave Application 🏖️',
+        `${employeeName} applied for leave from ${new Date(fromDate).toLocaleDateString()} to ${new Date(toDate).toLocaleDateString()}`,
+        'leave',
+        `/approvals/leaves`
+      );
+    }
 
     res.status(201).json({
       success: true,
@@ -135,17 +220,36 @@ export const updateLeaveStatus = async (req: any, res: any) => {
     const { id } = req.params;
     const { status } = req.body;
 
+    const existingLeave = await prisma.leave.findUnique({ where: { id } });
+    if (!existingLeave) {
+      return res.status(404).json({ error: 'Leave not found' });
+    }
+
     // Check if user has permission to approve/reject
-    if (!['Admin', 'Manager', 'Partner'].includes(user.role)) {
+    if (!['Admin', 'Manager', 'Partner', 'Owner'].includes(user.role)) {
       return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+
+    let newStatus = status;
+    let isFinalApproval = false;
+
+    if (['Admin', 'Partner', 'Owner'].includes(user.role)) {
+      if (status === 'approved') {
+        newStatus = 'partner_approved';
+        isFinalApproval = true;
+      }
+    } else if (user.role === 'Manager') {
+      if (status === 'approved') {
+        newStatus = 'manager_approved';
+      }
     }
 
     const updatedLeave = await prisma.leave.update({
       where: { id },
       data: {
-        status,
+        status: newStatus,
         approvedBy: user.id,
-        approvedDate: status === 'approved' ? new Date() : null
+        approvedDate: isFinalApproval ? new Date() : null
       },
       include: {
         employee: {
@@ -159,14 +263,23 @@ export const updateLeaveStatus = async (req: any, res: any) => {
       }
     });
 
-    if (status === 'approved') {
-      await updateLeaveBalance(updatedLeave.employeeId, updatedLeave.totalDays);
+    if (isFinalApproval) {
+      // Record user transaction for approved leaves
+      await prisma.leaveTransaction.create({
+        data: {
+          employeeId: updatedLeave.employeeId,
+          type: 'used',
+          amount: updatedLeave.totalDays,
+          reason: `Approved leave: ${updatedLeave.leaveId}`,
+          year: new Date().getFullYear()
+        }
+      });
     }
 
     await triggerNotification({
       userId: updatedLeave.employeeId,
-      title: `Leave ${status.charAt(0).toUpperCase() + status.slice(1)}`,
-      message: `Your leave application for ${updatedLeave.totalDays} days has been ${status}.`,
+      title: `Leave ${newStatus.replace('_', ' ').toUpperCase()}`,
+      message: `Your leave application for ${updatedLeave.totalDays} days has been marked as ${newStatus.replace('_', ' ')}.`,
       type: 'leave',
       actionUrl: '/leave-management'
     });
@@ -234,54 +347,20 @@ export const getLeaveBalance = async (req: any, res: any) => {
     const user = req.user;
     
     console.log('Leave balance request - User ID:', user.id);
-    console.log('Leave balance request - Employee ID:', user.employeeId);
+    
+    // Fallback: If user.id isn't complete, we could fetch employee object
+    let targetEmployeeId = user.id;
 
     const currentYear = new Date().getFullYear();
-    
-    let leaveBalance = await prisma.leaveBalance.findFirst({
-      where: { 
-        employeeId: user.employeeId,
-        year: currentYear 
-      }
-    });
-
-    console.log('Found leave balance:', leaveBalance);
-
-    // If no balance exists, create one with default values
-    if (!leaveBalance) {
-      console.log('Creating new leave balance for employee:', user.employeeId, 'year:', currentYear);
-      leaveBalance = await prisma.leaveBalance.create({
-        data: {
-          employeeId: user.employeeId,
-          year: currentYear,
-          totalLeaves: 21, // Default 21 days per year
-          usedLeaves: 0,
-          remainingLeaves: 21
-        }
-      });
-      console.log('Created new leave balance:', leaveBalance);
-    }
-
-    // Transform to match frontend expectations
-    const transformedBalance = {
-      openingBalance: leaveBalance.totalLeaves,
-      leavesEarned: 0,
-      leavesTaken: leaveBalance.usedLeaves,
-      closingBalance: leaveBalance.remainingLeaves
-    };
+    const balance = await calculateLeaveBalance(targetEmployeeId, currentYear);
 
     res.json({
       success: true,
-      data: transformedBalance,
+      data: balance,
       message: 'Leave balance retrieved successfully'
     });
   } catch (error: any) {
     console.error('Error fetching leave balance:', error);
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      user: req.user ? { id: req.user.id, email: req.user.email } : 'No user'
-    });
     res.status(500).json({ 
       success: false,
       error: 'Failed to fetch leave balance',
@@ -290,78 +369,37 @@ export const getLeaveBalance = async (req: any, res: any) => {
   }
 };
 
-// Update leave balance when leave is approved
-const updateLeaveBalance = async (employeeId: string, daysTaken: number) => {
+export const adjustLeave = async (req: any, res: any) => {
   try {
-    const currentYear = new Date().getFullYear();
-    const balance = await prisma.leaveBalance.findFirst({
-      where: { 
-        employeeId,
-        year: currentYear 
-      }
-    });
+     const user = req.user;
+     const { employeeId, amount, reason } = req.body;
+     
+     if (!['Admin', 'Partner', 'Manager'].includes(user.role)) {
+       return res.status(403).json({ error: 'Insufficient permissions' });
+     }
 
-    if (!balance) {
-      // Create balance record if it doesn't exist
-      await prisma.leaveBalance.create({
+     if (!employeeId || amount === undefined || !reason) {
+       return res.status(400).json({ error: 'Employee ID, amount, and reason are required' });
+     }
+
+     await prisma.leaveTransaction.create({
         data: {
-          employeeId,
-          year: currentYear,
-          totalLeaves: 21,
-          usedLeaves: daysTaken,
-          remainingLeaves: 21 - daysTaken
+           employeeId,
+           type: 'adjustment',
+           amount: parseFloat(amount),
+           reason,
+           year: new Date().getFullYear()
         }
-      });
-    } else {
-      // Update existing balance by ID
-      await prisma.leaveBalance.update({
-        where: { id: balance.id },
-        data: {
-          usedLeaves: balance.usedLeaves + daysTaken,
-          remainingLeaves: balance.remainingLeaves - daysTaken,
-          updatedAt: new Date()
-        }
-      });
-    }
+     });
+
+     res.json({
+        success: true,
+        message: 'Leave balance adjusted successfully'
+     });
   } catch (error: any) {
-    console.error('Error updating leave balance:', error);
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      employeeId,
-      daysTaken
-    });
+    console.error('Error adjusting leave:', error);
+    res.status(500).json({ success: false, error: 'Failed to adjust leave balance' });
   }
 };
 
-// Initialize leave balance for all employees (utility function)
-export const initializeLeaveBalances = async () => {
-  try {
-    const currentYear = new Date().getFullYear();
-    const employees = await prisma.employee.findMany({
-      where: {
-        leaveBalance: null
-      }
-    });
 
-    for (const employee of employees) {
-      await prisma.leaveBalance.create({
-        data: {
-          employeeId: employee.id,
-          year: currentYear,
-          totalLeaves: 21,
-          usedLeaves: 0,
-          remainingLeaves: 21
-        }
-      });
-    }
-
-    console.log(`Initialized leave balances for ${employees.length} employees`);
-  } catch (error: any) {
-    console.error('Error initializing leave balances:', error);
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack
-    });
-  }
-};

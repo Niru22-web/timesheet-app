@@ -36,6 +36,7 @@ model Employee {
   userPermission     UserPermission?
   notifications      Notification[]
   activities         Activity[]
+  leaveTransactions  LeaveTransaction[]
 }
 
 model EmployeeProfile {
@@ -227,6 +228,19 @@ model LeaveBalance {
   usedLeaves      Int      @default(0)
   year            Int
   employee        Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+}
+
+model LeaveTransaction {
+  id          String   @id @default(uuid())
+  employeeId  String
+  type        String   // "accrual", "used", "adjustment", "carry_forward"
+  amount      Float
+  date        DateTime @default(now())
+  reason      String?
+  year        Int
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("leave_transactions")
 }
 
 model EmailConnection {
