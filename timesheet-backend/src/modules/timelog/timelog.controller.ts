@@ -4,6 +4,7 @@ import multer from 'multer';
 import * as XLSX from 'xlsx';
 import path from 'path';
 import fs from 'fs';
+import { logActivity } from '../activity/activity.service';
 
 const timelogService = new TimelogService();
 
@@ -154,6 +155,15 @@ export const createTimelog = async (req: Request, res: Response) => {
       { jobId, hours: parsedHours, description, date, workItem, billableStatus },
       user.id
     );
+
+    // Log activity
+    await logActivity({
+      type: 'task_completed',
+      title: 'Task Completed',
+      description: `${user.firstName || 'User'} completed the ${workItem || 'task'}`,
+      userId: user.id,
+      relatedId: timelog.id
+    });
 
     res.status(201).json({
       success: true,

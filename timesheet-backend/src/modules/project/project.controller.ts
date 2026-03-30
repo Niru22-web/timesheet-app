@@ -3,6 +3,7 @@ import { ProjectService } from './project.service';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { logActivity } from '../activity/activity.service';
 
 const projectService = new ProjectService();
 
@@ -104,6 +105,16 @@ export const createProject = async (req: Request, res: Response) => {
     const attachments = req.files as any[];
     
     const project = await projectService.createProject(req.body, attachments, userEmail);
+    
+    // Log activity
+    await logActivity({
+      type: 'project_created',
+      title: 'Project Created',
+      description: `New project "${project.name}" was created`,
+      userId: (req as any).user?.id,
+      relatedId: project.id
+    });
+
     res.status(201).json({
       success: true,
       data: project,

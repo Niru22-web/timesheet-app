@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import multer from "multer";
 import path from "path";
 import { markTokenAsUsed } from "./registrationToken.controller";
+import { logActivity } from "../activity/activity.service";
 import { Prisma } from "@prisma/client";
 const ExcelJS = require('exceljs');
 
@@ -408,6 +409,16 @@ export const completeEmployeeProfile = async (req: any, res: Response) => {
     }
 
     console.log('=== Registration Completed Successfully ===');
+    
+    // Log activity
+    await logActivity({
+      type: 'user_registration',
+      title: 'New User Registration',
+      description: `${employee.firstName} ${employee.lastName} completed their registration`,
+      userId: employee.id,
+      relatedId: employee.id
+    });
+
     console.log('Created profile ID:', profile.id);
     console.log('Bank details saved:', {
       bankName: req.body.bankName,

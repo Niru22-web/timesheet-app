@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { getDashboardSummary, getEmployeeHours, getProjectDistribution, getHoursTrend } from "./dashboard.service";
+import { getRecentActivities as getDbActivities, getMyActivities as getMyDbActivities } from "../activity/activity.service";
 import { authenticate } from "../../middleware/auth.middleware";
 import { PrismaClient } from '@prisma/client';
 
@@ -344,53 +345,8 @@ export const getEmployeeStats = async (req: AuthenticatedRequest, res: Response)
 
 export const getRecentActivities = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userRole = req.user?.role?.toLowerCase();
-    let activities = [];
-
-    if (userRole === 'admin' || userRole === 'owner') {
-      // Admin sees all recent activities - create sample data for now
-      activities = [
-        {
-          id: 1,
-          title: 'New User Registration',
-          description: 'John Doe registered as a new employee',
-          createdAt: new Date(),
-          type: 'user_registration'
-        },
-        {
-          id: 2,
-          title: 'Project Created',
-          description: 'New project "Website Redesign" was created',
-          createdAt: new Date(Date.now() - 3600000),
-          type: 'project_created'
-        },
-        {
-          id: 3,
-          title: 'Task Completed',
-          description: 'Sarah completed the UI design task',
-          createdAt: new Date(Date.now() - 7200000),
-          type: 'task_completed'
-        }
-      ];
-    } else {
-      // Other users see activities related to them
-      activities = [
-        {
-          id: 1,
-          title: 'Task Assigned',
-          description: 'You were assigned to "API Development"',
-          createdAt: new Date(),
-          type: 'task_assigned'
-        },
-        {
-          id: 2,
-          title: 'Project Update',
-          description: 'Project deadline was extended',
-          createdAt: new Date(Date.now() - 3600000),
-          type: 'project_update'
-        }
-      ];
-    }
+    const limit = parseInt(req.query.limit as string) || 10;
+    const activities = await getDbActivities(limit);
 
     res.json({
       success: true,
@@ -407,30 +363,9 @@ export const getRecentActivities = async (req: AuthenticatedRequest, res: Respon
 
 export const getMyRecentActivities = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // Sample activities for the current user
-    const activities = [
-      {
-        id: 1,
-        title: 'Timesheet Submitted',
-        description: 'You submitted your weekly timesheet',
-        createdAt: new Date(),
-        type: 'timesheet_submitted'
-      },
-      {
-        id: 2,
-        title: 'Task Completed',
-        description: 'You completed "Database Migration"',
-        createdAt: new Date(Date.now() - 86400000),
-        type: 'task_completed'
-      },
-      {
-        id: 3,
-        title: 'Project Joined',
-        description: 'You were added to "Mobile App Development"',
-        createdAt: new Date(Date.now() - 172800000),
-        type: 'project_joined'
-      }
-    ];
+    const user = (req as any).user;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const activities = await getMyDbActivities(user.id, limit);
 
     res.json({
       success: true,

@@ -33,6 +33,7 @@ import emailOAuthRoutes from "./routes/emailOAuthRoutes";
 import userPermissionsRoutes from "./modules/userPermissions/userPermissions.routes";
 import notificationRoutes from "./modules/notification/notification.routes";
 import dashboardRoutes from "./modules/dashboard/dashboard.routes";
+import activityRoutes from "./modules/activity/activity.routes";
 import { validateRegistrationToken } from "./modules/employee/registrationToken.controller";
 import { prisma } from "./config/prisma";
 
@@ -219,6 +220,9 @@ app.use("/api/admin", userPermissionsRoutes);
 
 // Notification routes
 app.use("/api/notifications", notificationRoutes);
+
+// Activity routes
+app.use("/api/activity", activityRoutes);
 
 // Dashboard routes
 app.use("/api/dashboard", dashboardRoutes);

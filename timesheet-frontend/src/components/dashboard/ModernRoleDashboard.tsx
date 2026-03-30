@@ -279,21 +279,33 @@ const ModernRoleDashboard: React.FC<ModernRoleDashboardProps> = ({ userRole }) =
             
             <div className="space-y-4">
               {recentActivities.length > 0 ? (
-                recentActivities.slice(0, 5).map((activity) => (
-                  <div key={activity.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Activity size={16} className="text-blue-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                      <p className="text-xs text-gray-500">{activity.description}</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {new Date(activity.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    
-                    {/* Action buttons for employee approval activities */}
-                    {activity.type === 'user_registration' && (
+                recentActivities.slice(0, 5).map((activity) => {
+                  const getIcon = () => {
+                    switch (activity.type) {
+                      case 'user_registration': return { icon: UserPlus, color: 'blue' };
+                      case 'project_created': return { icon: Briefcase, color: 'green' };
+                      case 'task_completed': return { icon: CheckCircle, color: 'purple' };
+                      case 'timelog_submitted': return { icon: Clock, color: 'yellow' };
+                      default: return { icon: Activity, color: 'blue' };
+                    }
+                  };
+                  const { icon: ActivityIcon, color } = getIcon();
+                  
+                  return (
+                    <div key={activity.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                      <div className={`p-2 bg-${color}-100 rounded-lg`}>
+                        <ActivityIcon size={16} className={`text-${color}-600`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{activity.title}</p>
+                        <p className="text-xs text-gray-500">{activity.description}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(activity.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                        </p>
+                      </div>
+                      
+                      {/* Action buttons for employee approval activities */}
+                      {activity.type === 'user_registration' && (
                       <div className="flex gap-2">
                         <Button
                           size="sm"
@@ -327,9 +339,10 @@ const ModernRoleDashboard: React.FC<ModernRoleDashboardProps> = ({ userRole }) =
                           Dismiss
                         </Button>
                       </div>
-                    )}
-                  </div>
-                ))
+                      )}
+                    </div>
+                  );
+                })
               ) : (
                 <div className="text-center py-8 text-gray-400">
                   <FileText size={48} className="mx-auto mb-4 opacity-50" />
