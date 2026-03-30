@@ -95,7 +95,7 @@ export const handleMicrosoftCallback = async (req: Request, res: Response) => {
     
     const clientId = process.env.MICROSOFT_CLIENT_ID || process.env.OUTLOOK_CLIENT_ID || '';
     const clientSecret = process.env.MICROSOFT_CLIENT_SECRET || process.env.OUTLOOK_CLIENT_SECRET || '';
-    const redirectUri = process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:5000/api/email/oauth/outlook/callback';
+    const redirectUri = process.env.MICROSOFT_REDIRECT_URI || `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/auth/microsoft/callback`;
 
     if (clientId === 'your-outlook-client-id' || !clientId) {
       console.error('❌ CRITICAL: Controller is using placeholder Client ID');
