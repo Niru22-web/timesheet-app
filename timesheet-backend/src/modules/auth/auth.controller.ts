@@ -33,8 +33,21 @@ export const login = async (req: Request, res: Response) => {
     console.log('  - User has password:', !!user.password);
   }
 
-  if (!user || !user.password)
-    return res.status(400).json({ message: "Invalid credentials" });
+  if (!user) {
+    console.log('❌ User not found for email:', email);
+    return res.status(400).json({ 
+      message: "Invalid credentials", 
+      debugCode: "USER_NOT_FOUND" 
+    });
+  }
+
+  if (!user.password) {
+    console.log('❌ User found but has no password set:', email);
+    return res.status(400).json({ 
+      message: "Password not set. Please contact administrator.", 
+      debugCode: "PASSWORD_NOT_SET" 
+    });
+  }
 
   // Check if employee is approved
   if (user.status !== 'active') {
@@ -55,8 +68,13 @@ export const login = async (req: Request, res: Response) => {
 
   const valid = await bcrypt.compare(password, user.password);
 
-  if (!valid)
-    return res.status(400).json({ message: "Invalid credentials" });
+  if (!valid) {
+    console.log('❌ Password mismatch for user:', email);
+    return res.status(400).json({ 
+      message: "Invalid credentials", 
+      debugCode: "PASSWORD_MISMATCH" 
+    });
+  }
 
   const token = generateToken({
     id: user.id,
