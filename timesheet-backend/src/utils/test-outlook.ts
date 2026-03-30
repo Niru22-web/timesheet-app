@@ -1,8 +1,9 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load production env
+// Load environment
 dotenv.config({ path: path.join(__dirname, '../../.env.production') });
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || process.env.OUTLOOK_CLIENT_ID || '';
 const MICROSOFT_REDIRECT_URI = process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:5000/api/email/oauth/outlook/callback';

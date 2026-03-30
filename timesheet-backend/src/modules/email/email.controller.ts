@@ -91,11 +91,19 @@ export const handleMicrosoftCallback = async (req: Request, res: Response) => {
     // Exchange code for access token using form-encoded data
     console.log('Exchanging authorization code for access token...');
     
+    const clientId = process.env.MICROSOFT_CLIENT_ID || process.env.OUTLOOK_CLIENT_ID || '';
+    const clientSecret = process.env.MICROSOFT_CLIENT_SECRET || process.env.OUTLOOK_CLIENT_SECRET || '';
+    const redirectUri = process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:5000/api/email/oauth/outlook/callback';
+
+    if (clientId === 'your-outlook-client-id' || !clientId) {
+      console.error('❌ CRITICAL: Controller is using placeholder Client ID');
+    }
+
     const tokenData = new URLSearchParams({
-      client_id: process.env.OUTLOOK_CLIENT_ID!,
-      client_secret: process.env.OUTLOOK_CLIENT_SECRET!,
+      client_id: clientId,
+      client_secret: clientSecret,
       code: code as string,
-      redirect_uri: process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:5000/api/email/oauth/outlook/callback',
+      redirect_uri: redirectUri,
       grant_type: 'authorization_code',
       scope: 'https://graph.microsoft.com/.default offline_access'
     });

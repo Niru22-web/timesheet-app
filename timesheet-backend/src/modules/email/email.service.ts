@@ -12,33 +12,42 @@ interface OAuthConnection {
   isActive: boolean;
 }
 
-interface EmailConfig {
-  emailProvider: string;
-  enableNotifications: boolean;
-  oauthConnection?: OAuthConnection;
-}
-
-// OAuth2 Configuration
-const GOOGLE_OAUTH_CONFIG = {
+// Google OAuth2
+const getGoogleAuthConfig = () => ({
   clientId: process.env.GMAIL_CLIENT_ID || '',
   clientSecret: process.env.GMAIL_CLIENT_SECRET || '',
   redirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/api/email/callback/google'
-};
+});
 
-const MICROSOFT_OAUTH_CONFIG = {
-  clientId: process.env.MICROSOFT_CLIENT_ID || process.env.OUTLOOK_CLIENT_ID || '',
-  clientSecret: process.env.MICROSOFT_CLIENT_SECRET || process.env.OUTLOOK_CLIENT_SECRET || '',
-  redirectUri: process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:5000/api/email/oauth/outlook/callback',
-  scope: 'https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/User.Read openid profile email offline_access'
+// Microsoft/Outlook OAuth2
+const getMicrosoftAuthConfig = () => {
+  const clientId = process.env.MICROSOFT_CLIENT_ID || process.env.OUTLOOK_CLIENT_ID || '';
+  const clientSecret = process.env.MICROSOFT_CLIENT_SECRET || process.env.OUTLOOK_CLIENT_SECRET || '';
+  const redirectUri = process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:5000/api/email/oauth/outlook/callback';
+  const tenantId = process.env.MICROSOFT_TENANT_ID || 'common';
+  
+  // Validation check
+  if (clientId === 'your-outlook-client-id' || !clientId) {
+    console.error('❌ CRITICAL: Outlook Client ID is missing or using placeholder');
+  }
+
+  return {
+    clientId,
+    clientSecret,
+    redirectUri,
+    tenantId,
+    scope: 'https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/Mail.ReadWrite https://graph.microsoft.com/User.Read openid profile email offline_access'
+  };
 };
 
 class EmailService {
   // Google OAuth2
   getGoogleAuthUrl(): string {
+    const config = getGoogleAuthConfig();
     const oauth2Client = new google.auth.OAuth2(
-      GOOGLE_OAUTH_CONFIG.clientId,
-      GOOGLE_OAUTH_CONFIG.clientSecret,
-      GOOGLE_OAUTH_CONFIG.redirectUri
+      config.clientId,
+      config.clientSecret,
+      config.redirectUri
     );
 
     const scopes = [
@@ -55,11 +64,12 @@ class EmailService {
 
   // Microsoft OAuth2
   getMicrosoftAuthUrl(state?: string): string {
+    const config = getMicrosoftAuthConfig();
     const params = new URLSearchParams({
-      client_id: MICROSOFT_OAUTH_CONFIG.clientId,
+      client_id: config.clientId,
       response_type: 'code',
-      redirect_uri: MICROSOFT_OAUTH_CONFIG.redirectUri,
-      scope: MICROSOFT_OAUTH_CONFIG.scope,
+      redirect_uri: config.redirectUri,
+      scope: config.scope,
       response_mode: 'query',
       prompt: 'select_account'
     });
@@ -77,10 +87,11 @@ class EmailService {
   // Handle Google OAuth callback
   async handleGoogleCallback(code: string, employeeId: string) {
     try {
+      const config = getGoogleAuthConfig();
       const oauth2Client = new google.auth.OAuth2(
-        GOOGLE_OAUTH_CONFIG.clientId,
-        GOOGLE_OAUTH_CONFIG.clientSecret,
-        GOOGLE_OAUTH_CONFIG.redirectUri
+        config.clientId,
+        config.clientSecret,
+        config.redirectUri
       );
 
       const { tokens } = await oauth2Client.getToken(code);
@@ -116,11 +127,12 @@ class EmailService {
       console.log('🔐 Microsoft OAuth: Starting token exchange for employee:', employeeId);
       
       // Exchange code for tokens using form-encoded data
+      const config = getMicrosoftAuthConfig();
       const tokenData = new URLSearchParams({
-        client_id: MICROSOFT_OAUTH_CONFIG.clientId,
-        client_secret: MICROSOFT_OAUTH_CONFIG.clientSecret,
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
         code,
-        redirect_uri: MICROSOFT_OAUTH_CONFIG.redirectUri,
+        redirect_uri: config.redirectUri,
         grant_type: 'authorization_code',
         scope: 'https://graph.microsoft.com/.default offline_access'
       });
@@ -266,9 +278,10 @@ class EmailService {
 
   private async refreshGoogleToken(connection: any) {
     try {
+      const config = getGoogleAuthConfig();
       const oauth2Client = new google.auth.OAuth2(
-        GOOGLE_OAUTH_CONFIG.clientId,
-        GOOGLE_OAUTH_CONFIG.clientSecret
+        config.clientId,
+        config.clientSecret
       );
 
       oauth2Client.setCredentials({
@@ -303,9 +316,10 @@ class EmailService {
         throw new Error('No refresh token available. Please reconnect the email account.');
       }
       
+      const config = getMicrosoftAuthConfig();
       const tokenData = new URLSearchParams({
-        client_id: MICROSOFT_OAUTH_CONFIG.clientId,
-        client_secret: MICROSOFT_OAUTH_CONFIG.clientSecret,
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
         refresh_token: connection.refreshToken,
         grant_type: 'refresh_token',
         scope: 'https://graph.microsoft.com/.default'
