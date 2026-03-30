@@ -24,17 +24,13 @@ const getMicrosoftAuthConfig = () => {
   const clientId = process.env.MICROSOFT_CLIENT_ID || process.env.OUTLOOK_CLIENT_ID || '';
   const clientSecret = process.env.MICROSOFT_CLIENT_SECRET || process.env.OUTLOOK_CLIENT_SECRET || '';
   
-  // Use a more dynamic approach for redirect_uri
-  // USER INSTRUCTION: Must lead to /email-configuration on the frontend
-  const redirectUri = `${process.env.CLIENT_URL || 'http://localhost:5173'}/email-configuration`;
+  // USER INSTRUCTION: Redirect URI must match backend callback
+  // Use env var if provided, otherwise construct from BACKEND_URL
+  const backendUrl = process.env.BACKEND_URL || process.env.API_URL || 'http://13.232.211.142:5000';
+  const redirectUri = process.env.MICROSOFT_REDIRECT_URI || `${backendUrl}/api/auth/outlook/callback`;
   
   const tenantId = process.env.MICROSOFT_TENANT_ID || 'common';
   
-  // Validation check
-  if (clientId === 'your-outlook-client-id' || !clientId) {
-    console.error('❌ CRITICAL: Outlook Client ID is missing or using placeholder');
-  }
-
   return {
     clientId,
     clientSecret,

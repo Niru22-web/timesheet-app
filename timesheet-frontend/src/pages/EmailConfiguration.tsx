@@ -94,89 +94,44 @@ const EmailConfiguration: React.FC = () => {
 
   // Check for OAuth callback on component mount
   useEffect(() => {
-    const handleCallback = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      const state = urlParams.get('state');
-      const success = urlParams.get('success');
-      const provider = urlParams.get('provider');
-      const email = urlParams.get('email');
-      const error = urlParams.get('error');
-      const outlookConnected = urlParams.get('outlook');
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const provider = urlParams.get('provider');
+    const email = urlParams.get('email');
+    const error = urlParams.get('error');
+    const outlookConnected = urlParams.get('outlook');
 
-      // Handle OAuth code redirect (if Microsoft sends the code directly to frontend)
-      if (code) {
-        console.log('📡 Captured OAuth code from URL, forwarding to backend...');
-        setOAuthLoading(true);
-        try {
-          const response = await API.post('/email/oauth/callback', {
-            provider: 'outlook',
-            code,
-            state
-          });
-          
-          if (response.data.success) {
-            setTestResult({
-              success: true,
-              message: 'Outlook account connected successfully!',
-              details: { 
-                provider: 'outlook', 
-                email: response.data.connection?.email || 'Connected',
-                connectedAt: new Date().toISOString() 
-              }
-            });
-            setShowTestModal(true);
-            checkOAuthStatus();
-          }
-        } catch (err: any) {
-          console.error('❌ Failed to process OAuth code:', err);
-          setTestResult({
-            success: false,
-            message: 'Failed to complete Outlook connection: ' + (err.response?.data?.message || err.message),
-            details: { provider: 'outlook', error: err.message }
-          });
-          setShowTestModal(true);
-        } finally {
-          setOAuthLoading(false);
-          // Clear URL params
-          window.history.replaceState({}, '', window.location.pathname);
-        }
-        return;
-      }
-
-      // Handle OAuth callback result - backend-driven redirect (outlook=connected)
-      if (outlookConnected === 'connected') {
-        setTestResult({
-          success: true,
-          message: 'Outlook account connected successfully!',
-          details: { provider: 'outlook', connectedAt: new Date().toISOString() }
-        });
-        setShowTestModal(true);
-        window.history.replaceState({}, '', window.location.pathname);
-        checkOAuthStatus();
-      }
-      // Handle OAuth callback result - legacy format
-      else if (success === 'true' && provider && email) {
-        setTestResult({
-          success: true,
-          message: `${provider === 'gmail' ? 'Gmail' : 'Outlook'} account ${email} connected successfully!`,
-          details: { provider, email, connectedAt: new Date().toISOString() }
-        });
-        setShowTestModal(true);
-        window.history.replaceState({}, '', window.location.pathname);
-        checkOAuthStatus();
-      } else if (success === 'false' && provider && error) {
-        setTestResult({
-          success: false,
-          message: `Failed to connect ${provider === 'gmail' ? 'Gmail' : 'Outlook'}: ${error}`,
-          details: { provider, error }
-        });
-        setShowTestModal(true);
-        window.history.replaceState({}, '', window.location.pathname);
-      }
-    };
-
-    handleCallback();
+    // Handle OAuth callback result - backend-driven redirect (outlook=connected)
+    if (outlookConnected === 'connected') {
+      console.log('✅ Outlook connection success detected via URL parameter');
+      setTestResult({
+        success: true,
+        message: 'Outlook account connected successfully!',
+        details: { provider: 'outlook', connectedAt: new Date().toISOString() }
+      });
+      setShowTestModal(true);
+      window.history.replaceState({}, '', window.location.pathname);
+      checkOAuthStatus();
+    }
+    // Handle OAuth callback result - legacy format
+    else if (success === 'true' && provider && email) {
+      setTestResult({
+        success: true,
+        message: `${provider === 'gmail' ? 'Gmail' : 'Outlook'} account ${email} connected successfully!`,
+        details: { provider, email, connectedAt: new Date().toISOString() }
+      });
+      setShowTestModal(true);
+      window.history.replaceState({}, '', window.location.pathname);
+      checkOAuthStatus();
+    } else if (success === 'false' && provider && error) {
+      setTestResult({
+        success: false,
+        message: `Failed to connect ${provider === 'gmail' ? 'Gmail' : 'Outlook'}: ${error}`,
+        details: { provider, error }
+      });
+      setShowTestModal(true);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
   // Listen for OAuth messages from popup
