@@ -1,8 +1,6 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import api from "@/lib/api";
-import { useRouter } from "next/navigation";
+import api from "../../api";
+import { useNavigate } from "react-router-dom";
 
 interface Client {
   id: string;
@@ -16,7 +14,7 @@ interface Employee {
 }
 
 export default function ProjectForm() {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const [clients, setClients] = useState<Client[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -91,7 +89,7 @@ export default function ProjectForm() {
     try {
       await api.post("/projects", form);
       alert("Project Created Successfully");
-      router.push("/projects");
+      navigate("/projects");
     } catch (error) {
       alert("Error creating project");
     }
@@ -105,6 +103,7 @@ export default function ProjectForm() {
 
         <select 
           name="clientId" 
+          aria-label="Select Client"
           value={form.clientId}
           onChange={handleChange} 
           className="border px-3 py-2 h-9 rounded text-sm bg-white"
@@ -123,16 +122,26 @@ export default function ProjectForm() {
 
         <input name="name" placeholder="Project Name" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" />
 
-        <select name="status" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm">
+        <select 
+          name="status" 
+          aria-label="Select Status"
+          onChange={handleChange} 
+          className="border px-3 py-2 h-9 rounded text-sm"
+        >
           <option value="">Status</option>
           <option value="Started">Started</option>
           <option value="In-Discussion">In-Discussion</option>
           <option value="Completed">Completed</option>
         </select>
 
-        <input type="date" name="startDate" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" />
+        <input type="date" name="startDate" aria-label="Start Date" placeholder="Start Date" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" />
 
-        <select name="billable" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm">
+        <select 
+          name="billable" 
+          aria-label="Select Billable Status"
+          onChange={handleChange} 
+          className="border px-3 py-2 h-9 rounded text-sm"
+        >
           <option value="">Billable?</option>
           <option value="true">Billable</option>
           <option value="false">Non-Billable</option>
@@ -142,6 +151,7 @@ export default function ProjectForm() {
 
         <select
           multiple
+          aria-label="Assign Users"
           onChange={handleUserSelect}
           className="border px-3 py-2 h-24 rounded text-sm col-span-2 resize-none"
         >
@@ -156,7 +166,7 @@ export default function ProjectForm() {
 
       <div className="flex justify-between items-center mt-4 pt-3 border-t sticky bottom-0 bg-white">
         <button
-          onClick={() => router.push("/projects")}
+          onClick={() => navigate("/projects")}
           className="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50"
         >
           Cancel

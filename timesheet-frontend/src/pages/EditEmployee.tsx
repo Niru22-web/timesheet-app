@@ -171,7 +171,7 @@ const EditEmployee: React.FC = () => {
       console.log(`✅ Loaded ${pts.length} partners and ${mgs.length} managers`);
       
       // Debug: Log manager reportingPartner values
-      console.log('📋 Manager reporting structure:', mgs.map(m => ({
+      console.log('📋 Manager reporting structure:', mgs.map((m: any) => ({
         name: `${m.firstName} ${m.lastName}`,
         id: m.id || m._id,
         department: m.department,
@@ -388,6 +388,7 @@ const EditEmployee: React.FC = () => {
             {isAdmin() && (
               <select
                 className="text-xs border rounded px-2 py-1 bg-gray-50"
+                aria-label="Employee Status"
                 value={employee.status}
                 onChange={(e) => setEmployee({...employee, status: e.target.value})}
               >
@@ -700,6 +701,7 @@ const EditEmployee: React.FC = () => {
               {isAdmin() ? (
                 <select
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  aria-label="Software Role"
                   value={employee.role}
                   onChange={(e) => {
                     const newRole = e.target.value;
@@ -745,6 +747,7 @@ const EditEmployee: React.FC = () => {
               {isAdmin() ? (
                 <select
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  aria-label="Department"
                   value={selectedDepartment || employee.department}
                   onChange={(e) => {
                     const dept = e.target.value;
@@ -770,6 +773,7 @@ const EditEmployee: React.FC = () => {
               {isAdmin() && employee.role !== 'Partner' ? (
                 <select
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  aria-label="Reporting Partner"
                   value={selectedPartner || ""}
                   onChange={(e) => {
                     const pId = e.target.value;
@@ -814,6 +818,7 @@ const EditEmployee: React.FC = () => {
               {isAdmin() && employee.role === 'Employee' ? (
                 <select
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  aria-label="Reporting Manager"
                   value={selectedManager || ""}
                   onChange={(e) => {
                     const mId = e.target.value;

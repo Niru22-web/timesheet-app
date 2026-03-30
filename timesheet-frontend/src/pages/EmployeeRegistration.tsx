@@ -387,6 +387,9 @@ const EmployeeRegistration: React.FC = () => {
   return (
     <div className="h-screen flex items-center justify-center bg-gray-50">
       <style>{`
+        .form-container {
+          max-height: 60vh;
+        }
         .form-container::-webkit-scrollbar {
           width: 8px;
         }
@@ -427,7 +430,7 @@ const EmployeeRegistration: React.FC = () => {
         )}
 
         {/* Scrollable Form Content */}
-        <div className="form-container overflow-y-auto px-8 py-6 space-y-6" style={{ maxHeight: '60vh' }}>
+        <div className="form-container overflow-y-auto px-8 py-6 space-y-6">
           
           {employeeInfo && (
             <div className="bg-gray-50 rounded-xl p-6">
@@ -440,8 +443,9 @@ const EmployeeRegistration: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">Employee Code</label>
+                  <label htmlFor="display-employeeId" className="block text-sm font-medium text-gray-700">Employee Code</label>
                   <input
+                    id="display-employeeId"
                     type="text"
                     value={employeeInfo.employeeId || 'AUTO-GENERATED'}
                     disabled
@@ -449,8 +453,9 @@ const EmployeeRegistration: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">First Name</label>
+                  <label htmlFor="display-firstName" className="block text-sm font-medium text-gray-700">First Name</label>
                   <input
+                    id="display-firstName"
                     type="text"
                     value={employeeInfo.firstName || ''}
                     disabled
@@ -458,8 +463,9 @@ const EmployeeRegistration: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                  <label htmlFor="display-lastName" className="block text-sm font-medium text-gray-700">Last Name</label>
                   <input
+                    id="display-lastName"
                     type="text"
                     value={employeeInfo.lastName || ''}
                     disabled
@@ -467,8 +473,9 @@ const EmployeeRegistration: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">Email ID</label>
+                  <label htmlFor="display-officeEmail" className="block text-sm font-medium text-gray-700">Email ID</label>
                   <input
+                    id="display-officeEmail"
                     type="text"
                     value={employeeInfo.officeEmail || ''}
                     disabled
@@ -476,8 +483,9 @@ const EmployeeRegistration: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">Designation</label>
+                  <label htmlFor="display-designation" className="block text-sm font-medium text-gray-700">Designation</label>
                   <input
+                    id="display-designation"
                     type="text"
                     value={employeeInfo.designation || ''}
                     disabled
@@ -485,8 +493,9 @@ const EmployeeRegistration: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">Department</label>
+                  <label htmlFor="display-department" className="block text-sm font-medium text-gray-700">Department</label>
                   <input
+                    id="display-department"
                     type="text"
                     value={employeeInfo.department || 'Accounting'}
                     disabled
@@ -872,7 +881,10 @@ const EmployeeRegistration: React.FC = () => {
                   }`}>
                     <input
                       type="file"
+                      id="panFile"
                       name="panFile"
+                      aria-label="Upload PAN Card Document"
+                      title="Upload PAN Card Document"
                       onChange={handleFileChange}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       accept=".pdf,.jpg,.jpeg,.png"
@@ -896,7 +908,10 @@ const EmployeeRegistration: React.FC = () => {
                   }`}>
                     <input
                       type="file"
+                      id="aadhaarFile"
                       name="aadhaarFile"
+                      aria-label="Upload Aadhaar Card Document"
+                      title="Upload Aadhaar Card Document"
                       onChange={handleFileChange}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       accept=".pdf,.jpg,.jpeg,.png"
@@ -923,7 +938,10 @@ const EmployeeRegistration: React.FC = () => {
                   }`}>
                     <input
                       type="file"
+                      id="employeePhoto"
                       name="employeePhoto"
+                      aria-label="Upload Employee Photo"
+                      title="Upload Employee Photo"
                       onChange={handleFileChange}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       accept=".jpg,.jpeg,.png"
@@ -947,7 +965,10 @@ const EmployeeRegistration: React.FC = () => {
                   }`}>
                     <input
                       type="file"
+                      id="bankStatementFile"
                       name="bankStatementFile"
+                      aria-label="Upload Bank Statement"
+                      title="Upload Bank Statement"
                       onChange={handleFileChange}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       accept=".pdf,.jpg,.jpeg,.png"

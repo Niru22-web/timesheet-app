@@ -639,6 +639,8 @@ const Clients: React.FC = () => {
                             }`}>
                                 <input
                                     type="file"
+                                    aria-label="Upload Client Excel File"
+                                    title="Upload Client Excel File"
                                     onChange={handleFileSelect}
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     accept=".xlsx,.xls"

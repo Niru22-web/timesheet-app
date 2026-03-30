@@ -82,6 +82,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           type="button"
                           className="rounded-xl bg-white p-2 text-slate-400 hover:text-slate-500 border border-slate-200 transition-all hover:scale-105 active:scale-95 shadow-sm"
                           onClick={onClose}
+                          aria-label="Close Filter Panel"
                         >
                           <X className="h-5 w-5" />
                         </button>
@@ -100,6 +101,8 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                                 <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest pl-1">Starts On</p>
                                 <input 
                                   type="date" 
+                                  aria-label="Starts On"
+                                  placeholder="Starts On"
                                   className="w-full bg-slate-50/50 border-none rounded-xl p-3 text-xs font-black outline-none focus:ring-2 focus:ring-primary-500/20"
                                   value={filters.dateFrom}
                                   onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
@@ -109,6 +112,8 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                                 <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest pl-1">Finishes On</p>
                                 <input 
                                   type="date" 
+                                  aria-label="Finishes On"
+                                  placeholder="Finishes On"
                                   className="w-full bg-slate-50/50 border-none rounded-xl p-3 text-xs font-black outline-none focus:ring-2 focus:ring-primary-500/20"
                                   value={filters.dateTo}
                                   onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
@@ -125,6 +130,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                           </label>
                           <select 
                             className="w-full bg-slate-50/50 border-none rounded-xl p-4 text-xs font-black outline-none focus:ring-4 focus:ring-primary-500/10 transition-all cursor-pointer"
+                            aria-label="Select Project"
                             value={filters.projectId}
                             onChange={(e) => setFilters({...filters, projectId: e.target.value})}
                           >
@@ -142,6 +148,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                             </label>
                             <select 
                               className="w-full bg-slate-50/50 border-none rounded-xl p-4 text-xs font-black outline-none focus:ring-4 focus:ring-primary-500/10 transition-all cursor-pointer"
+                              aria-label="Select Personnel"
                               value={filters.employeeId}
                               onChange={(e) => setFilters({...filters, employeeId: e.target.value})}
                             >

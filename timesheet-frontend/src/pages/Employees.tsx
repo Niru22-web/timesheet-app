@@ -1132,6 +1132,7 @@ const Employees: React.FC = () => {
       const formData = new FormData();
       formData.append('profilePhoto', file);
 
+      const token = localStorage.getItem('token');
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
       const response = await fetch(`${API_BASE_URL}/employees/profile-photo`, {
         method: 'POST',
@@ -1440,8 +1441,75 @@ const Employees: React.FC = () => {
       </div>
 
       {/* Main Content Area - Split Layout */}
-      <div className="flex-1 flex min-h-0 overflow-hidden flex-col lg:flex-row" style={{ width: '100%', overflowX: 'hidden', gap: '16px' }}>
+      <div className="main-layout flex-col lg:flex-row">
         <style>{`
+          .main-layout {
+            display: flex;
+            width: 100%;
+            overflow-x: hidden;
+            gap: 16px;
+            min-height: 0;
+            flex: 1;
+          }
+          .left-section {
+            width: 65%;
+            box-sizing: border-box;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+            overflow: hidden;
+            border: 1px solid #f3f4f6;
+          }
+          .right-section {
+            width: 35%;
+            min-width: 320px;
+            max-width: 420px;
+            box-sizing: border-box;
+            position: relative;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+          }
+          .right-panel-card {
+            flex: 1;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: 1px solid #f3f4f6;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 280px);
+            overflow-y: auto;
+          }
+          .profile-header-container {
+            width: 100%;
+            border-radius: 12px 12px 0 0;
+            position: relative;
+            background: linear-gradient(to bottom right, #3b82f6, #4f46e5);
+            overflow: hidden;
+          }
+          .profile-header-content {
+            display: flex;
+            flex-direction: column;
+            items-align: center;
+            padding: 32px 24px;
+            text-align: center;
+          }
+          .profile-details-scroll {
+            padding: 20px;
+            height: calc(100% - 280px);
+            overflow-y: auto;
+          }
+          .detail-section-margin {
+            margin-bottom: 16px;
+          }
+          .detail-header-margin {
+            margin-bottom: 12px;
+          }
           @media (max-width: 1024px) {
             .main-layout {
               flex-direction: column;
@@ -1457,7 +1525,7 @@ const Employees: React.FC = () => {
           }
         `}</style>
         {/* Left Section - Employee Table (65%) */}
-        <div className="left-section flex-shrink-0 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col" style={{ width: '65%', boxSizing: 'border-box', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+        <div className="left-section">
           {/* Search and Filter Bar */}
           <div className="flex-none px-6 py-4 border-b border-gray-100 bg-gray-50/50">
             <div className="flex items-center gap-4">
@@ -1466,6 +1534,7 @@ const Employees: React.FC = () => {
                 <input
                   type="text"
                   placeholder="Search employees..."
+                  aria-label="Search employees"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
@@ -1475,6 +1544,7 @@ const Employees: React.FC = () => {
               <div className="relative group">
                 <FunnelIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                 <select
+                  aria-label="Filter by role"
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
                   className="pl-10 pr-8 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none appearance-none font-medium text-gray-700 cursor-pointer hover:border-gray-300"
@@ -1643,12 +1713,12 @@ const Employees: React.FC = () => {
         </div>
 
         {/* Right Section - Employee Details Panel (35%) */}
-        <div className="right-section flex-shrink-0 flex flex-col" style={{ width: '35%', minWidth: '320px', maxWidth: '420px', boxSizing: 'border-box', position: 'relative', right: 0 }}>
+        <div className="right-section">
           {rightPanelEmployee ? (
-            <div className="flex-1 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 280px)', overflowY: 'auto', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+            <div className="right-panel-card">
               {/* Employee Profile Header */}
-              <div className="relative bg-gradient-to-br from-blue-500 to-indigo-600 overflow-hidden" style={{ width: '100%', borderRadius: '12px 12px 0 0' }}>
-                <div className="flex flex-col items-center" style={{ padding: '32px 24px' }}>
+              <div className="profile-header-container">
+                <div className="profile-header-content">
                   <Avatar
                     name={`${rightPanelEmployee.firstName || ''} ${rightPanelEmployee.lastName || ''}`}
                     size="xl"
@@ -1674,27 +1744,27 @@ const Employees: React.FC = () => {
               {/* Action Buttons */}
               <div className="px-6 py-4 border-b border-gray-100">
                 <div className="flex justify-center gap-3">
-                  <button className="p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
+                  <button aria-label="Send Email" className="p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
                     <EnvelopeIcon className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
                   </button>
-                  <button className="p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
+                  <button aria-label="Call Employee" className="p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
                     <PhoneIcon className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
                   </button>
-                  <button className="p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
+                  <button aria-label="Chat with Employee" className="p-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
                     <ChatBubbleLeftRightIcon className="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
                   </button>
                 </div>
               </div>
 
               {/* Employee Details */}
-              <div className="overflow-y-auto" style={{ padding: '20px', height: 'calc(100% - 280px)' }}>
+              <div className="profile-details-scroll">
                 {/* About Section */}
-                <div style={{ marginBottom: '16px' }}>
-                  <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2" style={{ marginBottom: '12px' }}>
+                <div className="detail-section-margin">
+                  <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2 detail-header-margin">
                     <UserGroupIcon className="w-4 h-4 text-blue-600" />
                     About
                   </h4>
-                  <div className="space-y-3" style={{ marginBottom: '16px' }}>
+                  <div className="space-y-3 detail-section-margin">
                     <div className="flex justify-between items-center py-2 border-b border-gray-50">
                       <span className="text-sm text-gray-500">Age / Gender</span>
                       <span className="text-sm font-medium text-gray-900">
@@ -1723,12 +1793,12 @@ const Employees: React.FC = () => {
                 </div>
 
                 {/* Work Section */}
-                <div style={{ marginBottom: '16px' }}>
-                  <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2" style={{ marginBottom: '12px' }}>
+                <div className="detail-section-margin">
+                  <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2 detail-header-margin">
                     <BriefcaseIcon className="w-4 h-4 text-blue-600" />
                     Work
                   </h4>
-                  <div className="space-y-3" style={{ marginBottom: '16px' }}>
+                  <div className="space-y-3 detail-section-margin">
                     <div className="flex justify-between items-center py-2 border-b border-gray-50">
                       <span className="text-sm text-gray-500">Employee ID</span>
                       <span className="text-sm font-medium text-gray-900">{rightPanelEmployee.employeeId}</span>
@@ -1747,12 +1817,12 @@ const Employees: React.FC = () => {
                 </div>
 
                 {/* Team Section */}
-                <div style={{ marginBottom: '16px' }}>
-                  <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2" style={{ marginBottom: '12px' }}>
+                <div className="detail-section-margin">
+                  <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2 detail-header-margin">
                     <BuildingOfficeIcon className="w-4 h-4 text-blue-600" />
                     Team
                   </h4>
-                  <div className="space-y-3" style={{ marginBottom: '16px' }}>
+                  <div className="space-y-3 detail-section-margin">
                     {rightPanelEmployee.reportingPartner && (
                       <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                         <Avatar name="Partner" size="sm" />
@@ -1779,7 +1849,7 @@ const Employees: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="flex-1 bg-white rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center" style={{ height: 'calc(100vh - 280px)', overflowY: 'auto', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+            <div className="right-panel-card items-center justify-center">
               <div className="text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <UsersIcon className="w-8 h-8 text-gray-400" />
@@ -2000,8 +2070,10 @@ const Employees: React.FC = () => {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-secondary-700 block ml-0.5">Software Role</label>
+              <label htmlFor="role-select" className="text-sm font-medium text-secondary-700 block ml-0.5">Software Role</label>
               <select
+                id="role-select"
+                aria-label="Software Role"
                 className="w-full px-3 py-2 h-9 bg-white border border-secondary-200 rounded outline-none transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-secondary-300 text-sm font-medium disabled:bg-gray-100"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
@@ -2015,8 +2087,10 @@ const Employees: React.FC = () => {
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-secondary-700 block ml-0.5">Department</label>
+              <label htmlFor="dept-select" className="text-sm font-medium text-secondary-700 block ml-0.5">Department</label>
               <select
+                id="dept-select"
+                aria-label="Department"
                 className="w-full px-3 py-2 h-9 bg-white border border-secondary-200 rounded outline-none transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-secondary-300 text-sm font-medium disabled:bg-gray-100"
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
@@ -2033,13 +2107,15 @@ const Employees: React.FC = () => {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-secondary-700 block ml-0.5">Reporting Partner</label>
+              <label htmlFor="partner-select" className="text-sm font-medium text-secondary-700 block ml-0.5">Reporting Partner</label>
               {partnersLoading ? (
                 <div className="w-full px-3 py-2 h-9 bg-gray-50 border border-secondary-200 rounded text-sm text-gray-500">
                   Loading partners...
                 </div>
               ) : (
                 <select
+                  id="partner-select"
+                  aria-label="Reporting Partner"
                   className={`w-full px-3 py-2 h-9 bg-white border border-secondary-200 rounded outline-none transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-secondary-300 text-sm font-medium ${role === 'Partner' ? 'bg-gray-100 cursor-not-allowed' : ''} ${!canEditEmployee() && editingEmployee !== null ? 'disabled:bg-gray-100' : ''}`}
                   value={reportingPartner}
                   onChange={(e) => {
@@ -2070,13 +2146,15 @@ const Employees: React.FC = () => {
               )}
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-secondary-700 block ml-0.5">Reporting Manager</label>
+              <label htmlFor="manager-select" className="text-sm font-medium text-secondary-700 block ml-0.5">Reporting Manager</label>
               {managersLoading ? (
                 <div className="w-full px-3 py-2 h-9 bg-gray-50 border border-secondary-200 rounded text-sm text-gray-500">
                   Loading managers...
                 </div>
               ) : (
                 <select
+                  id="manager-select"
+                  aria-label="Reporting Manager"
                   className={`w-full px-3 py-2 h-9 bg-white border border-secondary-200 rounded outline-none transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-secondary-300 text-sm font-medium ${role === 'Partner' || role === 'Manager' ? 'bg-gray-100 cursor-not-allowed' : ''} ${!canEditEmployee() && editingEmployee !== null ? 'disabled:bg-gray-100' : ''}`}
                   value={reportingManager}
                   onChange={(e) => {
@@ -2301,9 +2379,11 @@ const Employees: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-secondary-500 block mb-1">Gender</label>
+                  <label htmlFor="details-gender-select" className="text-sm font-medium text-secondary-500 block mb-1">Gender</label>
                   {isEditMode && canEditEmployee() ? (
                     <select
+                      id="details-gender-select"
+                      aria-label="Gender"
                       value={editedEmployeeData.profile?.gender || 'Other'}
                       onChange={(e) => handleFieldChange('gender', e.target.value, 'profile')}
                       className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm"
@@ -2318,9 +2398,12 @@ const Employees: React.FC = () => {
                   )}
                 </div>
                 <div className="col-span-1 md:col-span-2 lg:col-span-3">
-                  <label className="text-sm font-medium text-secondary-500 block mb-1">Address</label>
+                  <label htmlFor="details-address-area" className="text-sm font-medium text-secondary-500 block mb-1">Address</label>
                   {isEditMode && canEditEmployee() ? (
                     <textarea
+                      id="details-address-area"
+                      placeholder="Enter permanent address"
+                      aria-label="Permanent Address"
                       value={editedEmployeeData.profile?.permanentAddress || ''}
                       onChange={(e) => handleFieldChange('permanentAddress', e.target.value, 'profile')}
                       className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm"
@@ -2345,9 +2428,11 @@ const Employees: React.FC = () => {
                   <p className="text-sm font-bold text-secondary-900 bg-gray-50 px-3 py-2 rounded">{editedEmployeeData.employeeId}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-secondary-500 block mb-1">Role</label>
+                  <label htmlFor="details-role-select" className="text-sm font-medium text-secondary-500 block mb-1">Role</label>
                   {isEditMode && canEditEmployee() ? (
                     <select
+                      id="details-role-select"
+                      aria-label="Software Role"
                       value={editedEmployeeData.role || 'Employee'}
                       onChange={(e) => handleFieldChange('role', e.target.value)}
                       className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm"
@@ -2363,9 +2448,11 @@ const Employees: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-secondary-500 block mb-1">Department</label>
+                  <label htmlFor="details-dept-select" className="text-sm font-medium text-secondary-500 block mb-1">Department</label>
                   {isEditMode && canEditEmployee() ? (
                     <select
+                      id="details-dept-select"
+                      aria-label="Department"
                       value={editedEmployeeData.department || 'Accounting'}
                       onChange={(e) => handleFieldChange('department', e.target.value)}
                       className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm"
@@ -2409,10 +2496,12 @@ const Employees: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-secondary-500 block mb-1">Reporting Partner</label>
+                  <label htmlFor="details-partner-select" className="text-sm font-medium text-secondary-500 block mb-1">Reporting Partner</label>
                   {isEditMode && canEditEmployee() ? (
                     <>
                     <select
+                      id="details-partner-select"
+                      aria-label="Reporting Partner"
                       value={detailsReportingPartner || ''}
                       onChange={(e) => {
                         const pId = e.target.value;
@@ -2460,10 +2549,12 @@ const Employees: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-secondary-500 block mb-1">Reporting Manager</label>
+                  <label htmlFor="details-manager-select" className="text-sm font-medium text-secondary-500 block mb-1">Reporting Manager</label>
                   {isEditMode && canEditEmployee() ? (
                     <>
                       <select
+                        id="details-manager-select"
+                        aria-label="Reporting Manager"
                         value={editedEmployeeData.reportingManager || ''}
                         onChange={(e) => {
                           console.log('🔄 Details Reporting Manager changed to:', e.target.value);
@@ -2521,9 +2612,11 @@ const Employees: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-secondary-500 block mb-1">Marital Status</label>
+                  <label htmlFor="details-marital-select" className="text-sm font-medium text-secondary-500 block mb-1">Marital Status</label>
                   {isEditMode && canEditEmployee() ? (
                     <select
+                      id="details-marital-select"
+                      aria-label="Marital Status"
                       value={editedEmployeeData.profile?.maritalStatus || 'Single'}
                       onChange={(e) => handleFieldChange('maritalStatus', e.target.value, 'profile')}
                       className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm"
@@ -2549,9 +2642,11 @@ const Employees: React.FC = () => {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-secondary-500 block mb-1">Account Status</label>
+                  <label htmlFor="details-status-select" className="text-sm font-medium text-secondary-500 block mb-1">Account Status</label>
                   {isEditMode && canEditEmployee() ? (
                     <select
+                      id="details-status-select"
+                      aria-label="Account Status"
                       value={editedEmployeeData.status || 'active'}
                       onChange={(e) => handleFieldChange('status', e.target.value)}
                       className="w-full px-3 py-2 border border-secondary-200 rounded-lg text-sm"
@@ -2822,13 +2917,15 @@ const Employees: React.FC = () => {
                       e.currentTarget.src = "/default-avatar.png";
                     }}
                   />
-                  <label htmlFor="profilePhotoUpload" className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors">
+                  <label htmlFor="profilePhotoUpload" aria-label="Upload profile photo" className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors">
                     <PencilSquareIcon className="w-4 h-4" />
                   </label>
                   <input
                     id="profilePhotoUpload"
                     type="file"
                     accept="image/*"
+                    aria-label="Upload profile photo"
+                    title="Upload profile photo"
                     className="hidden"
                     onChange={handleProfilePhotoUpload}
                   />
@@ -3181,10 +3278,12 @@ const Employees: React.FC = () => {
           />
           
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-secondary-700 block ml-0.5">Document Category</label>
+            <label htmlFor="doc-category-select" className="text-sm font-medium text-secondary-700 block ml-0.5">Document Category</label>
             <select
+              id="doc-category-select"
               className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-lg outline-none transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-secondary-300 text-sm font-medium"
               value={documentCategory}
+              aria-label="Document Category"
               onChange={(e) => setDocumentCategory(e.target.value)}
               required
             >
@@ -3197,9 +3296,12 @@ const Employees: React.FC = () => {
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-medium text-secondary-700">Select File</label>
+            <label htmlFor="file-upload-input" className="text-sm font-medium text-secondary-700">Select File</label>
             <input
+              id="file-upload-input"
               type="file"
+              aria-label="Select file to upload"
+              title="Select file"
               onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
               className="w-full px-4 py-2.5 bg-white border border-secondary-200 rounded-lg outline-none transition-all duration-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-secondary-300 text-sm"
               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt,.xls,.xlsx"

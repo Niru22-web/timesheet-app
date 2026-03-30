@@ -368,6 +368,8 @@ const Jobs: React.FC = () => {
                                                 {hasPermission('jobs', 'canEdit') && (
                                                     <button 
                                                         onClick={() => handleEditJob(job)}
+                                                        title="Edit Job"
+                                                        aria-label="Edit Job"
                                                         className="p-2 text-secondary-400 hover:text-primary-600 rounded-lg border border-transparent hover:border-secondary-100 hover:bg-white shadow-sm transition-all focus:outline-none"
                                                     >
                                                         <PencilSquareIcon className="w-4 h-4" />
@@ -376,6 +378,8 @@ const Jobs: React.FC = () => {
                                                 {hasPermission('jobs', 'canDelete') && (
                                                     <button 
                                                         onClick={() => handleDeleteJob(job.id)}
+                                                        title="Delete Job"
+                                                        aria-label="Delete Job"
                                                         className="p-2 text-secondary-400 hover:text-danger-600 rounded-lg border border-transparent hover:border-secondary-100 hover:bg-white shadow-sm transition-all focus:outline-none"
                                                     >
                                                         <TrashIcon className="w-4 h-4" />

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface SkeletonProps {
   className?: string;
@@ -21,15 +21,23 @@ export const Skeleton: React.FC<SkeletonProps> = ({
     rectangular: '',
   };
 
-  const style: React.CSSProperties = {
-    width: width,
-    height: height,
-  };
+  const skeletonRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (skeletonRef.current) {
+      if (width) {
+        skeletonRef.current.style.width = typeof width === 'number' ? `${width}px` : width;
+      }
+      if (height) {
+        skeletonRef.current.style.height = typeof height === 'number' ? `${height}px` : height;
+      }
+    }
+  }, [width, height]);
 
   return (
     <div 
+      ref={skeletonRef}
       className={`${baseStyles} ${variants[variant]} ${className}`}
-      style={style}
     />
   );
 };

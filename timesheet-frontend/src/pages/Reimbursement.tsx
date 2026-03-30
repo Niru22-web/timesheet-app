@@ -242,7 +242,14 @@ const Reimbursement: React.FC = () => {
           <p className="text-sm font-medium text-secondary-500 mt-1 italic">Corporate disbursement and reimbursement management.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" size="sm" className="h-10" onClick={fetchClaims}>
+           <Button 
+            variant="secondary" 
+            size="sm" 
+            className="h-10" 
+            onClick={fetchClaims}
+            title="Refresh Claims"
+            aria-label="Refresh Claims"
+          >
             <ArrowPathIcon className="w-4 h-4" />
           </Button>
           <Button
@@ -367,15 +374,27 @@ const Reimbursement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1.5 text-secondary-400 hover:text-primary-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all">
+                        <button 
+                          className="p-1.5 text-secondary-400 hover:text-primary-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
+                          title="View Claim Details"
+                          aria-label="View Details"
+                        >
                           <EyeIcon className="w-4 h-4" />
                         </button>
                         {claim.status === 'pending' && (
                           <>
-                            <button className="p-1.5 text-secondary-400 hover:text-warning-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all">
+                            <button 
+                              className="p-1.5 text-secondary-400 hover:text-warning-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
+                              title="Edit Claim"
+                              aria-label="Edit Claim"
+                            >
                               <PencilSquareIcon className="w-4 h-4" />
                             </button>
-                            <button className="p-1.5 text-secondary-400 hover:text-danger-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all">
+                            <button 
+                              className="p-1.5 text-secondary-400 hover:text-danger-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
+                              title="Delete Claim"
+                              aria-label="Delete Claim"
+                            >
                               <TrashIcon className="w-4 h-4" />
                             </button>
                           </>
@@ -535,6 +554,8 @@ const Reimbursement: React.FC = () => {
                       type="button"
                       onClick={() => removeAttachment(index)}
                       className="p-1 text-red-500 hover:text-red-700 transition-colors"
+                      title="Remove Attachment"
+                      aria-label="Remove Attachment"
                     >
                       <XMarkIcon className="w-5 h-5" />
                     </button>

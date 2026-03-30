@@ -358,7 +358,14 @@ const LeaveManagement: React.FC = () => {
           <p className="text-sm font-medium text-secondary-500 mt-1">Manage your leave requests and track leave balance.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" size="sm" className="h-10" onClick={fetchLeaveRecords}>
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            className="h-10" 
+            onClick={fetchLeaveRecords}
+            title="Refresh Records"
+            aria-label="Refresh Records"
+          >
             <ArrowPathIcon className="w-4 h-4" />
           </Button>
           <Button
@@ -532,18 +539,28 @@ const LeaveManagement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1.5 text-secondary-400 hover:text-primary-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all">
+                        <button 
+                          className="p-1.5 text-secondary-400 hover:text-primary-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
+                          title="View Details"
+                          aria-label="View Details"
+                        >
                           <EyeIcon className="w-4 h-4" />
                         </button>
                         
                         {canEditCancel(record) && (
                           <>
-                            <button className="p-1.5 text-secondary-400 hover:text-warning-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all">
+                            <button 
+                              className="p-1.5 text-secondary-400 hover:text-warning-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
+                              title="Edit Leave Request"
+                              aria-label="Edit Leave"
+                            >
                               <PencilSquareIcon className="w-4 h-4" />
                             </button>
                             <button 
                               onClick={() => handleCancelLeave(record.id)}
                               className="p-1.5 text-secondary-400 hover:text-danger-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
+                              title="Cancel Leave Request"
+                              aria-label="Cancel Leave"
                             >
                               <TrashIcon className="w-4 h-4" />
                             </button>
@@ -555,12 +572,16 @@ const LeaveManagement: React.FC = () => {
                             <button 
                               onClick={() => handleUpdateLeave(record.id, 'approved')}
                               className="p-1.5 text-secondary-400 hover:text-success-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
+                              title="Approve Leave Request"
+                              aria-label="Approve Leave"
                             >
                               <CheckCircleIcon className="w-4 h-4" />
                             </button>
                             <button 
                               onClick={() => handleUpdateLeave(record.id, 'rejected')}
                               className="p-1.5 text-secondary-400 hover:text-danger-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
+                              title="Reject Leave Request"
+                              aria-label="Reject Leave"
                             >
                               <XCircleIcon className="w-4 h-4" />
                             </button>

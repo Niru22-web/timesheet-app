@@ -19,16 +19,16 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = () => {
         
         // Show success message to user
         document.body.innerHTML = `
-          <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; text-align: center;">
-            <h2 style="color: #28a745; margin-bottom: 20px;">✅ Email Connected Successfully!</h2>
-            <p style="color: #666; margin-bottom: 15px;">Your email account has been connected to the Timesheet System.</p>
-            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
-              <p style="color: #155724; margin: 0; font-size: 14px;">
+          <div class="oauth-success-container">
+            <h2 class="oauth-success-title">✅ Email Connected Successfully!</h2>
+            <p class="oauth-footer-text">Your email account has been connected to the Timesheet System.</p>
+            <div class="oauth-info-box">
+              <p class="oauth-info-text">
                 <strong>Connected Account:</strong><br>
                 ${event.data.email || 'Connected Account'}
               </p>
             </div>
-            <p style="color: #666; font-size: 12px; margin-top: 15px;">This window will close automatically in 3 seconds...</p>
+            <p class="oauth-footer-text">This window will close automatically in 3 seconds...</p>
           </div>
         `;
         
@@ -47,12 +47,12 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = () => {
     const error = urlParams.get('error');
     if (error) {
       document.body.innerHTML = `
-        <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #dc3545; border-radius: 8px; text-align: center;">
-          <h2 style="color: #dc3545; margin-bottom: 20px;">❌ Authentication Failed</h2>
-          <p style="color: #666; margin-bottom: 15px;">${decodeURIComponent(error || 'Unknown error')}</p>
-          <p style="color: #666; font-size: 12px;">Please try again or contact your administrator.</p>
+        <div class="oauth-error-container">
+          <h2 class="oauth-error-title">❌ Authentication Failed</h2>
+          <p class="oauth-footer-text">${decodeURIComponent(error || 'Unknown error')}</p>
+          <p class="oauth-footer-text">Please try again or contact your administrator.</p>
           <div style="margin-top: 20px;">
-            <button onclick="window.close()" style="background-color: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Close Window</button>
+            <button onclick="window.close()" class="oauth-error-button">Close Window</button>
           </div>
         </div>
       `;
@@ -61,19 +61,86 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = () => {
     return () => window.removeEventListener('message', messageHandler);
   }, []);
   
+  const oauthStyles = `
+    .oauth-callback-container {
+      font-family: Arial, sans-serif;
+    }
+    .oauth-loading-wrapper {
+      text-align: center;
+      margin-top: 50px;
+    }
+    .oauth-card {
+      display: inline-block;
+      padding: 20px;
+      border: 1px solid #f3f4f6;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+    .oauth-loading-text {
+      margin-top: 15px;
+      color: #666;
+    }
+    /* Styles for injected HTML */
+    .oauth-success-container {
+      font-family: Arial, sans-serif;
+      max-width: 400px;
+      margin: 50px auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .oauth-success-title {
+      color: #28a745;
+      margin-bottom: 20px;
+    }
+    .oauth-info-box {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    .oauth-info-text {
+      color: #155724;
+      margin: 0;
+      font-size: 14px;
+    }
+    .oauth-footer-text {
+      color: #666;
+      font-size: 12px;
+      margin-top: 15px;
+    }
+    .oauth-error-container {
+      font-family: Arial, sans-serif;
+      max-width: 400px;
+      margin: 50px auto;
+      padding: 20px;
+      border: 1px solid #dc3545;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .oauth-error-title {
+      color: #dc3545;
+      margin-bottom: 20px;
+    }
+    .oauth-error-button {
+      background-color: #6c757d;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  `;
+
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif' }}>
+    <div className="oauth-callback-container">
+      <style>{oauthStyles}</style>
       {/* Loading message */}
       {!urlParams.get('code') && !urlParams.get('error') && !urlParams.get('outlook') && (
-        <div style={{ textAlign: 'center', marginTop: '50px' }}>
-          <div style={{ 
-            display: 'inline-block', 
-            padding: '20px', 
-            border: '1px solid #f3f4f6', 
-            borderRadius: '8px',
-            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-          }}>
-            <p style={{ marginTop: '15px', color: '#666' }}>Processing authentication...</p>
+        <div className="oauth-loading-wrapper">
+          <div className="oauth-card">
+            <p className="oauth-loading-text">Processing authentication...</p>
           </div>
         </div>
       )}

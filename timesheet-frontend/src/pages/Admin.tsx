@@ -33,6 +33,20 @@ import StatusBadge from '../components/ui/StatusBadge';
 import Modal from '../components/ui/Modal';
 import Avatar from '../components/ui/Avatar';
 
+const ProgressBar: React.FC<{ percent: number }> = ({ percent }) => {
+  const ref = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.style.width = `${Math.min(percent, 100)}%`;
+    }
+  }, [percent]);
+  return (
+    <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+      <div ref={ref} className="h-full bg-primary-500 rounded-full transition-all duration-1000" />
+    </div>
+  );
+};
+
 const Admin: React.FC = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -184,9 +198,7 @@ const Admin: React.FC = () => {
                     <span>{stat.label}</span>
                     <span className="text-white">{stat.value}</span>
                   </div>
-                  <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary-500 rounded-full transition-all duration-1000" style={{ width: `${Math.min(stat.percent, 100)}%` }} />
-                  </div>
+                  <ProgressBar percent={stat.percent} />
                 </div>
               ))}
             </div>

@@ -20,6 +20,57 @@ import NotificationWidget from './ui/NotificationWidget';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
+const dashboardStyles = `
+  .dashboard-welcome-banner {
+    background: linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #7c3aed 100%);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  }
+  .dashboard-welcome-title {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  .dashboard-welcome-desc {
+    font-size: 15px;
+    color: rgba(255,255,255,0.85);
+  }
+  .dashboard-btn-secondary {
+    background: white !important;
+    color: #1e3a8a !important;
+    border-radius: 10px !important;
+    padding: 10px 16px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+  }
+  .dashboard-btn-ghost {
+    background: transparent !important;
+    border: 1px solid rgba(255,255,255,0.3) !important;
+    color: white !important;
+    border-radius: 10px !important;
+    padding: 10px 16px !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+  }
+  .dashboard-progress-card {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(12px);
+  }
+  .role-indicator {
+    /* Base styles */
+  }
+  .indicator-color-0 { background-color: #0088FE; }
+  .indicator-color-1 { background-color: #00C49F; }
+  .indicator-color-2 { background-color: #FFBB28; }
+  .indicator-color-3 { background-color: #FF8042; }
+  .indicator-color-4 { background-color: #8884d8; }
+`;
+
+const TOOLTIP_STYLE = { 
+  borderRadius: '12px', 
+  border: 'none', 
+  boxShadow: '0 4px 20px rgba(0,0,0,0.1)' 
+};
+
 const CommonDashboard: React.FC<{ userRole?: string, title?: string, subtitle?: string }> = ({ userRole, title, subtitle }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -143,13 +194,14 @@ const CommonDashboard: React.FC<{ userRole?: string, title?: string, subtitle?: 
       title={title || "Dashboard"} 
       subtitle={subtitle || `Welcome back, ${user?.name || 'User'}`}
     >
+      <style>{dashboardStyles}</style>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Section (2/3) */}
         <div className="lg:col-span-2 space-y-8">
           
           {/* Welcome Card */}
-          <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-7 text-white shadow-2xl relative overflow-hidden backdrop-blur-xl" style={{ background: 'linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #7c3aed 100%)', boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
+          <div className="dashboard-welcome-banner bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-7 text-white shadow-2xl relative overflow-hidden backdrop-blur-xl">
             {/* Subtle glass/blur effect overlay */}
             <div className="absolute inset-0 backdrop-blur-sm bg-white/5"></div>
             
@@ -160,10 +212,10 @@ const CommonDashboard: React.FC<{ userRole?: string, title?: string, subtitle?: 
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               {/* Left Content */}
               <div className="space-y-4 flex-1">
-                <h1 className="text-2xl font-semibold" style={{ fontSize: '28px', fontWeight: '600', letterSpacing: '-0.3px' }}>
+                <h1 className="dashboard-welcome-title text-2xl font-semibold">
                   Welcome back, {user?.name || 'User'}!
                 </h1>
-                <p className="text-blue-100 max-w-md" style={{ fontSize: '15px', color: 'rgba(255,255,255,0.85)' }}>
+                <p className="dashboard-welcome-desc text-blue-100 max-w-md">
                   You're making great progress. Complete your profile to unlock all features.
                 </p>
                 <div className="flex flex-wrap gap-3 pt-2 items-center">
@@ -171,15 +223,7 @@ const CommonDashboard: React.FC<{ userRole?: string, title?: string, subtitle?: 
                     variant="secondary" 
                     size="sm" 
                     onClick={() => navigate('/profile')}
-                    className="flex items-center gap-2 font-medium rounded-lg hover:shadow-lg transition-all duration-200"
-                    style={{ 
-                      background: 'white', 
-                      color: '#1e3a8a', 
-                      borderRadius: '10px', 
-                      padding: '10px 16px',
-                      fontWeight: '500',
-                      transition: 'all 0.2s ease'
-                    }}
+                    className="dashboard-btn-secondary flex items-center gap-2 font-medium rounded-lg hover:shadow-lg transition-all duration-200"
                   >
                     <PlusCircle size={18} />
                     Complete Profile
@@ -188,16 +232,7 @@ const CommonDashboard: React.FC<{ userRole?: string, title?: string, subtitle?: 
                     variant="ghost" 
                     size="sm" 
                     onClick={() => navigate('/employees')}
-                    className="flex items-center gap-2 font-medium rounded-lg hover:bg-white/10 transition-all duration-200"
-                    style={{ 
-                      background: 'transparent', 
-                      border: '1px solid rgba(255,255,255,0.3)', 
-                      color: 'white',
-                      borderRadius: '10px', 
-                      padding: '10px 16px',
-                      fontWeight: '500',
-                      transition: 'all 0.2s ease'
-                    }}
+                    className="dashboard-btn-ghost flex items-center gap-2 font-medium rounded-lg hover:bg-white/10 transition-all duration-200"
                   >
                     <PlayCircle size={18} />
                     View Dashboard
@@ -206,7 +241,7 @@ const CommonDashboard: React.FC<{ userRole?: string, title?: string, subtitle?: 
               </div>
               
               {/* Right Card - Progress */}
-              <div className="glassmorphism-card rounded-2xl p-6 flex flex-col items-center justify-center min-w-[140px] border border-white/20" style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)' }}>
+              <div className="dashboard-progress-card rounded-2xl p-6 flex flex-col items-center justify-center min-w-[140px] border border-white/20">
                  <div className="relative w-20 h-20 flex items-center justify-center">
                     {/* Animated progress ring */}
                     <svg className="w-full h-full transform -rotate-90">
@@ -292,7 +327,7 @@ const CommonDashboard: React.FC<{ userRole?: string, title?: string, subtitle?: 
                       ))}
                     </Pie>
                     <Tooltip 
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
+                      contentStyle={TOOLTIP_STYLE}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -302,7 +337,7 @@ const CommonDashboard: React.FC<{ userRole?: string, title?: string, subtitle?: 
                 {roleDistribution.map((item: any, index: number) => (
                   <div key={item.name} className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                      <div className={`w-3 h-3 rounded-full indicator-color-${index % COLORS.length}`}></div>
                       <span className="text-sm font-medium text-gray-700">{item.name}</span>
                     </div>
                     <span className="text-sm font-bold text-gray-900">{item.value} members</span>

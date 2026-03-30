@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { 
   BriefcaseIcon, 
   CheckCircleIcon, 
@@ -15,6 +15,13 @@ interface ProfileInsightsProps {
 const ProfileInsights: React.FC<ProfileInsightsProps> = ({ details, completeness, onUpdateClick }) => {
   const stats = details.stats || { projectsCount: 0, timelogsCount: 0, teamCount: 0 };
   const activities = details.recentActivities || [];
+  const progressBarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (progressBarRef.current) {
+      progressBarRef.current.style.width = `${completeness}%`;
+    }
+  }, [completeness]);
 
   return (
     <div className="profile-column profile-insights">
@@ -24,7 +31,7 @@ const ProfileInsights: React.FC<ProfileInsightsProps> = ({ details, completeness
           <span className="font-bold">{completeness}%</span>
         </div>
         <div className="progress-bar-bg mb-2">
-          <div className="progress-bar-fill" style={{ width: `${completeness}%` }}></div>
+          <div ref={progressBarRef} className="progress-bar-fill"></div>
         </div>
         <p className="text-[11px] opacity-80">Finish your profile to unlock more features.</p>
       </div>

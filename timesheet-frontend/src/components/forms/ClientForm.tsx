@@ -1,8 +1,6 @@
-"use client";
-
 import { useState } from "react";
-import api from "@/lib/api";
-import { useRouter } from "next/navigation";
+import api from "../../api";
+import { useNavigate } from "react-router-dom";
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa",
@@ -18,7 +16,7 @@ const COUNTRIES = [
 ];
 
 export default function ClientForm() {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     name: "",
@@ -66,7 +64,7 @@ export default function ClientForm() {
     try {
       await api.post("/clients", form);
       alert("Client Created Successfully");
-      router.push("/clients");
+      navigate("/clients");
     } catch (error) {
       alert("Error creating client");
     }
@@ -84,13 +82,14 @@ export default function ClientForm() {
       <h2 className="text-xl font-bold mb-3">Create Client</h2>
 
       <div className="grid grid-cols-2 gap-3">
-        <input name="name" placeholder="Legal Client Name *" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" required />
-        <input name="alias" placeholder="Alias / Short Code" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" />
+        <input name="name" aria-label="Legal Client Name" placeholder="Legal Client Name *" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" required />
+        <input name="alias" aria-label="Alias or Short Code" placeholder="Alias / Short Code" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" />
 
-        <input name="address" placeholder="Registered Address" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm col-span-2" />
+        <input name="address" aria-label="Registered Address" placeholder="Registered Address" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm col-span-2" />
 
         <select 
           name="country" 
+          aria-label="Select Country"
           onChange={handleChange} 
           value={form.country}
           className="border px-3 py-2 h-9 rounded text-sm"
@@ -104,6 +103,7 @@ export default function ClientForm() {
         
         <select 
           name="state" 
+          aria-label="Select State"
           onChange={handleChange} 
           value={form.state}
           className="border px-3 py-2 h-9 rounded text-sm"
@@ -115,9 +115,9 @@ export default function ClientForm() {
           ))}
         </select>
 
-        <input name="pin" placeholder="PIN Code" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" />
+        <input name="pin" aria-label="PIN Code" placeholder="PIN Code" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" />
 
-        <select name="gstStatus" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm">
+        <select name="gstStatus" aria-label="GST Status" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm">
           <option value="">GST Status</option>
           <option value="registered">Registered</option>
           <option value="unregistered">Unregistered</option>
@@ -126,19 +126,20 @@ export default function ClientForm() {
         {form.gstStatus === "registered" && (
           <input
             name="gstin"
+            aria-label="GSTIN"
             placeholder="GSTIN"
             onChange={handleChange}
             className="border px-3 py-2 h-9 rounded text-sm"
           />
         )}
-        <input name="pan" placeholder="PAN" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" />
+        <input name="pan" aria-label="PAN" placeholder="PAN" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" />
 
 
       </div>
 
       <div className="flex justify-between items-center mt-4 pt-3 border-t sticky bottom-0 bg-white">
         <button
-          onClick={() => router.push("/clients")}
+          onClick={() => navigate("/clients")}
           className="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50"
         >
           Cancel

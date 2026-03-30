@@ -191,6 +191,7 @@ const TimesheetDrawer: React.FC<TimesheetDrawerProps> = ({
                               type="button"
                               className="rounded-xl bg-white p-2 text-slate-400 hover:text-slate-500 border border-slate-200 shadow-sm transition-all hover:scale-105 active:scale-95"
                               onClick={onClose}
+                              aria-label="Close Drawer"
                             >
                               <X className="h-5 w-5" />
                             </button>
@@ -274,6 +275,7 @@ const TimesheetDrawer: React.FC<TimesheetDrawerProps> = ({
                                  </div>
                                  <button
                                    type="button"
+                                   aria-label="Toggle Billable Status"
                                    onClick={() => setFormData({...formData, isBillable: !formData.isBillable})}
                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${formData.isBillable ? 'bg-primary-600' : 'bg-slate-200'}`}
                                  >

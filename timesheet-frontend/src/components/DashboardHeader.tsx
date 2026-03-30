@@ -86,7 +86,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <div className="flex items-center gap-4">
             
             {/* Notifications Button */}
-            <button className="relative p-2.5 rounded-xl hover:bg-secondary-50 text-secondary-500 transition-all duration-200 group active:scale-95">
+            <button 
+              title="Notifications"
+              aria-label="View notifications"
+              className="relative p-2.5 rounded-xl hover:bg-secondary-50 text-secondary-500 transition-all duration-200 group active:scale-95"
+            >
               <BellIcon className="w-5 h-5 group-hover:text-secondary-900" />
               <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary-600 rounded-full border-2 border-white ring-2 ring-primary-100 ring-offset-0 animate-pulse"></span>
             </button>
@@ -95,6 +99,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <div className="relative" ref={dropdownRef}>
                 <button 
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    title="User Profile"
+                    aria-label="Open user menu"
                     className={`
                         flex items-center gap-2 p-1.5 pr-3 rounded-xl transition-all duration-200 active:scale-[0.98]
                         ${isDropdownOpen ? 'bg-secondary-100/50 ring-1 ring-secondary-200' : 'hover:bg-secondary-50'}

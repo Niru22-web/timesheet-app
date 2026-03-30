@@ -320,6 +320,8 @@ const Profile: React.FC = () => {
                         />
                         <button
                             onClick={() => document.getElementById('profile-photo-input')?.click()}
+                            title="Change Profile Photo"
+                            aria-label="Change Profile Photo"
                             className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full shadow-lg hover:bg-primary-700 transition-colors"
                         >
                             <CameraIcon className="w-4 h-4" />
@@ -332,6 +334,8 @@ const Profile: React.FC = () => {
                         accept=".jpg,.jpeg,.png"
                         onChange={handlePhotoChange}
                         className="hidden"
+                        title="Upload profile photo"
+                        aria-label="Upload profile photo"
                     />
 
                     {photoError && (
@@ -402,11 +406,14 @@ const Profile: React.FC = () => {
                             onChange={(e) => handleInputChange('education', e.target.value)}
                         />
                         <div className="space-y-1.5 flex flex-col">
-                            <label className="text-sm font-medium text-secondary-700 ml-0.5">Marital Status</label>
+                            <label htmlFor="marital-status-select" className="text-sm font-medium text-secondary-700 ml-0.5">Marital Status</label>
                             <select
+                                id="marital-status-select"
                                 className="w-full px-4 py-2 bg-white border border-secondary-200 rounded-lg outline-none focus:ring-2 focus:ring-primary-500/20 text-sm"
                                 value={formData.maritalStatus}
                                 onChange={(e) => handleInputChange('maritalStatus', e.target.value)}
+                                aria-label="Marital Status"
+                                title="Marital Status"
                             >
                                 <option value="">Select Status</option>
                                 <option value="Single">Single</option>
@@ -415,11 +422,14 @@ const Profile: React.FC = () => {
                             </select>
                         </div>
                         <div className="space-y-1.5 flex flex-col">
-                            <label className="text-sm font-medium text-secondary-700 ml-0.5">Gender</label>
+                            <label htmlFor="gender-select" className="text-sm font-medium text-secondary-700 ml-0.5">Gender</label>
                             <select
+                                id="gender-select"
                                 className="w-full px-4 py-2 bg-white border border-secondary-200 rounded-lg outline-none focus:ring-2 focus:ring-primary-500/20 text-sm"
                                 value={formData.gender}
                                 onChange={(e) => handleInputChange('gender', e.target.value)}
+                                aria-label="Gender"
+                                title="Gender"
                             >
                                 <option value="">Select Gender</option>
                                 <option value="Male">Male</option>

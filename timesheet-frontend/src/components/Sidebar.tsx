@@ -226,6 +226,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       {!isMobile && (
         <button
           onClick={onCollapse}
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="absolute -right-3 top-20 w-6 h-6 bg-white border border-secondary-200 rounded-full flex items-center justify-center shadow-sm text-secondary-400 hover:text-primary-600 hover:border-primary-200 transition-all z-50 active:scale-90"
         >
           {isCollapsed ? <ChevronRightIcon className="w-3.5 h-3.5" /> : <ChevronLeftIcon className="w-3.5 h-3.5" />}
@@ -258,6 +260,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         if (isMobile && onClose) onClose();
                     }}
                     title={isCollapsed && !isMobile ? item.name : ''}
+                    aria-label={item.name}
                     className={`
                       w-full flex items-center rounded-xl transition-all duration-200 group relative
                       ${isCollapsed && !isMobile ? 'justify-center p-3' : 'px-3 py-2.5 gap-3'}
@@ -330,6 +333,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           size="sm"
           fullWidth
           onClick={handleLogout}
+          title="Sign Out"
+          aria-label="Sign Out"
           className={`
             font-bold text-danger-600 hover:bg-danger-50 hover:text-danger-700 hover:border-danger-100 border-secondary-200
             ${isCollapsed && !isMobile ? 'px-0 justify-center' : ''}

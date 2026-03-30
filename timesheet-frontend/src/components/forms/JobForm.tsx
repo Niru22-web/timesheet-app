@@ -1,8 +1,6 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import api from "@/lib/api";
-import { useRouter } from "next/navigation";
+import api from "../../api";
+import { useNavigate } from "react-router-dom";
 
 interface Client {
   id: string;
@@ -16,7 +14,7 @@ interface Project {
 }
 
 export default function JobForm() {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -97,7 +95,7 @@ export default function JobForm() {
     try {
       await api.post("/jobs", form);
       alert("Job Created Successfully");
-      router.push("/jobs");
+      navigate("/jobs");
     } catch (error) {
       alert("Error creating job");
     }
@@ -111,6 +109,7 @@ export default function JobForm() {
 
         <select 
           name="clientId" 
+          aria-label="Select Client"
           value={form.clientId}
           onChange={handleClientChange} 
           className="border px-3 py-2 h-9 rounded text-sm bg-white"
@@ -129,6 +128,7 @@ export default function JobForm() {
 
         <select
           name="projectId"
+          aria-label="Select Project"
           onChange={handleChange}
           value={form.projectId}
           className="border px-3 py-2 h-9 rounded text-sm"
@@ -143,17 +143,27 @@ export default function JobForm() {
 
         <input name="name" placeholder="Job Name" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" />
 
-        <select name="status" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm">
+        <select 
+          name="status" 
+          aria-label="Select Status"
+          onChange={handleChange} 
+          className="border px-3 py-2 h-9 rounded text-sm"
+        >
           <option value="">Status</option>
           <option value="Started">Started</option>
           <option value="In-Discussion">In-Discussion</option>
           <option value="Completed">Completed</option>
         </select>
 
-        <input type="date" name="startDate" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" />
-        <input type="date" name="endDate" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" />
+        <input type="date" name="startDate" aria-label="Start Date" placeholder="Start Date" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" />
+        <input type="date" name="endDate" aria-label="End Date" placeholder="End Date" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm" />
 
-        <select name="billable" onChange={handleChange} className="border px-3 py-2 h-9 rounded text-sm">
+        <select 
+          name="billable" 
+          aria-label="Select Billable Status"
+          onChange={handleChange} 
+          className="border px-3 py-2 h-9 rounded text-sm"
+        >
           <option value="">Billable?</option>
           <option value="true">Billable</option>
           <option value="false">Non-Billable</option>
@@ -170,7 +180,7 @@ export default function JobForm() {
 
       <div className="flex justify-between items-center mt-4 pt-3 border-t sticky bottom-0 bg-white">
         <button
-          onClick={() => router.push("/jobs")}
+          onClick={() => navigate("/jobs")}
           className="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50"
         >
           Cancel

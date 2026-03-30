@@ -392,6 +392,8 @@ const Projects: React.FC = () => {
                         {hasPermission('projects', 'canEdit') && (
                           <button 
                             onClick={() => handleEditProject(project)}
+                            title="Edit Project"
+                            aria-label="Edit Project"
                             className="p-2 text-secondary-400 hover:text-primary-600 rounded-lg border border-transparent hover:border-secondary-100 hover:bg-white shadow-sm transition-all focus:outline-none"
                           >
                             <PencilSquareIcon className="w-4 h-4" />
@@ -400,6 +402,8 @@ const Projects: React.FC = () => {
                         {hasPermission('projects', 'canDelete') && (
                           <button 
                             onClick={() => handleDeleteProject(project.id)}
+                            title="Delete Project"
+                            aria-label="Delete Project"
                             className="p-2 text-secondary-400 hover:text-danger-600 rounded-lg border border-transparent hover:border-secondary-100 hover:bg-white shadow-sm transition-all focus:outline-none"
                           >
                             <TrashIcon className="w-4 h-4" />
