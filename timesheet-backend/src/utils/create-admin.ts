@@ -42,7 +42,11 @@ async function createAdmin() {
         doj: new Date(),
         education: 'N/A',
         maritalStatus: 'N/A',
-        gender: 'N/A'
+        gender: 'N/A',
+        permanentAddress: 'N/A',
+        currentAddress: 'N/A',
+        pan: 'N/A',
+        aadhaar: 'N/A'
       }
     });
     console.log('✅ Admin profile created successfully!');

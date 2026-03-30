@@ -5,6 +5,7 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "strict": true,
+    "useUnknownInCatchVariables": false,
     "esModuleInterop": true
   },
   "include": ["src/**/*"],
