@@ -23,14 +23,14 @@ const getGoogleAuthConfig = () => ({
 const getMicrosoftAuthConfig = () => {
   const clientId = process.env.MICROSOFT_CLIENT_ID || process.env.OUTLOOK_CLIENT_ID || '';
   const clientSecret = process.env.MICROSOFT_CLIENT_SECRET || process.env.OUTLOOK_CLIENT_SECRET || '';
-  
-  // USER INSTRUCTION: Redirect URI must match backend callback
-  // Use env var if provided, otherwise construct from BACKEND_URL
-  const backendUrl = process.env.BACKEND_URL || process.env.API_URL || 'http://13.232.211.142:5000';
-  const redirectUri = process.env.MICROSOFT_REDIRECT_URI || `${backendUrl}/api/auth/outlook/callback`;
-  
+  const redirectUri = process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:5000/api/email/oauth/outlook/callback';
   const tenantId = process.env.MICROSOFT_TENANT_ID || 'common';
   
+  // Validation check
+  if (clientId === 'your-outlook-client-id' || !clientId) {
+    console.error('❌ CRITICAL: Outlook Client ID is missing or using placeholder');
+  }
+
   return {
     clientId,
     clientSecret,
@@ -207,54 +207,41 @@ class EmailService {
     refreshToken: string;
     tokenExpiry: Date;
   }) {
-    console.log(`💾 DB: Attempting to store ${data.provider} connection for employee ${data.employeeId}...`);
-    
-    try {
-      const updateResult = await prisma.emailConnection.updateMany({
-        where: {
-          employeeId: data.employeeId,
-          provider: data.provider
-        },
+    await prisma.emailConnection.updateMany({
+      where: {
+        employeeId: data.employeeId,
+        provider: data.provider
+      },
+      data: {
+        email: data.email,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        tokenExpiry: data.tokenExpiry,
+        isActive: true,
+        updatedAt: new Date()
+      }
+    });
+
+    // If no records were updated, create a new one
+    const existing = await prisma.emailConnection.findFirst({
+      where: {
+        employeeId: data.employeeId,
+        provider: data.provider
+      }
+    });
+
+    if (!existing) {
+      await prisma.emailConnection.create({
         data: {
+          employeeId: data.employeeId,
+          provider: data.provider,
           email: data.email,
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
           tokenExpiry: data.tokenExpiry,
-          isActive: true,
-          updatedAt: new Date()
+          isActive: true
         }
       });
-
-      console.log(`💾 DB: Update attempt finished. Rows affected: ${updateResult.count}`);
-
-      // If no records were updated, create a new one
-      const existing = await prisma.emailConnection.findFirst({
-        where: {
-          employeeId: data.employeeId,
-          provider: data.provider
-        }
-      });
-
-      if (!existing) {
-        console.log(`💾 DB: No existing connection found. Creating new record for ${data.employeeId}...`);
-        await prisma.emailConnection.create({
-          data: {
-            employeeId: data.employeeId,
-            provider: data.provider,
-            email: data.email,
-            accessToken: data.accessToken,
-            refreshToken: data.refreshToken,
-            tokenExpiry: data.tokenExpiry,
-            isActive: true
-          }
-        });
-        console.log('💾 DB: New record created successfully.');
-      } else {
-        console.log('💾 DB: Existing record updated or verified.');
-      }
-    } catch (dbError: any) {
-      console.error('❌ DB ERROR in storeEmailConnection:', dbError.message);
-      throw dbError;
     }
   }
 

@@ -9,8 +9,12 @@ export const initSocket = (server: Server) => {
       origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [
         "http://localhost:5173", 
         "http://localhost:5174", 
+        "http://localhost:5175", 
+        "http://localhost:5176", 
         "http://13.232.211.142", 
-        "http://13.232.211.142:5173"
+        "http://13.232.211.142:3000", 
+        "http://13.232.211.142:5173", 
+        "http://13.232.211.142:9000"
       ],
       methods: ['GET', 'POST', 'PATCH', 'DELETE', 'PUT'],
       credentials: true

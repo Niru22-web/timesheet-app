@@ -101,16 +101,19 @@ const EmailConfiguration: React.FC = () => {
     const error = urlParams.get('error');
     const outlookConnected = urlParams.get('outlook');
 
-    // Handle OAuth callback result - backend-driven redirect (outlook=connected)
+    // Handle OAuth callback result - new format
     if (outlookConnected === 'connected') {
-      console.log('✅ Outlook connection success detected via URL parameter');
       setTestResult({
         success: true,
         message: 'Outlook account connected successfully!',
         details: { provider: 'outlook', connectedAt: new Date().toISOString() }
       });
       setShowTestModal(true);
+      
+      // Clear URL params
       window.history.replaceState({}, '', window.location.pathname);
+      
+      // Refresh OAuth status
       checkOAuthStatus();
     }
     // Handle OAuth callback result - legacy format
@@ -121,7 +124,11 @@ const EmailConfiguration: React.FC = () => {
         details: { provider, email, connectedAt: new Date().toISOString() }
       });
       setShowTestModal(true);
+      
+      // Clear URL params
       window.history.replaceState({}, '', window.location.pathname);
+      
+      // Refresh OAuth status
       checkOAuthStatus();
     } else if (success === 'false' && provider && error) {
       setTestResult({
@@ -130,6 +137,8 @@ const EmailConfiguration: React.FC = () => {
         details: { provider, error }
       });
       setShowTestModal(true);
+      
+      // Clear URL params
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);

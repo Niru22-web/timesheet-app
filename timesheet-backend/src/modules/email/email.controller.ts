@@ -55,12 +55,10 @@ export const handleGoogleCallback = async (req: Request, res: Response) => {
     const result = await emailService.handleGoogleCallback(code as string, user.employeeId);
 
     // Redirect to frontend with success
-    const frontendUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://13.232.211.142';
-    res.redirect(`${frontendUrl}/email-configuration?success=true&provider=gmail&email=${result.email}`);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/email-configuration?success=true&provider=gmail&email=${result.email}`);
   } catch (error) {
     console.error('Google callback error:', error);
-    const frontendUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://13.232.211.142';
-    res.redirect(`${frontendUrl}/email-configuration?success=false&provider=gmail&error=Failed to connect Gmail`);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/email-configuration?success=false&provider=gmail&error=Failed to connect Gmail`);
   }
 };
 
@@ -69,37 +67,37 @@ export const handleMicrosoftCallback = async (req: Request, res: Response) => {
   try {
     const { code, state } = req.query;
 
-    console.log('📡 Microsoft OAuth callback received');
-    console.log('🔑 Authorization Code received:', code ? 'Yes' : 'No');
-    console.log('🆔 State (employeeId):', state);
+    console.log('Microsoft OAuth callback received');
+    console.log('Code parameter:', code ? 'Present' : 'Missing');
+    console.log('State parameter (userId):', state);
 
     if (!code) {
-      console.error('❌ No authorization code received from Microsoft OAuth');
+      console.error('No authorization code received from Microsoft OAuth');
       return res.status(400).json({ 
         message: 'Authorization code missing' 
       });
     }
 
     if (!state) {
-      console.error('❌ No state parameter received - cannot identify user');
+      console.error('No state parameter received - cannot identify user');
       return res.status(400).json({ 
         message: 'State parameter missing - cannot identify user' 
       });
     }
 
     const employeeId = state as string;
-    
+    console.log('Processing OAuth for employeeId:', employeeId);
+
     // Exchange code for access token using form-encoded data
-    console.log('🔄 Exchanging authorization code for access token...');
+    console.log('Exchanging authorization code for access token...');
     
     const clientId = process.env.MICROSOFT_CLIENT_ID || process.env.OUTLOOK_CLIENT_ID || '';
     const clientSecret = process.env.MICROSOFT_CLIENT_SECRET || process.env.OUTLOOK_CLIENT_SECRET || '';
-    // IMPORTANT: This redirect_uri MUST match exactly what was sent in the authorize request
-    // According to user request, it should now be /api/auth/outlook/callback
-    const backendUrl = process.env.BACKEND_URL || process.env.API_URL || 'http://13.232.211.142:5000';
-    const redirectUri = process.env.MICROSOFT_REDIRECT_URI || `${backendUrl}/api/auth/outlook/callback`;
+    const redirectUri = process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:5000/api/email/oauth/outlook/callback';
 
-    console.log('📍 Using Redirect URI for token exchange:', redirectUri);
+    if (clientId === 'your-outlook-client-id' || !clientId) {
+      console.error('❌ CRITICAL: Controller is using placeholder Client ID');
+    }
 
     const tokenData = new URLSearchParams({
       client_id: clientId,
@@ -110,55 +108,53 @@ export const handleMicrosoftCallback = async (req: Request, res: Response) => {
       scope: 'https://graph.microsoft.com/.default offline_access'
     });
 
-    try {
-      const tokenResponse = await axios.post(
-        'https://login.microsoftonline.com/common/oauth2/v2.0/token',
-        tokenData,
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        }
-      );
-
-      console.log('✅ Token response received successfully');
-      
-      const { access_token, refresh_token, expires_in } = tokenResponse.data;
-
-      // Get user info
-      console.log('👤 Fetching Microsoft user profile information...');
-      const userResponse = await axios.get('https://graph.microsoft.com/v1.0/me', {
+    console.log('Sending token request to Microsoft...');
+    const tokenResponse = await axios.post(
+      'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+      tokenData,
+      {
         headers: {
-          Authorization: `Bearer ${access_token}`
+          'Content-Type': 'application/x-www-form-urlencoded'
         }
-      });
+      }
+    );
 
-      const email = userResponse.data.mail || userResponse.data.userPrincipalName;
-      console.log('✨ Microsoft account connected:', email);
+    console.log('Token response received:', {
+      hasAccessToken: !!tokenResponse.data.access_token,
+      hasRefreshToken: !!tokenResponse.data.refresh_token,
+      expiresIn: tokenResponse.data.expires_in
+    });
 
-      // Store tokens in database for the user
-      await emailService.storeEmailConnection({
-        employeeId: employeeId,
-        provider: 'outlook',
-        email: email,
-        accessToken: access_token,
-        refreshToken: refresh_token || '',
-        tokenExpiry: new Date(Date.now() + (expires_in * 1000))
-      });
+    const { access_token, refresh_token, expires_in } = tokenResponse.data;
 
-      console.log('💾 Tokens stored successfully in database for employee:', employeeId);
+    // Get user info
+    const userResponse = await axios.get('https://graph.microsoft.com/v1.0/me', {
+      headers: {
+        Authorization: `Bearer ${access_token}`
+      }
+    });
 
-      // Redirect to frontend email configuration page
-      const frontendUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://13.232.211.142';
-      console.log('🚀 Redirecting user back to frontend UI:', `${frontendUrl}/email-configuration?outlook=connected`);
-      res.redirect(`${frontendUrl}/email-configuration?outlook=connected`);
-    } catch (tokenError: any) {
-      console.error('❌ Microsoft Token Exchange Error:', tokenError.response?.data || tokenError.message);
-      throw tokenError;
-    }
-  } catch (error: any) {
-    console.error('❌ Microsoft Callback General Error:', error.message);
-    const frontendUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://13.232.211.142';
+    const email = userResponse.data.mail || userResponse.data.userPrincipalName;
+    console.log('Microsoft OAuth connection successful for email:', email);
+
+    // Store tokens in database for the user
+    await emailService.storeEmailConnection({
+      employeeId: employeeId,
+      provider: 'outlook',
+      email: email,
+      accessToken: access_token,
+      refreshToken: refresh_token || '',
+      tokenExpiry: new Date(Date.now() + (expires_in * 1000))
+    });
+
+    console.log('Tokens stored successfully for employeeId:', employeeId);
+
+    // Redirect to frontend email configuration page
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/email-configuration?outlook=connected`);
+  } catch (error) {
+    console.error('Microsoft callback error:', error);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     res.redirect(`${frontendUrl}/email-configuration?success=false&provider=outlook&error=Failed to connect Outlook`);
   }
 };
