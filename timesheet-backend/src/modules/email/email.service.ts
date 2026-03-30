@@ -207,41 +207,54 @@ class EmailService {
     refreshToken: string;
     tokenExpiry: Date;
   }) {
-    await prisma.emailConnection.updateMany({
-      where: {
-        employeeId: data.employeeId,
-        provider: data.provider
-      },
-      data: {
-        email: data.email,
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        tokenExpiry: data.tokenExpiry,
-        isActive: true,
-        updatedAt: new Date()
-      }
-    });
-
-    // If no records were updated, create a new one
-    const existing = await prisma.emailConnection.findFirst({
-      where: {
-        employeeId: data.employeeId,
-        provider: data.provider
-      }
-    });
-
-    if (!existing) {
-      await prisma.emailConnection.create({
-        data: {
+    console.log(`💾 DB: Attempting to store ${data.provider} connection for employee ${data.employeeId}...`);
+    
+    try {
+      const updateResult = await prisma.emailConnection.updateMany({
+        where: {
           employeeId: data.employeeId,
-          provider: data.provider,
+          provider: data.provider
+        },
+        data: {
           email: data.email,
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
           tokenExpiry: data.tokenExpiry,
-          isActive: true
+          isActive: true,
+          updatedAt: new Date()
         }
       });
+
+      console.log(`💾 DB: Update attempt finished. Rows affected: ${updateResult.count}`);
+
+      // If no records were updated, create a new one
+      const existing = await prisma.emailConnection.findFirst({
+        where: {
+          employeeId: data.employeeId,
+          provider: data.provider
+        }
+      });
+
+      if (!existing) {
+        console.log(`💾 DB: No existing connection found. Creating new record for ${data.employeeId}...`);
+        await prisma.emailConnection.create({
+          data: {
+            employeeId: data.employeeId,
+            provider: data.provider,
+            email: data.email,
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+            tokenExpiry: data.tokenExpiry,
+            isActive: true
+          }
+        });
+        console.log('💾 DB: New record created successfully.');
+      } else {
+        console.log('💾 DB: Existing record updated or verified.');
+      }
+    } catch (dbError: any) {
+      console.error('❌ DB ERROR in storeEmailConnection:', dbError.message);
+      throw dbError;
     }
   }
 
