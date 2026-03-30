@@ -624,4 +624,95 @@ export const submitTimelog = async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(400).json({ success: false, error: error.message || 'Failed to submit' });
   }
+};
+
+export const getMyTimelogs = async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { employeeId, clientId, projectId, jobId, dateFrom, dateTo } = req.query;
+    
+    if (!user || !user.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const filters = {
+      employeeId: employeeId as string,
+      clientId: clientId as string,
+      projectId: projectId as string,
+      jobId: jobId as string,
+      dateFrom: dateFrom as string,
+      dateTo: dateTo as string
+    };
+
+    const timelogs = await timelogService.getTimelogsByUser(user.id, filters);
+    
+    res.json({
+      success: true,
+      data: timelogs || [],
+      message: 'My timelogs retrieved successfully'
+    });
+  } catch (error: any) {
+    console.error('Error fetching my timelogs:', error);
+    res.status(500).json({ message: 'Failed to fetch my timelogs', error: error.message });
+  }
+};
+
+export const getTeamTimelogs = async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { employeeId, clientId, projectId, jobId, dateFrom, dateTo } = req.query;
+    
+    if (!user || !user.role || user.role === 'Employee') {
+      return res.status(403).json({ message: 'Forbidden. Non-employees only.' });
+    }
+
+    const filters = {
+      employeeId: employeeId as string,
+      clientId: clientId as string,
+      projectId: projectId as string,
+      jobId: jobId as string,
+      dateFrom: dateFrom as string,
+      dateTo: dateTo as string
+    };
+
+    let timelogs;
+    if (['Admin', 'Partner', 'Owner'].includes(user.role)) {
+      timelogs = await timelogService.getAllTimelogs(filters);
+    } else {
+      timelogs = await timelogService.getTimelogsForManager(user.email, filters);
+    }
+    
+    res.json({
+      success: true,
+      data: timelogs || [],
+      message: 'Team timelogs retrieved successfully'
+    });
+  } catch (error: any) {
+    console.error('Error fetching team timelogs:', error);
+    res.status(500).json({ message: 'Failed to fetch team timelogs', error: error.message });
+  }
+};
+
+export const approveTimelogHandler = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = (req as any).user;
+    if (!user || user.role === 'Employee') return res.status(403).json({ message: 'Forbidden' });
+    const updated = await timelogService.approveTimelog(id, user.id);
+    res.json({ success: true, data: updated, message: 'Timelog approved' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export const rejectTimelogHandler = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = (req as any).user;
+    if (!user || user.role === 'Employee') return res.status(403).json({ message: 'Forbidden' });
+    const updated = await timelogService.rejectTimelog(id);
+    res.json({ success: true, data: updated, message: 'Timelog rejected' });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
 };

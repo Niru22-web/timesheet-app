@@ -20,8 +20,10 @@ import Button from '../components/ui/Button';
 
 // Refined Feature Components
 import TimesheetListView from '../components/timesheet/TimesheetListView';
+import TeamTimesheetListView from '../components/timesheet/TeamTimesheetListView';
 import TimesheetDrawer from '../components/timesheet/TimesheetDrawer';
 import FilterPanel from '../components/timesheet/FilterPanel';
+import DailyEntriesModal from '../components/timesheet/DailyEntriesModal';
 
 // Lazy loaded for optimization
 const TimesheetCalendar = React.lazy(() => import('../components/timesheet/TimesheetCalendar'));
@@ -33,7 +35,9 @@ const Timesheet: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isDailyModalOpen, setIsDailyModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'my' | 'team'>('my');
   
   // Data State
   const [entries, setEntries] = useState<any[]>([]);
@@ -62,13 +66,14 @@ const Timesheet: React.FC = () => {
     if (isManagerial) {
        fetchFilterData();
     }
-  }, [filters, isManagerial]);
+  }, [filters, isManagerial, activeTab]);
 
   const fetchLogs = async () => {
     try {
       setLoading(true);
       const params: any = { ...filters };
-      const res = await API.get('/timelogs', { params });
+      const endpoint = activeTab === 'team' ? '/timelogs/team' : '/timelogs/my';
+      const res = await API.get(endpoint, { params });
       setEntries(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch (err) {
       console.error('Failed to fetch logs:', err);
@@ -107,7 +112,7 @@ const Timesheet: React.FC = () => {
   const handleSelectCalendarDate = (date: Date) => {
     setSelectedDate(date);
     setEditingEntry(null);
-    setIsDrawerOpen(true);
+    setIsDailyModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -131,6 +136,26 @@ const Timesheet: React.FC = () => {
      } catch (err) {
         toast.error('Submission rejected by server');
      }
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      await API.put(`/timelogs/${id}/approve`);
+      toast.success('Timesheet approved');
+      fetchLogs();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Approval failed');
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      await API.put(`/timelogs/${id}/reject`);
+      toast.warning('Timesheet rejected');
+      fetchLogs();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Rejection failed');
+    }
   };
 
   // Derived Data
@@ -197,6 +222,34 @@ const Timesheet: React.FC = () => {
         </div>
       </motion.div>
 
+      {/* Tabs for Managers */}
+      {isManagerial && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex space-x-1 border-b border-slate-200"
+        >
+          <button
+            onClick={() => setActiveTab('my')}
+            className={`py-3 px-6 font-[1000] text-sm tracking-wider uppercase transition-colors relative ${activeTab === 'my' ? 'text-primary-600' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            My Timesheet
+            {activeTab === 'my' && (
+              <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-1 bg-primary-600 rounded-t-lg" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('team')}
+            className={`py-3 px-6 font-[1000] text-sm tracking-wider uppercase transition-colors relative ${activeTab === 'team' ? 'text-primary-600' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            Team Timesheets
+            {activeTab === 'team' && (
+              <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-1 bg-primary-600 rounded-t-lg" />
+            )}
+          </button>
+        </motion.div>
+      )}
+
       {/* Smart Control Bar */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.98 }}
@@ -261,15 +314,24 @@ const Timesheet: React.FC = () => {
          >
             {viewMode === 'list' ? (
               <Card className="p-0 border-none shadow-2xl shadow-slate-200/50 bg-white overflow-hidden ring-1 ring-slate-100 min-h-[500px]">
-                 <TimesheetListView 
-                   entries={filteredEntries}
-                   loading={loading}
-                   userRole={user?.role || ''}
-                   currentUserId={user?.id || ''}
-                   onEdit={handleEdit}
-                   onDelete={handleDelete}
-                   onSubmit={handleSubmitLog}
-                 />
+                 {activeTab === 'team' ? (
+                   <TeamTimesheetListView 
+                     entries={filteredEntries}
+                     loading={loading}
+                     onApprove={handleApprove}
+                     onReject={handleReject}
+                   />
+                 ) : (
+                   <TimesheetListView 
+                     entries={filteredEntries}
+                     loading={loading}
+                     userRole="Employee"
+                     currentUserId={user?.id || ''}
+                     onEdit={handleEdit}
+                     onDelete={handleDelete}
+                     onSubmit={handleSubmitLog}
+                   />
+                 )}
               </Card>
             ) : (
               <Suspense fallback={
@@ -309,6 +371,25 @@ const Timesheet: React.FC = () => {
         employees={employees}
         projects={projects}
         isManagerial={isManagerial}
+      />
+
+      <DailyEntriesModal
+        isOpen={isDailyModalOpen}
+        onClose={() => setIsDailyModalOpen(false)}
+        date={selectedDate || null}
+        entries={filteredEntries}
+        onAdd={(date) => {
+           setSelectedDate(date);
+           setEditingEntry(null);
+           setIsDrawerOpen(true);
+        }}
+        onEdit={(entry) => {
+           setEditingEntry(entry);
+           setSelectedDate(undefined);
+           setIsDrawerOpen(true);
+        }}
+        onDelete={handleDelete}
+        onSubmit={handleSubmitLog}
       />
     </div>
   );

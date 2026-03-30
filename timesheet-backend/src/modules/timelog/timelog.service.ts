@@ -1073,4 +1073,63 @@ export class TimelogService {
        throw error;
     }
   }
+
+  async approveTimelog(id: string, approverId: string) {
+    try {
+      const timelog = await prisma.timelog.findUnique({
+        where: { id },
+        include: { employee: true }
+      });
+
+      if (!timelog) {
+        throw new Error('Timelog entry not found');
+      }
+
+      const updated = await prisma.timelog.update({
+        where: { id },
+        data: {
+          submissionStatus: 'approved',
+          approvedAt: new Date(),
+          approvedBy: approverId
+        }
+      });
+
+      // Notify the employee
+      if (timelog.employee.officeEmail) {
+        // Notification logic could go here if implemented
+      }
+
+      return updated;
+    } catch (error) {
+      console.error('Error approving timelog:', error);
+      throw error;
+    }
+  }
+
+  async rejectTimelog(id: string) {
+    try {
+      const timelog = await prisma.timelog.findUnique({
+        where: { id },
+        include: { employee: true }
+      });
+
+      if (!timelog) {
+        throw new Error('Timelog entry not found');
+      }
+
+      const updated = await prisma.timelog.update({
+        where: { id },
+        data: {
+          submissionStatus: 'rejected',
+          approvedAt: null,
+          approvedBy: null
+        }
+      });
+
+      return updated;
+    } catch (error) {
+      console.error('Error rejecting timelog:', error);
+      throw error;
+    }
+  }
 }

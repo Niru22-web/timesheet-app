@@ -14,17 +14,25 @@ import {
   uploadTimelogFile,
   getTimesheetReports,
   getMissingTimesheets,
-  submitTimelog
+  submitTimelog,
+  getMyTimelogs,
+  getTeamTimelogs,
+  approveTimelogHandler,
+  rejectTimelogHandler
 } from './timelog.controller';
 
 const router = Router();
 
 // Timelog CRUD operations
+router.get('/my', authenticate, getMyTimelogs);
+router.get('/team', authenticate, getTeamTimelogs);
 router.get('/', authenticate, getTimelogs);
 router.post('/', authenticate, createTimelog);
 router.put('/:id', authenticate, updateTimelog);
 router.delete('/:id', authenticate, deleteTimelog);
 router.patch('/:id/submit', authenticate, submitTimelog);
+router.put('/:id/approve', authenticate, approveTimelogHandler);
+router.put('/:id/reject', authenticate, rejectTimelogHandler);
 
 // Hierarchical data access
 router.get('/accessible/clients', authenticate, getAccessibleClients);

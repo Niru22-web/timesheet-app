@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
+import { format } from 'date-fns';
 import { X, Clock, Briefcase, Zap, Save, ChevronRight, Hash, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../ui/Button';
@@ -55,7 +56,7 @@ const TimesheetDrawer: React.FC<TimesheetDrawerProps> = ({
     workItem: '',
     hours: '',
     description: '',
-    date: new Date().toISOString().split('T')[0],
+    date: format(new Date(), 'yyyy-MM-dd'),
     isBillable: true
   });
   
@@ -85,7 +86,7 @@ const TimesheetDrawer: React.FC<TimesheetDrawerProps> = ({
           workItem: '',
           hours: '',
           description: '',
-          date: selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          date: format(selectedDate || new Date(), 'yyyy-MM-dd'),
           isBillable: true
         });
       }
@@ -174,136 +175,135 @@ const TimesheetDrawer: React.FC<TimesheetDrawerProps> = ({
                 leaveTo="translate-x-full"
               >
                 <Dialog.Panel className="pointer-events-auto w-screen max-w-md">
-                   <div className="flex h-full flex-col overflow-y-scroll bg-white shadow-2xl">
-                      <div className="px-4 py-6 sm:px-6 bg-slate-50 border-b border-slate-100">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <Dialog.Title className="text-xl font-[1000] text-slate-900 tracking-tight">
-                              {editingEntry ? 'Refine Session' : 'Commit Engagement'}
-                            </Dialog.Title>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
-                              Synchronizing with audit trail
-                            </p>
-                          </div>
-                          <div className="ml-3 flex h-7 items-center">
-                            <button
-                              type="button"
-                              className="rounded-xl bg-white p-2 text-slate-400 hover:text-slate-500 border border-slate-200 shadow-sm transition-all hover:scale-105 active:scale-95"
-                              onClick={onClose}
-                              aria-label="Close Drawer"
-                            >
-                              <X className="h-5 w-5" />
-                            </button>
-                          </div>
-                        </div>
+                   <div className="flex h-full flex-col overflow-y-auto bg-white shadow-xl">
+                      <div className="px-6 py-4 border-b flex items-center justify-between">
+                        <Dialog.Title className="text-xl font-bold">
+                          {editingEntry ? 'Edit Timelog' : 'Add Timelog'}
+                        </Dialog.Title>
+                        <button type="button" onClick={onClose} aria-label="Close" className="p-2 text-gray-500 hover:text-gray-700">
+                          <X className="h-5 w-5" />
+                        </button>
                       </div>
                       
-                      <div className="relative flex-1 px-4 py-8 sm:px-8">
-                        <form onSubmit={handleSave} className="space-y-8">
-                           {/* Quick Stepper for Hours */}
-                           <div className="space-y-3">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Duration</label>
-                              <div className="flex items-center gap-4">
-                                 <div className="relative flex-1 group">
-                                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-primary-500 transition-colors" />
-                                    <input 
-                                      type="text" 
-                                      placeholder="Hrs (e.g. 8.5)"
-                                      className="w-full bg-slate-50 border-none rounded-2xl py-4 pl-12 pr-4 text-2xl font-black font-mono placeholder:text-slate-200 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all shadow-inner"
-                                      value={formData.hours}
-                                      onChange={(e) => setFormData({...formData, hours: e.target.value})}
-                                    />
-                                 </div>
-                                 <div className="flex flex-col gap-1">
-                                    <button type="button" onClick={() => setFormData({...formData, hours: (parseFloat(formData.hours || '0') + 0.5).toFixed(1)})} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 font-black text-xs">+</button>
-                                    <button type="button" onClick={() => setFormData({...formData, hours: Math.max(0, parseFloat(formData.hours || '0') - 0.5).toFixed(1)})} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 font-black text-xs">-</button>
-                                 </div>
-                              </div>
-                              {errors.hours && <p className="text-[10px] font-bold text-rose-500 px-1">{errors.hours}</p>}
+                      <div className="flex-1 p-6">
+                        <form className="space-y-4">
+                           <div className="space-y-1">
+                             <label htmlFor="clientId" className="text-sm font-medium text-gray-700">Client</label>
+                             <select 
+                               id="clientId"
+                               className="w-full border p-2 rounded text-sm bg-white"
+                               value={formData.clientId}
+                               onChange={(e) => {
+                                 const clientId = e.target.value;
+                                 setFormData({...formData, clientId, projectId: '', jobId: ''});
+                               }}
+                             >
+                                <option value="">Select Client</option>
+                                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                             </select>
+                             {errors.clientId && <p className="text-xs text-red-500 mt-1">{errors.clientId}</p>}
                            </div>
 
-                           <div className="space-y-6">
-                              <Input 
-                                label="Execution Date"
-                                type="date"
-                                value={formData.date}
-                                onChange={(e) => setFormData({...formData, date: e.target.value})}
+                           <div className="space-y-1">
+                             <label htmlFor="projectId" className="text-sm font-medium text-gray-700">Project <span className="text-red-500">*</span></label>
+                             <select 
+                               id="projectId"
+                               className="w-full border p-2 rounded text-sm bg-white"
+                               value={formData.projectId}
+                               disabled={!formData.clientId && clients.length > 0}
+                               onChange={(e) => {
+                                 const projectId = e.target.value;
+                                 setFormData({...formData, projectId, jobId: ''});
+                               }}
+                             >
+                                <option value="">Select Project</option>
+                                {projects.filter(p => !formData.clientId || p.clientId === formData.clientId).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                             </select>
+                             {errors.projectId && <p className="text-xs text-red-500 mt-1">{errors.projectId}</p>}
+                           </div>
+
+                           <div className="space-y-1">
+                             <label htmlFor="jobId" className="text-sm font-medium text-gray-700">Job <span className="text-red-500">*</span></label>
+                             <select 
+                               id="jobId"
+                               className="w-full border p-2 rounded text-sm bg-white"
+                               value={formData.jobId}
+                               disabled={!formData.projectId}
+                               onChange={(e) => setFormData({...formData, jobId: e.target.value})}
+                             >
+                                <option value="">Select Job</option>
+                                {jobs.filter(j => j.projectId === formData.projectId).map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
+                             </select>
+                             {errors.jobId && <p className="text-xs text-red-500 mt-1">{errors.jobId}</p>}
+                           </div>
+
+                           <div className="flex gap-4">
+                             <div className="space-y-1 flex-1">
+                               <label htmlFor="date" className="text-sm font-medium text-gray-700">Date <span className="text-red-500">*</span></label>
+                               <input 
+                                 id="date"
+                                 type="date"
+                                 className="w-full border p-2 rounded text-sm"
+                                 value={formData.date}
+                                 onChange={(e) => setFormData({...formData, date: e.target.value})}
+                               />
+                             </div>
+                             
+                             <div className="space-y-1 flex-1">
+                               <label htmlFor="hours" className="text-sm font-medium text-gray-700">Hours <span className="text-red-500">*</span></label>
+                               <input 
+                                 id="hours"
+                                 type="text" 
+                                 placeholder="e.g. 8.5"
+                                 className="w-full border p-2 rounded text-sm"
+                                 value={formData.hours}
+                                 onChange={(e) => setFormData({...formData, hours: e.target.value})}
+                               />
+                               {errors.hours && <p className="text-xs text-red-500 mt-1">{errors.hours}</p>}
+                             </div>
+                           </div>
+
+                           <div className="space-y-1">
+                             <label htmlFor="description" className="text-sm font-medium text-gray-700">Work Description <span className="text-red-500">*</span></label>
+                             <textarea 
+                               id="description"
+                               placeholder="Work Description"
+                               className="w-full border p-2 rounded text-sm min-h-[100px]"
+                               value={formData.description}
+                               onChange={(e) => setFormData({...formData, description: e.target.value})}
+                             />
+                             {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
+                           </div>
+
+                           <div className="flex items-center gap-2 mt-4">
+                              <input 
+                                type="checkbox" 
+                                id="billable" 
+                                checked={formData.isBillable}
+                                onChange={(e) => setFormData({...formData, isBillable: e.target.checked})}
+                                className="h-4 w-4 rounded border-gray-300 text-blue-600"
                               />
-
-                              <Select
-                                label="Project Master"
-                                value={formData.projectId}
-                                error={errors.projectId}
-                                onChange={(e) => setFormData({...formData, projectId: e.target.value})}
-                              >
-                                 <option value="">Select Project</option>
-                                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                              </Select>
-
-                              <Select
-                                label="Job Allocation"
-                                value={formData.jobId}
-                                error={errors.jobId}
-                                disabled={!formData.projectId}
-                                onChange={(e) => setFormData({...formData, jobId: e.target.value})}
-                              >
-                                 <option value="">Select Job</option>
-                                 {jobs.filter(j => j.projectId === formData.projectId).map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
-                              </Select>
-
-                              <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Activity Detail</label>
-                                <textarea 
-                                  placeholder="Describe the outcomes of this session..."
-                                  className="w-full bg-slate-50 border-none rounded-2xl py-4 px-5 text-sm font-bold min-h-[120px] focus:ring-4 focus:ring-primary-500/10 outline-none transition-all"
-                                  value={formData.description}
-                                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                                />
-                                {errors.description && <p className="text-[10px] font-bold text-rose-500 px-1">{errors.description}</p>}
-                              </div>
-
-                              <div className="flex items-center justify-between p-4 bg-primary-50/50 rounded-2xl border border-primary-100/50 group hover:border-primary-200 transition-colors">
-                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-white rounded-xl shadow-sm">
-                                       <Zap className={`h-4 w-4 ${formData.isBillable ? 'text-primary-600 fill-primary-600' : 'text-slate-300'}`} />
-                                    </div>
-                                    <div className="flex flex-col">
-                                       <span className="text-xs font-black text-slate-900 leading-none">Billable Entry</span>
-                                       <span className="text-[10px] font-bold text-slate-500 mt-0.5">Attribute this to the client invoice</span>
-                                    </div>
-                                 </div>
-                                 <button
-                                   type="button"
-                                   aria-label="Toggle Billable Status"
-                                   onClick={() => setFormData({...formData, isBillable: !formData.isBillable})}
-                                   className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${formData.isBillable ? 'bg-primary-600' : 'bg-slate-200'}`}
-                                 >
-                                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.isBillable ? 'translate-x-5' : 'translate-x-0'}`} />
-                                 </button>
-                              </div>
+                              <label htmlFor="billable" className="text-sm text-gray-700">Yes, it's billable</label>
                            </div>
                         </form>
                       </div>
 
-                      <div className="flex flex-shrink-0 justify-between items-center px-4 py-6 sm:px-8 border-t border-slate-100 bg-white">
+                      <div className="p-4 border-t flex justify-end gap-3 bg-white">
                         <button
                           type="button"
-                          className="px-6 py-2.5 text-sm font-black text-slate-400 hover:text-slate-900 transition-colors"
+                          className="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50"
                           onClick={onClose}
                         >
                           Cancel
                         </button>
-                        <Button 
-                          type="submit" 
-                          variant="primary" 
+                        <button 
+                          type="button" 
                           onClick={handleSave} 
-                          className="h-12 px-8 rounded-2xl shadow-xl shadow-primary-500/20 font-black"
-                          isLoading={loading}
+                          className="bg-blue-600 text-white px-6 py-2 rounded text-sm hover:bg-blue-700"
+                          disabled={loading}
                         >
-                          <Save className="w-4 h-4 mr-2" />
-                          {editingEntry ? 'Commit Changes' : 'Post Timelog'}
-                        </Button>
+                          {loading ? 'Saving...' : 'Submit'}
+                        </button>
                       </div>
                    </div>
                 </Dialog.Panel>
