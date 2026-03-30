@@ -23,7 +23,13 @@ const getGoogleAuthConfig = () => ({
 const getMicrosoftAuthConfig = () => {
   const clientId = process.env.MICROSOFT_CLIENT_ID || process.env.OUTLOOK_CLIENT_ID || '';
   const clientSecret = process.env.MICROSOFT_CLIENT_SECRET || process.env.OUTLOOK_CLIENT_SECRET || '';
-  const redirectUri = process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:5000/api/email/oauth/outlook/callback';
+  
+  // Use a more dynamic approach for redirect_uri
+  // If set in env, use it. Otherwise, construct it from BACKEND_URL or fallback to localhost
+  const backendUrl = process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:5000';
+  const defaultRedirectUri = `${backendUrl}/api/email/oauth/outlook/callback`;
+  const redirectUri = process.env.MICROSOFT_REDIRECT_URI || defaultRedirectUri;
+  
   const tenantId = process.env.MICROSOFT_TENANT_ID || 'common';
   
   // Validation check

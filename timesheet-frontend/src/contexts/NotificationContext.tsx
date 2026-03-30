@@ -248,7 +248,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
     // Connect to Backend Socket Server
     // Note: Assuming API base URL is structured as http://host:port/api. We just want http://host:port
-    const socketUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000';
+    const socketUrl = import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL.replace('/api', '') 
+      : window.location.origin.replace(':5173', ':5000');
     
     const socket: Socket = io(socketUrl, {
       withCredentials: true
