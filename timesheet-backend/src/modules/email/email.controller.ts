@@ -54,16 +54,11 @@ export const handleGoogleCallback = async (req: Request, res: Response) => {
 
     const result = await emailService.handleGoogleCallback(code as string, user.employeeId);
 
-    const frontendUrl = process.env.FRONTEND_URL;
-    console.log("Redirecting to:", frontendUrl);
-    console.log("Redirecting to Google callback success:", `${frontendUrl}/email-configuration?success=true&provider=gmail&email=${result.email}`);
     // Redirect to frontend with success
-    res.redirect(`${frontendUrl}/email-configuration?success=true&provider=gmail&email=${result.email}`);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/email-configuration?success=true&provider=gmail&email=${result.email}`);
   } catch (error) {
     console.error('Google callback error:', error);
-    const frontendUrl = process.env.FRONTEND_URL;
-    console.log("Redirecting to Google callback failure:", `${frontendUrl}/email-configuration?success=false&provider=gmail&error=Failed to connect Gmail`);
-    res.redirect(`${frontendUrl}/email-configuration?success=false&provider=gmail&error=Failed to connect Gmail`);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/email-configuration?success=false&provider=gmail&error=Failed to connect Gmail`);
   }
 };
 
@@ -155,14 +150,11 @@ export const handleMicrosoftCallback = async (req: Request, res: Response) => {
     console.log('Tokens stored successfully for employeeId:', employeeId);
 
     // Redirect to frontend email configuration page
-    const frontendUrl = process.env.FRONTEND_URL;
-    console.log("Redirecting to:", frontendUrl);
-    console.log("Redirecting to Outlook callback success:", `${frontendUrl}/email-configuration?outlook=connected`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     res.redirect(`${frontendUrl}/email-configuration?outlook=connected`);
   } catch (error) {
     console.error('Microsoft callback error:', error);
-    const frontendUrl = process.env.FRONTEND_URL;
-    console.log("Redirecting to Outlook callback failure:", `${frontendUrl}/email-configuration?success=false&provider=outlook&error=Failed to connect Outlook`);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     res.redirect(`${frontendUrl}/email-configuration?success=false&provider=outlook&error=Failed to connect Outlook`);
   }
 };
