@@ -32,11 +32,11 @@ model Employee {
   timelogs           Timelog[]
   managedTimelogs    Timelog[]           @relation("TimelogReportingManager")
   partnerTimelogs    Timelog[]           @relation("TimelogReportingPartner")
-  documents          EmployeeDocument[]
-  userPermission     UserPermission?
-  notifications      Notification[]
   activities         Activity[]
+  documents          EmployeeDocument[]
   leaveTransactions  LeaveTransaction[]
+  notifications      Notification[]
+  userPermission     UserPermission?
 }
 
 model EmployeeProfile {
@@ -44,13 +44,13 @@ model EmployeeProfile {
   employeeId               String   @unique
   dob                      DateTime
   doj                      DateTime
-  education                String
-  maritalStatus            String
-  gender                   String
-  permanentAddress         String
-  currentAddress           String
-  pan                      String
-  aadhaar                  String
+  education                String?
+  maritalStatus            String?
+  gender                   String?
+  permanentAddress         String?
+  currentAddress           String?
+  pan                      String?
+  aadhaar                  String?
   panFileUrl               String?
   aadhaarFileUrl           String?
   currentPinCode           String?
@@ -69,10 +69,10 @@ model EmployeeProfile {
   emergencyContactName     String?
   emergencyContactPhone    String?
   emergencyContactRelation String?
+  employmentType           String?
+  experience               String?
   salary                   Float?
   seniorityLevel           String?
-  experience               String?
-  employmentType           String?
   skills                   String[] @default([])
   employee                 Employee @relation(fields: [employeeId], references: [id])
 }
@@ -89,10 +89,10 @@ model Client {
   country   String?
   pin       String?
   state     String?
-  status    String    @default("Active")
-  partnerId String?   // For partner ownership
-  createdBy String    // Who created this client
   createdAt DateTime  @default(now())
+  createdBy String
+  partnerId String?
+  status    String    @default("Active")
   updatedAt DateTime  @updatedAt
   projects  Project[]
 }
@@ -231,14 +231,14 @@ model LeaveBalance {
 }
 
 model LeaveTransaction {
-  id          String   @id @default(uuid())
-  employeeId  String
-  type        String   // "accrual", "used", "adjustment", "carry_forward"
-  amount      Float
-  date        DateTime @default(now())
-  reason      String?
-  year        Int
-  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  employeeId String
+  type       String
+  amount     Float
+  date       DateTime @default(now())
+  reason     String?
+  year       Int
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@map("leave_transactions")
 }
@@ -285,94 +285,94 @@ model PasswordReset {
 }
 
 model UserPermission {
-  id             String   @id @default(uuid())
-  userId         String   @unique
-  dashboardView      Boolean  @default(true)
-  dashboardCreate    Boolean  @default(false)
-  dashboardEdit      Boolean  @default(false)
-  dashboardDelete    Boolean  @default(false)
-  timesheetView      Boolean  @default(true)
-  timesheetCreate    Boolean  @default(true)
-  timesheetEdit      Boolean  @default(true)
-  timesheetDelete    Boolean  @default(false)
-  projectsView       Boolean  @default(true)
-  projectsCreate     Boolean  @default(false)
-  projectsEdit       Boolean  @default(false)
-  projectsDelete     Boolean  @default(false)
-  reportsView        Boolean  @default(true)
-  reportsCreate      Boolean  @default(false)
-  reportsEdit        Boolean  @default(false)
-  reportsDelete      Boolean  @default(false)
-  employeesView       Boolean  @default(false)
-  employeesCreate    Boolean  @default(false)
-  employeesEdit      Boolean  @default(false)
-  employeesDelete    Boolean  @default(false)
-  employees          Boolean  @default(false)
-  adminPanelView     Boolean  @default(false)
-  adminPanelCreate   Boolean  @default(false)
-  adminPanelEdit     Boolean  @default(false)
-  adminPanelDelete   Boolean  @default(false)
-  emailTemplatesView Boolean  @default(false)
-  emailTemplatesCreate Boolean @default(false)
-  emailTemplatesEdit Boolean @default(false)
-  emailTemplatesDelete Boolean @default(false)
-  clientsView        Boolean  @default(false)
-  clientsCreate      Boolean  @default(false)
-  clientsEdit        Boolean  @default(false)
-  clientsDelete      Boolean  @default(false)
-  jobsView           Boolean  @default(false)
-  jobsCreate         Boolean  @default(false)
-  jobsEdit           Boolean  @default(false)
-  jobsDelete         Boolean  @default(false)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  user               Employee @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  adminPanelCreate     Boolean  @default(false)
+  adminPanelDelete     Boolean  @default(false)
+  adminPanelEdit       Boolean  @default(false)
+  adminPanelView       Boolean  @default(false)
+  clientsCreate        Boolean  @default(false)
+  clientsDelete        Boolean  @default(false)
+  clientsEdit          Boolean  @default(false)
+  clientsView          Boolean  @default(false)
+  dashboardCreate      Boolean  @default(false)
+  dashboardDelete      Boolean  @default(false)
+  dashboardEdit        Boolean  @default(false)
+  dashboardView        Boolean  @default(true)
+  emailTemplatesCreate Boolean  @default(false)
+  emailTemplatesDelete Boolean  @default(false)
+  emailTemplatesEdit   Boolean  @default(false)
+  emailTemplatesView   Boolean  @default(false)
+  employeesCreate      Boolean  @default(false)
+  employeesDelete      Boolean  @default(false)
+  employeesEdit        Boolean  @default(false)
+  employeesView        Boolean  @default(false)
+  jobsCreate           Boolean  @default(false)
+  jobsDelete           Boolean  @default(false)
+  jobsEdit             Boolean  @default(false)
+  jobsView             Boolean  @default(false)
+  projectsCreate       Boolean  @default(false)
+  projectsDelete       Boolean  @default(false)
+  projectsEdit         Boolean  @default(false)
+  projectsView         Boolean  @default(true)
+  reportsCreate        Boolean  @default(false)
+  reportsDelete        Boolean  @default(false)
+  reportsEdit          Boolean  @default(false)
+  reportsView          Boolean  @default(true)
+  timesheetCreate      Boolean  @default(true)
+  timesheetDelete      Boolean  @default(false)
+  timesheetEdit        Boolean  @default(true)
+  timesheetView        Boolean  @default(true)
+  employees            Boolean  @default(false)
+  user                 Employee @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_permissions")
 }
 
 model RolePermission {
-  id             String   @id @default(uuid())
-  role           String   @unique
-  dashboardView      Boolean  @default(true)
-  dashboardCreate    Boolean  @default(false)
-  dashboardEdit      Boolean  @default(false)
-  dashboardDelete    Boolean  @default(false)
-  timesheetView      Boolean  @default(true)
-  timesheetCreate    Boolean  @default(true)
-  timesheetEdit      Boolean  @default(true)
-  timesheetDelete    Boolean  @default(false)
-  projectsView       Boolean  @default(true)
-  projectsCreate     Boolean  @default(false)
-  projectsEdit       Boolean  @default(false)
-  projectsDelete     Boolean  @default(false)
-  reportsView        Boolean  @default(true)
-  reportsCreate      Boolean  @default(false)
-  reportsEdit        Boolean  @default(false)
-  reportsDelete      Boolean  @default(false)
-  employeesView       Boolean  @default(false)
-  employeesCreate    Boolean  @default(false)
-  employeesEdit      Boolean  @default(false)
-  employeesDelete    Boolean  @default(false)
-  employees          Boolean  @default(false)
-  adminPanelView     Boolean  @default(false)
-  adminPanelCreate   Boolean  @default(false)
-  adminPanelEdit     Boolean  @default(false)
-  adminPanelDelete   Boolean  @default(false)
-  emailTemplatesView Boolean  @default(false)
-  emailTemplatesCreate Boolean @default(false)
-  emailTemplatesEdit Boolean @default(false)
-  emailTemplatesDelete Boolean @default(false)
-  clientsView        Boolean  @default(false)
-  clientsCreate      Boolean  @default(false)
-  clientsEdit        Boolean  @default(false)
-  clientsDelete      Boolean  @default(false)
-  jobsView           Boolean  @default(false)
-  jobsCreate         Boolean  @default(false)
-  jobsEdit           Boolean  @default(false)
-  jobsDelete         Boolean  @default(false)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                   String   @id @default(uuid())
+  role                 String   @unique
+  dashboardView        Boolean  @default(true)
+  dashboardCreate      Boolean  @default(false)
+  dashboardEdit        Boolean  @default(false)
+  dashboardDelete      Boolean  @default(false)
+  timesheetView        Boolean  @default(true)
+  timesheetCreate      Boolean  @default(true)
+  timesheetEdit        Boolean  @default(true)
+  timesheetDelete      Boolean  @default(false)
+  projectsView         Boolean  @default(true)
+  projectsCreate       Boolean  @default(false)
+  projectsEdit         Boolean  @default(false)
+  projectsDelete       Boolean  @default(false)
+  reportsView          Boolean  @default(true)
+  reportsCreate        Boolean  @default(false)
+  reportsEdit          Boolean  @default(false)
+  reportsDelete        Boolean  @default(false)
+  employeesView        Boolean  @default(false)
+  employeesCreate      Boolean  @default(false)
+  employeesEdit        Boolean  @default(false)
+  employeesDelete      Boolean  @default(false)
+  adminPanelView       Boolean  @default(false)
+  adminPanelCreate     Boolean  @default(false)
+  adminPanelEdit       Boolean  @default(false)
+  adminPanelDelete     Boolean  @default(false)
+  emailTemplatesView   Boolean  @default(false)
+  emailTemplatesCreate Boolean  @default(false)
+  emailTemplatesEdit   Boolean  @default(false)
+  emailTemplatesDelete Boolean  @default(false)
+  clientsView          Boolean  @default(false)
+  clientsCreate        Boolean  @default(false)
+  clientsEdit          Boolean  @default(false)
+  clientsDelete        Boolean  @default(false)
+  jobsView             Boolean  @default(false)
+  jobsCreate           Boolean  @default(false)
+  jobsEdit             Boolean  @default(false)
+  jobsDelete           Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  employees            Boolean  @default(false)
 
   @@map("role_permissions")
 }
@@ -395,13 +395,13 @@ model EmployeeDocument {
   id         String   @id @default(uuid())
   employeeId String
   title      String
+  category   String   @default("Other")
   fileName   String
   filePath   String
   fileSize   Int
   mimeType   String
   uploadedAt DateTime @default(now())
   uploadedBy String?
-  category   String   @default("Other")
   employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@map("employee_documents")
@@ -409,28 +409,28 @@ model EmployeeDocument {
 
 model Notification {
   id        String   @id @default(uuid())
-  title     String   @default("Notification")
   message   String
-  type      String   // Task, Approval, Alert
+  type      String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
   userId    String
   relatedId String?
   actionUrl String?
+  title     String   @default("Notification")
   user      Employee @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
 }
 
 model Activity {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   title       String
   description String
-  type        String   // user_registration, project_created, task_completed, etc.
-  createdAt   DateTime @default(now())
+  type        String
+  createdAt   DateTime  @default(now())
   userId      String?
   relatedId   String?
-  user        Employee? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user        Employee? @relation(fields: [userId], references: [id])
 
   @@map("activities")
 }

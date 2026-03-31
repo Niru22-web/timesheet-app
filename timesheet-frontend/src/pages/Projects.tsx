@@ -26,6 +26,9 @@ import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
 import Avatar from '../components/ui/Avatar';
 import { TableSkeleton, Skeleton } from '../components/ui/Skeleton';
+import TableToolbar from '../components/ui/TableToolbar';
+import ActionBar from '../components/ui/ActionBar';
+import { DocumentArrowUpIcon, DocumentArrowDownIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 interface Project {
   id: string;
@@ -54,6 +57,18 @@ const Projects: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [generatedProjectId, setGeneratedProjectId] = useState<string>('');
+  
+  // Advanced Filter states
+  const [statusFilter, setStatusFilter] = useState('All Status');
+  const [billableFilter, setBillableFilter] = useState('all');
+  const [clientFilter, setClientFilter] = useState('all');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
+  // Bulk Upload states
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadResult, setUploadResult] = useState<any>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -70,7 +85,7 @@ const Projects: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [searchTerm, statusFilter, billableFilter, clientFilter]);
 
   const generateProjectId = async () => {
     try {
@@ -88,19 +103,24 @@ const Projects: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      console.log('Fetching project data...');
+      
+      const params: any = {
+        q: searchTerm,
+        status: statusFilter !== 'All Status' ? statusFilter : undefined,
+        clientId: clientFilter !== 'all' ? clientFilter : undefined
+      };
+      
+      if (billableFilter !== 'all') {
+        params.billable = billableFilter === 'true';
+      }
+
       const [projectsRes, clientsRes, employeesRes, allEmployeesRes] = await Promise.all([
-        API.get('/projects'),
+        API.get('/projects', { params }),
         API.get('/clients'),
-        API.get('/employees'), // Filtered by user role
-        API.get('/employees?all=true') // For dropdown (all employees in the firm)
+        API.get('/employees'),
+        API.get('/employees?all=true')
       ]);
-      console.log('API responses:', {
-        projects: projectsRes.data,
-        clients: clientsRes.data,
-        employees: employeesRes.data,
-        allEmployees: allEmployeesRes.data
-      });
+      
       const projectsArr = projectsRes.data?.success ? projectsRes.data.data : projectsRes.data;
       const clientsArr = clientsRes.data?.success ? clientsRes.data.data : clientsRes.data;
       const employeesArr = employeesRes.data?.success ? employeesRes.data.data : employeesRes.data;
@@ -229,11 +249,67 @@ const Projects: React.FC = () => {
     }
   };
 
-  const filteredProjects = projects.filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.projectId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleExport = async () => {
+    try {
+      const params: any = {
+        q: searchTerm,
+        status: statusFilter !== 'All Status' ? statusFilter : undefined,
+        clientId: clientFilter !== 'all' ? clientFilter : undefined
+      };
+      if (billableFilter !== 'all') params.billable = billableFilter === 'true';
+
+      const response = await API.get('/projects/export', {
+        params,
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'projects_export.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error('Export failed:', err);
+    }
+  };
+
+  const downloadTemplate = async () => {
+    try {
+      const response = await API.get('/projects/template/download', {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'project_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error('Template download failed:', err);
+    }
+  };
+
+  const handleBulkUpload = async () => {
+    if (!selectedFile) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      const res = await API.post('/projects/bulk-upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setUploadResult(res.data.data);
+      fetchData();
+    } catch (err) {
+      console.error('Bulk upload failed:', err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const filteredProjects = projects; // Backend handles filtering
 
   return (
     <div className="h-full flex flex-col space-y-6 animate-fade-in max-h-[calc(100vh-120px)] overflow-hidden">
@@ -243,25 +319,16 @@ const Projects: React.FC = () => {
           <h1 className="text-3xl font-extrabold text-secondary-900 tracking-tight">Project Master</h1>
           <p className="text-sm font-medium text-secondary-500 mt-1">Configure enterprise engagements and core delivery teams.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="secondary" size="sm" className="h-10 border-secondary-200" onClick={fetchData}>
-            Refresh Database
-          </Button>
-          {hasPermission('projects', 'canCreate') && (
-            <Button
-              variant="primary"
-              size="sm"
-              className="h-10 px-6 font-bold"
-              onClick={() => {
-                generateProjectId();
-                setShowAddModal(true);
-              }}
-              leftIcon={<PlusIcon className="w-4 h-4" />}
-            >
-              Initiate Project
-            </Button>
-          )}
-        </div>
+        <ActionBar
+          onAdd={() => {
+            generateProjectId();
+            setShowAddModal(true);
+          }}
+          addLabel="Initiate Project"
+          onUpload={isManager ? () => setShowBulkModal(true) : undefined}
+          onDownload={handleExport}
+          onDownloadTemplate={isManager ? downloadTemplate : undefined}
+        />
       </div>
 
       {/* Stats Summary */}
@@ -320,18 +387,44 @@ const Projects: React.FC = () => {
 
       {/* Search and Table */}
       <Card className="flex-1 flex flex-col overflow-hidden min-h-0 shadow-lg">
-        <div className="p-4 border-b border-secondary-100">
-          <div className="relative group">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 group-focus-within:text-primary-500 transition-colors" />
-            <input
-              type="text"
-              placeholder="Search by project name, ID or client..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-secondary-50/50 border border-secondary-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
-            />
-          </div>
-        </div>
+        <TableToolbar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          showFilters={showAdvancedFilters}
+          setShowFilters={setShowAdvancedFilters}
+          placeholder="Search projects, client names or project IDs..."
+          filters={
+            <>
+              <Select
+                label="Status"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="All Status">All Status</option>
+                <option value="Started">Started</option>
+                <option value="In-Discussion">In-Discussion</option>
+                <option value="Completed">Completed</option>
+              </Select>
+              <Select
+                label="Billable"
+                value={billableFilter}
+                onChange={(e) => setBillableFilter(e.target.value)}
+              >
+                <option value="all">All Billing</option>
+                <option value="true">Billable Only</option>
+                <option value="false">Non-Billable Only</option>
+              </Select>
+              <Select
+                label="Client"
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value)}
+              >
+                <option value="all">All Clients</option>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </Select>
+            </>
+          }
+        />
 
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           <table className="w-full text-left border-collapse">
@@ -744,6 +837,90 @@ const Projects: React.FC = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Bulk Upload Modal */}
+      <Modal
+        isOpen={showBulkModal}
+        onClose={() => {
+          setShowBulkModal(false);
+          setUploadResult(null);
+          setSelectedFile(null);
+        }}
+        title="Bulk Project Import"
+        size="lg"
+      >
+        <div className="space-y-4 pt-4">
+          {!uploadResult ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-primary-50 rounded-lg flex items-start gap-3">
+                <DocumentArrowUpIcon className="w-5 h-5 text-primary-600 mt-0.5" />
+                <div className="text-sm text-primary-800">
+                  <p className="font-bold mb-1">Import Guidelines:</p>
+                  <ul className="list-disc ml-4 space-y-1">
+                    <li>Required columns: <strong>name, clientName</strong></li>
+                    <li>Optional: status (Started/Completed/In-Discussion), billable (Yes/No), startDate, contactPerson</li>
+                    <li>Download the template to see the correct format.</li>
+                  </ul>
+                </div>
+              </div>
+              <input
+                type="file"
+                accept=".xlsx"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                className="w-full p-3 border-2 border-dashed border-primary-200 rounded-xl"
+                title="Select Project Excel File"
+                aria-label="Upload Project Template"
+              />
+              <div className="flex gap-4">
+                <Button variant="secondary" fullWidth onClick={() => setShowBulkModal(false)}>Cancel</Button>
+                <Button 
+                  variant="primary" 
+                  fullWidth 
+                  onClick={handleBulkUpload}
+                  disabled={!selectedFile || uploading}
+                >
+                  {uploading ? 'Processing...' : 'Start Import'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CheckCircleIcon className="w-5 h-5 text-emerald-600" />
+                    <span className="text-xs font-bold text-emerald-800 uppercase">Success</span>
+                  </div>
+                  <p className="text-2xl font-bold text-emerald-700">{uploadResult.successCount}</p>
+                </div>
+                <div className="p-4 bg-rose-50 rounded-xl border border-rose-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <ExclamationTriangleIcon className="w-5 h-5 text-rose-600" />
+                    <span className="text-xs font-bold text-rose-800 uppercase">Errors</span>
+                  </div>
+                  <p className="text-2xl font-bold text-rose-700">{uploadResult.errors.length}</p>
+                </div>
+              </div>
+
+              {uploadResult.errors.length > 0 && (
+                <div className="max-h-40 overflow-y-auto p-3 bg-secondary-50 rounded-lg border border-secondary-200">
+                  {uploadResult.errors.map((err: any, i: number) => (
+                    <p key={i} className="text-xs text-rose-600 mb-1 leading-tight">
+                      <strong>Row {i + 1}:</strong> {err.error}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              <Button variant="primary" fullWidth onClick={() => {
+                setShowBulkModal(false);
+                setUploadResult(null);
+                setSelectedFile(null);
+              }}>Done</Button>
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );

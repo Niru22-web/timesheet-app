@@ -23,7 +23,8 @@ import {
   XMarkIcon,
   EyeIcon,
   PencilSquareIcon,
-  TrashIcon
+  TrashIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
 // UI Components
@@ -34,6 +35,8 @@ import StatusBadge from '../components/ui/StatusBadge';
 import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
+import TableToolbar from '../components/ui/TableToolbar';
+import ActionBar from '../components/ui/ActionBar';
 
 interface ReimbursementClaim {
   id: string;
@@ -72,6 +75,13 @@ const Reimbursement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Bulk Upload states
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadResult, setUploadResult] = useState<any>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -97,7 +107,7 @@ const Reimbursement: React.FC = () => {
   useEffect(() => {
     fetchClaims();
     fetchMasterData();
-  }, [statusFilter]);
+  }, [statusFilter, searchTerm]);
 
   const fetchMasterData = async () => {
     try {
@@ -124,16 +134,57 @@ const Reimbursement: React.FC = () => {
     try {
       setLoading(true);
       const res = await API.get('/reimbursements', {
-        params: { status: statusFilter }
+        params: { 
+          status: statusFilter !== 'All Status' ? statusFilter.toLowerCase() : undefined,
+          q: searchTerm
+        }
       });
       
-      // Handle standardized response format { success, data, message }
       setClaims(res.data?.success ? res.data.data : res.data);
     } catch (err) {
       console.error('Failed to fetch claims:', err);
       setClaims([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const response = await API.get('/reimbursements/export', {
+        params: { 
+          status: statusFilter !== 'All Status' ? statusFilter.toLowerCase() : undefined,
+          q: searchTerm
+        },
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'reimbursements_export.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error('Export failed:', err);
+    }
+  };
+
+  const handleBulkUpload = async () => {
+    if (!selectedFile) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      const res = await API.post('/reimbursements/bulk-upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setUploadResult(res.data.data);
+      fetchClaims();
+    } catch (err) {
+      console.error('Bulk upload failed:', err);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -228,10 +279,7 @@ const Reimbursement: React.FC = () => {
     { label: 'Integrity', value: '100%', icon: ShieldCheckIcon, color: 'text-indigo-600', bg: 'bg-indigo-50' },
   ];
 
-  const filteredClaims = claims.filter(c => {
-    const matchSearch = (c.employee.firstName + ' ' + c.employee.lastName).toLowerCase().includes(searchTerm.toLowerCase()) || c.claimId.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchSearch;
-  });
+  const filteredClaims = claims; // Backend handles filtering
 
   return (
     <div className="h-full flex flex-col space-y-6 animate-fade-in max-h-[calc(100vh-120px)] overflow-hidden">
@@ -241,27 +289,13 @@ const Reimbursement: React.FC = () => {
           <h1 className="text-3xl font-extrabold text-secondary-900 tracking-tight">Expense Registry</h1>
           <p className="text-sm font-medium text-secondary-500 mt-1 italic">Corporate disbursement and reimbursement management.</p>
         </div>
-        <div className="flex items-center gap-3">
-           <Button 
-            variant="secondary" 
-            size="sm" 
-            className="h-10" 
-            onClick={fetchClaims}
-            title="Refresh Claims"
-            aria-label="Refresh Claims"
-          >
-            <ArrowPathIcon className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            className="h-10 px-6 font-bold"
-            onClick={() => setShowSubmitModal(true)}
-            leftIcon={<PlusIcon className="w-4 h-4" />}
-          >
-            New Requisition
-          </Button>
-        </div>
+        <ActionBar
+          onAdd={() => setShowSubmitModal(true)}
+          addLabel="New Requisition"
+          onUpload={user?.role === 'Manager' || user?.role === 'Admin' ? () => setShowBulkModal(true) : undefined}
+          onDownload={handleExport}
+          showTemplate={false}
+        />
       </div>
 
       {/* Stats */}
@@ -283,28 +317,25 @@ const Reimbursement: React.FC = () => {
 
       {/* Filters/Table */}
       <Card className="flex-1 flex flex-col overflow-hidden shadow-lg border-none">
-        <div className="p-4 bg-white border-b border-secondary-100 flex flex-col md:flex-row gap-3 flex-none">
-          <div className="flex-1 relative group">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 group-focus-within:text-primary-500 transition-colors" />
-            <input
-              type="text"
-              placeholder="Search by ID or employee..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-secondary-50/50 border border-secondary-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
-            />
-          </div>
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-48"
-          >
-            <option>All Status</option>
-            <option>Pending</option>
-            <option>Approved</option>
-            <option>Rejected</option>
-          </Select>
-        </div>
+        <TableToolbar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          showFilters={showAdvancedFilters}
+          setShowFilters={setShowAdvancedFilters}
+          placeholder="Search by ID or employee name..."
+          filters={
+            <Select
+              label="Status"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option>All Status</option>
+              <option>Pending</option>
+              <option>Approved</option>
+              <option>Rejected</option>
+            </Select>
+          }
+        />
 
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           <table className="w-full text-left">
@@ -593,6 +624,90 @@ const Reimbursement: React.FC = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Bulk Upload Modal */}
+      <Modal
+        isOpen={showBulkModal}
+        onClose={() => {
+          setShowBulkModal(false);
+          setUploadResult(null);
+          setSelectedFile(null);
+        }}
+        title="Bulk Reimbursement Import"
+        size="lg"
+      >
+        <div className="space-y-4 pt-4">
+          {!uploadResult ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-primary-50 rounded-lg flex items-start gap-3">
+                <DocumentArrowUpIcon className="w-5 h-5 text-primary-600 mt-0.5" />
+                <div className="text-sm text-primary-800">
+                  <p className="font-bold mb-1">Import Guidelines:</p>
+                  <ul className="list-disc ml-4 space-y-1">
+                    <li>Required columns: <strong>employeeName, clientName, projectName, jobName, Amount, Date</strong></li>
+                    <li>Optional: category, description</li>
+                    <li>Ensure Master data exists before importing.</li>
+                  </ul>
+                </div>
+              </div>
+              <input
+                type="file"
+                accept=".xlsx"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                className="w-full p-3 border-2 border-dashed border-primary-200 rounded-xl"
+                title="Select Reimbursement Excel File"
+                aria-label="Upload Reimbursement Template"
+              />
+              <div className="flex gap-4">
+                <Button variant="secondary" fullWidth onClick={() => setShowBulkModal(false)}>Cancel</Button>
+                <Button 
+                  variant="primary" 
+                  fullWidth 
+                  onClick={handleBulkUpload}
+                  disabled={!selectedFile || uploading}
+                >
+                  {uploading ? 'Processing...' : 'Start Import'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CheckCircleIcon className="w-5 h-5 text-emerald-600" />
+                    <span className="text-xs font-bold text-emerald-800 uppercase">Success</span>
+                  </div>
+                  <p className="text-2xl font-bold text-emerald-700">{uploadResult.successCount}</p>
+                </div>
+                <div className="p-4 bg-rose-50 rounded-xl border border-rose-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <ExclamationTriangleIcon className="w-5 h-5 text-rose-600" />
+                    <span className="text-xs font-bold text-rose-800 uppercase">Errors</span>
+                  </div>
+                  <p className="text-2xl font-bold text-rose-700">{uploadResult.errors.length}</p>
+                </div>
+              </div>
+
+              {uploadResult.errors.length > 0 && (
+                <div className="max-h-40 overflow-y-auto p-3 bg-secondary-50 rounded-lg border border-secondary-200">
+                  {uploadResult.errors.map((err: any, i: number) => (
+                    <p key={i} className="text-xs text-rose-600 mb-1 leading-tight">
+                      <strong>Row {i + 1}:</strong> {err.error}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              <Button variant="primary" fullWidth onClick={() => {
+                setShowBulkModal(false);
+                setUploadResult(null);
+                setSelectedFile(null);
+              }}>Done</Button>
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );

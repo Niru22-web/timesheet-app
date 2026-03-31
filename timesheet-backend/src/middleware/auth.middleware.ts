@@ -27,3 +27,14 @@ export const authenticate = (req: any, res: Response, next: NextFunction) => {
     return res.status(401).json({ message: "Invalid token" });
   }
 };
+
+export const checkManagerRole = (req: any, res: Response, next: NextFunction) => {
+  authenticate(req, res, () => {
+    const userRole = (req.user?.role as string)?.toLowerCase();
+    if (['manager', 'admin', 'partner', 'owner'].includes(userRole)) {
+      next();
+    } else {
+      res.status(403).json({ error: "Access denied. Action restricted to Managers/Admins/Partners/Owners." });
+    }
+  });
+};

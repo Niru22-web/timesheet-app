@@ -4,9 +4,28 @@ import { generateClientId } from '../../utils/clientIdGenerator';
 const prisma = new PrismaClient();
 
 export class ClientService {
-  async getAllClients(user?: any) {
+  async getAllClients(user?: any, filters?: { q?: string; status?: string }) {
     try {
-      let whereClause: any = { status: 'Active' };
+      let whereClause: any = {};
+      
+      // Default filter for non-admins if no explicit status filter
+      if (!filters?.status) {
+        whereClause.status = 'Active';
+      } else if (filters.status !== 'All Status') {
+        whereClause.status = filters.status;
+      }
+
+      // Apply search query
+      if (filters?.q) {
+        const query = filters.q.trim();
+        whereClause.OR = [
+          { name: { contains: query, mode: 'insensitive' } },
+          { clientId: { contains: query, mode: 'insensitive' } },
+          { alias: { contains: query, mode: 'insensitive' } },
+          { pan: { contains: query, mode: 'insensitive' } },
+          { gstin: { contains: query, mode: 'insensitive' } },
+        ];
+      }
       
       // Apply role-based visibility
       if (user) {
@@ -24,7 +43,7 @@ export class ClientService {
             whereClause.partnerId = employee.reportingPartner;
           }
         }
-        // Admin sees all active clients
+        // Admin sees all based on the status filter
       }
 
       const clients = await prisma.client.findMany({

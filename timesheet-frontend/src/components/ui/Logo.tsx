@@ -50,7 +50,7 @@ const Logo: React.FC<LogoProps> = ({
     return (
       <img
         src="/images/branding/asa-logo.png"
-        alt="ASA Ashish Shah & Associates - Delivering Value"
+        alt="Timesheet Pro - Delivering Value"
         className={`${imageSizes[size]} ${className}`}
       />
     );
@@ -59,9 +59,8 @@ const Logo: React.FC<LogoProps> = ({
   if (variant === 'icon-only') {
     return (
       <div className={`flex items-center justify-center ${sizeClasses[size]} ${className}`}>
-        <div className="bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold" 
-             style={{ width: '100%', height: '100%' }}>
-          <span className={textSizes[size]}>ASA</span>
+        <div className="bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold w-full h-full">
+          <span className={textSizes[size]}>TP</span>
         </div>
       </div>
     );
@@ -69,49 +68,28 @@ const Logo: React.FC<LogoProps> = ({
 
   if (variant === 'text-only') {
     return (
-      <div className={`flex flex-col ${className}`}>
-        <div className="flex items-baseline gap-2">
-          <span className={`font-bold text-primary-600 ${textSizes[size]}`}>
-            ASA
-          </span>
-          <span className={`text-gray-600 font-medium ${subTextSizes[size]}`}>
-            ASHISH SHAH & ASSOCIATES
-          </span>
+      <div className={`flex flex-col items-center ${className}`}>
+        <div className="text-primary-600 font-extrabold text-3xl tracking-tighter leading-none mb-1">ASA</div>
+        <div className="text-[9px] font-black text-secondary-900 uppercase tracking-tighter text-center leading-[1.1]">
+          ASHISH SHAH & ASSOCIATES
         </div>
-        <div className="flex items-center gap-2 mt-1">
-          <div className="flex-1 h-px bg-gray-400"></div>
-          <span className={`text-primary-600 font-medium ${taglineSizes[size]}`}>
-            DELIVERING VALUE
-          </span>
-          <div className="flex-1 h-px bg-gray-400"></div>
+        <div className="text-[8px] font-bold text-secondary-400 uppercase tracking-[0.2em] mt-2 whitespace-nowrap">
+          DELIVERING VALUE
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <div className={`${sizeClasses[size]} bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold flex-shrink-0`}
-           style={{ aspectRatio: '1' }}>
-        <span className={textSizes[size]}>ASA</span>
-      </div>
-      <div className="flex flex-col">
-        <div className="flex items-baseline gap-2">
-          <span className={`font-bold text-primary-600 ${textSizes[size]}`}>
-            ASA
-          </span>
-          <span className={`text-gray-600 font-medium ${subTextSizes[size]}`}>
-            ASHISH SHAH & ASSOCIATES
-          </span>
+    <div className={`flex flex-col items-center ${className}`}>
+        <div className="text-primary-600 font-extrabold text-4xl tracking-tighter leading-none mb-1">ASA</div>
+        <div className="text-[10px] font-black text-secondary-900 uppercase tracking-tighter text-center leading-[1.1]">
+          ASHISH SHAH & ASSOCIATES
         </div>
-        <div className="flex items-center gap-2 mt-1">
-          <div className="flex-1 h-px bg-gray-400"></div>
-          <span className={`text-primary-600 font-medium ${taglineSizes[size]}`}>
-            DELIVERING VALUE
-          </span>
-          <div className="flex-1 h-px bg-gray-400"></div>
+        <div className="h-px w-8 bg-secondary-200 my-2" />
+        <div className="text-[8px] font-bold text-secondary-400 uppercase tracking-[0.3em] whitespace-nowrap">
+          DELIVERING VALUE
         </div>
-      </div>
     </div>
   );
 };

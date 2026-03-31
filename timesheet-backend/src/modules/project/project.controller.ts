@@ -4,6 +4,9 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { logActivity } from '../activity/activity.service';
+import { ExcelService } from '../../utils/ExcelService';
+import { prisma } from '../../config/prisma';
+import * as XLSX from 'xlsx';
 
 const projectService = new ProjectService();
 
@@ -58,7 +61,17 @@ const upload = multer({
 
 export const getAllProjects = async (req: Request, res: Response) => {
   try {
-    const projects = await projectService.getAllProjects((req as any).user);
+    const { q, status, billable, clientId, startDateFrom, startDateTo } = req.query;
+    
+    const filters = {
+      status: status && status !== 'All Status' ? status as string : undefined,
+      billable: billable === 'true' ? true : billable === 'false' ? false : undefined,
+      clientId: clientId as string,
+      startDateFrom: startDateFrom as string,
+      startDateTo: startDateTo as string
+    };
+    
+    const projects = await projectService.searchProjects(q as string, filters, (req as any).user);
     res.json({
       success: true,
       data: projects,
@@ -231,8 +244,103 @@ export const deleteProjectAttachment = async (req: Request, res: Response) => {
   }
 };
 
+export const bulkUploadProjects = async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const jsonData = ExcelService.parseExcel(req.file.buffer);
+    const userEmail = (req as any).user?.email;
+
+    const results = [];
+    const errors = [];
+
+    for (let row of jsonData) {
+      try {
+        const { name, clientName, status, startDate, billable, contactPerson } = row;
+        
+        // Find client by name
+        const client = await (prisma as any).client.findFirst({
+          where: { name: { contains: clientName, mode: 'insensitive' } }
+        });
+
+        if (!client) {
+          throw new Error(`Client "${clientName}" not found`);
+        }
+
+        const projectData = {
+          name,
+          clientId: client.id,
+          status: status || 'Started',
+          startDate: startDate ? new Date(startDate) : new Date(),
+          billable: billable === 'Yes' || billable === true,
+          contactPerson: contactPerson || ''
+        };
+
+        const project = await projectService.createProject(projectData, [], userEmail);
+        results.push(project);
+      } catch (err: any) {
+        errors.push({ row, error: err.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: { successCount: results.length, errors },
+      message: 'Bulk upload completed'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const exportProjects = async (req: Request, res: Response) => {
+  try {
+    const { q, status, billable, clientId, startDateFrom, startDateTo } = req.query;
+    
+    const filters = {
+      status: status && status !== 'All Status' ? status as string : undefined,
+      billable: billable === 'true' ? true : billable === 'false' ? false : undefined,
+      clientId: clientId as string,
+      startDateFrom: startDateFrom as string,
+      startDateTo: startDateTo as string
+    };
+    
+    const projects = await projectService.searchProjects(q as string, filters, (req as any).user);
+
+    const exportData = projects.map(p => ({
+      'Project ID': p.projectId,
+      'Name': p.name,
+      'Client': p.client.name,
+      'Status': p.status,
+      'Billable': p.billable ? 'Yes' : 'No',
+      'Start Date': p.startDate.toISOString().split('T')[0],
+      'Contact Person': p.contactPerson || '',
+      'Jobs': p._count.jobs,
+      'Team Size': p._count.users
+    }));
+
+    ExcelService.exportToExcel(res, exportData, 'projects');
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const downloadProjectTemplate = async (req: Request, res: Response) => {
+  try {
+    const columns = ['name', 'clientName', 'status', 'startDate', 'billable', 'contactPerson'];
+    ExcelService.generateTemplate(res, columns, 'project_template');
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to generate template' });
+  }
+};
+
 // Middleware for multiple file uploads
 export const uploadProjectFiles = upload.array('attachments', 10); // Max 10 files
 
 // Middleware for single file upload
-export const uploadProjectFile = upload.single('file');
+// Use memory storage for bulk upload to read buffer
+const memoryStorage = multer.memoryStorage();
+const memoryUpload = multer({ storage: memoryStorage });
+export const uploadProjectExcel = memoryUpload.single('file');

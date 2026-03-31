@@ -26,6 +26,9 @@ import StatusBadge from '../components/ui/StatusBadge';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
 import { TableSkeleton, Skeleton } from '../components/ui/Skeleton';
+import TableToolbar from '../components/ui/TableToolbar';
+import ActionBar from '../components/ui/ActionBar';
+import { DocumentArrowUpIcon, DocumentArrowDownIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 interface Job {
     id: string;
@@ -55,6 +58,19 @@ const Jobs: React.FC = () => {
     const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
+  
+  // Advanced Filter states
+  const [statusFilter, setStatusFilter] = useState('All Status');
+  const [billableFilter, setBillableFilter] = useState('all');
+  const [clientFilter, setClientFilter] = useState('all');
+  const [projectFilter, setProjectFilter] = useState('all');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Bulk Upload states
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadResult, setUploadResult] = useState<any>(null);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -72,7 +88,7 @@ const Jobs: React.FC = () => {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [searchTerm, statusFilter, billableFilter, clientFilter, projectFilter]);
 
     useEffect(() => {
         if (formData.clientId) {
@@ -86,8 +102,16 @@ const Jobs: React.FC = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
+            const params: any = {
+                q: searchTerm,
+                status: statusFilter !== 'All Status' ? statusFilter : undefined,
+                clientId: clientFilter !== 'all' ? clientFilter : undefined,
+                projectId: projectFilter !== 'all' ? projectFilter : undefined
+            };
+            if (billableFilter !== 'all') params.billable = billableFilter === 'true';
+
             const [jobsRes, clientsRes, projectsRes] = await Promise.all([
-                API.get('/jobs'),
+                API.get('/jobs', { params }),
                 API.get('/clients'),
                 API.get('/projects')
             ]);
@@ -220,11 +244,68 @@ const Jobs: React.FC = () => {
         }
     };
 
-    const filteredJobs = jobs.filter(j =>
-        j.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        j.jobId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        j.project?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleExport = async () => {
+        try {
+            const params: any = {
+                q: searchTerm,
+                status: statusFilter !== 'All Status' ? statusFilter : undefined,
+                clientId: clientFilter !== 'all' ? clientFilter : undefined,
+                projectId: projectFilter !== 'all' ? projectFilter : undefined
+            };
+            if (billableFilter !== 'all') params.billable = billableFilter === 'true';
+
+            const response = await API.get('/jobs/export', {
+                params,
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'jobs_export.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error('Export failed:', err);
+        }
+    };
+
+    const downloadTemplate = async () => {
+        try {
+            const response = await API.get('/jobs/template/download', {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'job_template.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error('Template download failed:', err);
+        }
+    };
+
+    const handleBulkUpload = async () => {
+        if (!selectedFile) return;
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            const res = await API.post('/jobs/bulk-upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setUploadResult(res.data.data);
+            fetchData();
+        } catch (err) {
+            console.error('Bulk upload failed:', err);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const filteredJobs = jobs; // Backend handles filtering
 
     return (
         <div className="h-full flex flex-col space-y-6 animate-fade-in max-h-[calc(100vh-120px)] overflow-hidden">
@@ -234,22 +315,13 @@ const Jobs: React.FC = () => {
                     <h1 className="text-3xl font-extrabold text-secondary-900 tracking-tight">Job Master</h1>
                     <p className="text-sm font-medium text-secondary-500 mt-1">Define granular deliverables and cost centers for project execution.</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <Button variant="secondary" size="sm" className="h-10 border-secondary-200" onClick={fetchData}>
-                        Refresh Masters
-                    </Button>
-                    {hasPermission('jobs', 'canCreate') && (
-                        <Button
-                            variant="primary"
-                            size="sm"
-                            className="h-10 px-6 font-bold"
-                            onClick={() => setShowAddModal(true)}
-                            leftIcon={<PlusIcon className="w-4 h-4" />}
-                        >
-                            Configure Job
-                        </Button>
-                    )}
-                </div>
+                <ActionBar
+                    onAdd={() => setShowAddModal(true)}
+                    addLabel="Configure Job"
+                    onUpload={isManager ? () => setShowBulkModal(true) : undefined}
+                    onDownload={handleExport}
+                    onDownloadTemplate={isManager ? downloadTemplate : undefined}
+                />
             </div>
 
             {/* Stats Summary */}
@@ -307,18 +379,52 @@ const Jobs: React.FC = () => {
             </div>
 
             <Card className="flex-1 flex flex-col overflow-hidden min-h-0 shadow-lg">
-                <div className="p-4 border-b border-secondary-100 flex items-center gap-4">
-                    <div className="flex-1 relative group">
-                        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 group-focus-within:text-primary-500 transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Search by Job ID, name or project..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 bg-secondary-50/50 border border-secondary-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
-                        />
-                    </div>
-                </div>
+                <TableToolbar
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    showFilters={showAdvancedFilters}
+                    setShowFilters={setShowAdvancedFilters}
+                    placeholder="Search by Job ID, name or project..."
+                    filters={
+                        <>
+                            <Select
+                                label="Status"
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                            >
+                                <option value="All Status">All Status</option>
+                                <option value="Started">Started</option>
+                                <option value="In-Discussion">In-Discussion</option>
+                                <option value="Completed">Completed</option>
+                            </Select>
+                            <Select
+                                label="Billable"
+                                value={billableFilter}
+                                onChange={(e) => setBillableFilter(e.target.value)}
+                            >
+                                <option value="all">All Billing</option>
+                                <option value="true">Billable Only</option>
+                                <option value="false">Non-Billable Only</option>
+                            </Select>
+                            <Select
+                                label="Client"
+                                value={clientFilter}
+                                onChange={(e) => setClientFilter(e.target.value)}
+                            >
+                                <option value="all">All Clients</option>
+                                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </Select>
+                            <Select
+                                label="Project"
+                                value={projectFilter}
+                                onChange={(e) => setProjectFilter(e.target.value)}
+                            >
+                                <option value="all">All Projects</option>
+                                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </Select>
+                        </>
+                    }
+                />
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                     <table className="w-full text-left border-collapse">
@@ -520,9 +626,93 @@ const Jobs: React.FC = () => {
                         </Button>
                     </div>
                 </form>
-            </Modal>
+      </Modal>
+
+      {/* Bulk Upload Modal */}
+      <Modal
+        isOpen={showBulkModal}
+        onClose={() => {
+          setShowBulkModal(false);
+          setUploadResult(null);
+          setSelectedFile(null);
+        }}
+        title="Bulk Job Import"
+        size="lg"
+      >
+        <div className="space-y-4 pt-4">
+          {!uploadResult ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-primary-50 rounded-lg flex items-start gap-3">
+                <DocumentArrowUpIcon className="w-5 h-5 text-primary-600 mt-0.5" />
+                <div className="text-sm text-primary-800">
+                  <p className="font-bold mb-1">Import Guidelines:</p>
+                  <ul className="list-disc ml-4 space-y-1">
+                    <li>Required columns: <strong>name, projectName</strong></li>
+                    <li>Optional: status (Started/Completed/In-Discussion), billable (Yes/No), startDate, description</li>
+                    <li>Download the template to see the correct format.</li>
+                  </ul>
+                </div>
+              </div>
+              <input
+                type="file"
+                accept=".xlsx"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                className="w-full p-3 border-2 border-dashed border-primary-200 rounded-xl"
+                title="Select Job Excel File"
+                aria-label="Upload Job Template"
+              />
+              <div className="flex gap-4">
+                <Button variant="secondary" fullWidth onClick={() => setShowBulkModal(false)}>Cancel</Button>
+                <Button 
+                  variant="primary" 
+                  fullWidth 
+                  onClick={handleBulkUpload}
+                  disabled={!selectedFile || uploading}
+                >
+                  {uploading ? 'Processing...' : 'Start Import'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CheckCircleIcon className="w-5 h-5 text-emerald-600" />
+                    <span className="text-xs font-bold text-emerald-800 uppercase">Success</span>
+                  </div>
+                  <p className="text-2xl font-bold text-emerald-700">{uploadResult.successCount}</p>
+                </div>
+                <div className="p-4 bg-rose-50 rounded-xl border border-rose-100">
+                  <div className="flex items-center gap-2 mb-1">
+                    <ExclamationTriangleIcon className="w-5 h-5 text-rose-600" />
+                    <span className="text-xs font-bold text-rose-800 uppercase">Errors</span>
+                  </div>
+                  <p className="text-2xl font-bold text-rose-700">{uploadResult.errors.length}</p>
+                </div>
+              </div>
+
+              {uploadResult.errors.length > 0 && (
+                <div className="max-h-40 overflow-y-auto p-3 bg-secondary-50 rounded-lg border border-secondary-200">
+                  {uploadResult.errors.map((err: any, i: number) => (
+                    <p key={i} className="text-xs text-rose-600 mb-1 leading-tight">
+                      <strong>Row {i + 1}:</strong> {err.error}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              <Button variant="primary" fullWidth onClick={() => {
+                setShowBulkModal(false);
+                setUploadResult(null);
+                setSelectedFile(null);
+              }}>Done</Button>
+            </div>
+          )}
         </div>
-    );
+      </Modal>
+    </div>
+  );
 };
 
 export default Jobs;

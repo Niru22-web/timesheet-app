@@ -254,9 +254,8 @@ const getFieldMappingForModule = (moduleName: string): { view: string; create: s
 export const getCurrentUserPermissions = async (req: any, res: Response) => {
   try {
     console.log('🔍 getCurrentUserPermissions called');
-    console.log('User from token:', req.user);
     
-    // If no user in request, return default permissions
+    // If no user in request, return default restricted permissions
     if (!req.user || !req.user.id) {
       console.log('❌ No user found in request');
       return res.json({
@@ -266,169 +265,69 @@ export const getCurrentUserPermissions = async (req: any, res: Response) => {
           timesheet: { canView: true, canCreate: true, canEdit: true, canDelete: false },
           projects: { canView: true, canCreate: false, canEdit: false, canDelete: false },
           reports: { canView: true, canCreate: false, canEdit: false, canDelete: false },
-          employees: { canView: false, canCreate: false, canEdit: false, canDelete: false },
-          admin_panel: { canView: false, canCreate: false, canEdit: false, canDelete: false },
-          email_templates: { canView: false, canCreate: false, canEdit: false, canDelete: false },
-          clients: { canView: false, canCreate: false, canEdit: false, canDelete: false },
-          jobs: { canView: false, canCreate: false, canEdit: false, canDelete: false }
+          employees: { canView: false, canCreate: false, canEdit: false, canDelete: false }
         },
         hasCustomAccess: false
       });
     }
     
     const userId = req.user.id;
-    console.log('Looking up permissions for userId:', userId);
 
-    // Get user-specific permissions first
+    // Get user-specific permissions
     const userPermission = await prisma.userPermission.findUnique({
-      where: { userId },
-      select: {
-        dashboardView: true,
-        dashboardCreate: true,
-        dashboardEdit: true,
-        dashboardDelete: true,
-        timesheetView: true,
-        timesheetCreate: true,
-        timesheetEdit: true,
-        timesheetDelete: true,
-        projectsView: true,
-        projectsCreate: true,
-        projectsEdit: true,
-        projectsDelete: true,
-        reportsView: true,
-        reportsCreate: true,
-        reportsEdit: true,
-        reportsDelete: true,
-        employeesView: true,
-        employeesCreate: true,
-        employeesEdit: true,
-        employeesDelete: true,
-        employees: true,
-        adminPanelView: true,
-        adminPanelCreate: true,
-        adminPanelEdit: true,
-        adminPanelDelete: true,
-        emailTemplatesView: true,
-        emailTemplatesCreate: true,
-        emailTemplatesEdit: true,
-        emailTemplatesDelete: true,
-        clientsView: true,
-        clientsCreate: true,
-        clientsEdit: true,
-        clientsDelete: true,
-        jobsView: true,
-        jobsCreate: true,
-        jobsEdit: true,
-        jobsDelete: true
-      }
+      where: { userId }
     });
 
     // Get role-based permissions as fallback
     const rolePermission = await prisma.rolePermission.findUnique({
-      where: { role: req.user.role },
-      select: {
-        dashboardView: true,
-        dashboardCreate: true,
-        dashboardEdit: true,
-        dashboardDelete: true,
-        timesheetView: true,
-        timesheetCreate: true,
-        timesheetEdit: true,
-        timesheetDelete: true,
-        projectsView: true,
-        projectsCreate: true,
-        projectsEdit: true,
-        projectsDelete: true,
-        reportsView: true,
-        reportsCreate: true,
-        reportsEdit: true,
-        reportsDelete: true,
-        employeesView: true,
-        employeesCreate: true,
-        employeesEdit: true,
-        employeesDelete: true,
-        employees: true,
-        adminPanelView: true,
-        adminPanelCreate: true,
-        adminPanelEdit: true,
-        adminPanelDelete: true,
-        emailTemplatesView: true,
-        emailTemplatesCreate: true,
-        emailTemplatesEdit: true,
-        emailTemplatesDelete: true,
-        clientsView: true,
-        clientsCreate: true,
-        clientsEdit: true,
-        clientsDelete: true,
-        jobsView: true,
-        jobsCreate: true,
-        jobsEdit: true,
-        jobsDelete: true
-      }
+      where: { role: req.user.role }
     });
 
-    console.log('Found user permission record:', userPermission);
-    console.log('Found role permission record:', rolePermission);
-
     // Priority logic: user-specific permissions override role permissions
-    const permission = userPermission || rolePermission;
+    const permission: any = userPermission || rolePermission;
 
-    // Convert to object for easier access
+    // Module mapping for easier frontend consumption
+    const modules = [
+      { name: 'dashboard', view: 'dashboardView', create: 'dashboardCreate', edit: 'dashboardEdit', del: 'dashboardDelete' },
+      { name: 'timesheet', view: 'timesheetView', create: 'timesheetCreate', edit: 'timesheetEdit', del: 'timesheetDelete' },
+      { name: 'projects', view: 'projectsView', create: 'projectsCreate', edit: 'projectsEdit', del: 'projectsDelete' },
+      { name: 'reports', view: 'reportsView', create: 'reportsCreate', edit: 'reportsEdit', del: 'reportsDelete' },
+      { name: 'employees', view: 'employeesView', create: 'employeesCreate', edit: 'employeesEdit', del: 'employeesDelete' },
+      { name: 'adminPanel', view: 'adminPanelView', create: 'adminPanelCreate', edit: 'adminPanelEdit', del: 'adminPanelDelete' },
+      { name: 'emailTemplates', view: 'emailTemplatesView', create: 'emailTemplatesCreate', edit: 'emailTemplatesEdit', del: 'emailTemplatesDelete' },
+      { name: 'clients', view: 'clientsView', create: 'clientsCreate', edit: 'clientsEdit', del: 'clientsDelete' },
+      { name: 'jobs', view: 'jobsView', create: 'jobsCreate', edit: 'jobsEdit', del: 'jobsDelete' },
+    ];
+
     const permissionMap: any = {};
     
-    if (permission) {
-      // Define all modules with their field mappings
-      const allModules = [
-        { moduleName: 'dashboard', viewField: 'dashboardView', createField: 'dashboardCreate', editField: 'dashboardEdit', deleteField: 'dashboardDelete' },
-        { moduleName: 'timesheet', viewField: 'timesheetView', createField: 'timesheetCreate', editField: 'timesheetEdit', deleteField: 'timesheetDelete' },
-        { moduleName: 'projects', viewField: 'projectsView', createField: 'projectsCreate', editField: 'projectsEdit', deleteField: 'projectsDelete' },
-        { moduleName: 'reports', viewField: 'reportsView', createField: 'reportsCreate', editField: 'reportsEdit', deleteField: 'reportsDelete' },
-        { moduleName: 'employees', viewField: 'employeesView', createField: 'employeesCreate', editField: 'employeesEdit', deleteField: 'employeesDelete' },
-        { moduleName: 'admin_panel', viewField: 'adminPanelView', createField: 'adminPanelCreate', editField: 'adminPanelEdit', deleteField: 'adminPanelDelete' },
-        { moduleName: 'email_templates', viewField: 'emailTemplatesView', createField: 'emailTemplatesCreate', editField: 'emailTemplatesEdit', deleteField: 'emailTemplatesDelete' },
-        { moduleName: 'clients', viewField: 'clientsView', createField: 'clientsCreate', editField: 'clientsEdit', deleteField: 'clientsDelete' },
-        { moduleName: 'jobs', viewField: 'jobsView', createField: 'jobsCreate', editField: 'jobsEdit', deleteField: 'jobsDelete' }
-      ];
-
-      allModules.forEach(({ moduleName, viewField, createField, editField, deleteField }) => {
-        permissionMap[moduleName] = {
-          canView: permission[viewField as keyof typeof permission] || false,
-          canCreate: permission[createField as keyof typeof permission] || false,
-          canEdit: permission[editField as keyof typeof permission] || false,
-          canDelete: permission[deleteField as keyof typeof permission] || false
+    modules.forEach((mod) => {
+      if (permission) {
+        permissionMap[mod.name] = {
+          canView: !!permission[mod.view],
+          canCreate: !!permission[mod.create] || !!permission[mod.edit],
+          canEdit: !!permission[mod.edit],
+          canDelete: !!permission[mod.del] || false,
         };
-      });
-    } else {
-      // Return default permissions if no permissions found
-      const defaultModules = [
-        { moduleName: 'dashboard', view: true, create: false, edit: false, delete: false },
-        { moduleName: 'timesheet', view: true, create: true, edit: true, delete: false },
-        { moduleName: 'projects', view: true, create: false, edit: false, delete: false },
-        { moduleName: 'reports', view: true, create: false, edit: false, delete: false },
-        { moduleName: 'employees', view: false, create: false, edit: false, delete: false },
-        { moduleName: 'admin_panel', view: false, create: false, edit: false, delete: false },
-        { moduleName: 'email_templates', view: false, create: false, edit: false, delete: false },
-        { moduleName: 'clients', view: false, create: false, edit: false, delete: false },
-        { moduleName: 'jobs', view: false, create: false, edit: false, delete: false }
-      ];
-
-      defaultModules.forEach(({ moduleName, view, create, edit, delete: del }) => {
-        permissionMap[moduleName] = {
-          canView: view,
-          canCreate: create,
-          canEdit: edit,
-          canDelete: del
+      } else {
+        // Safe defaults if no record in DB
+        const isDefaultVisible = ['dashboard', 'projects', 'timesheet'].includes(mod.name);
+        permissionMap[mod.name] = {
+          canView: isDefaultVisible,
+          canCreate: mod.name === 'timesheet',
+          canEdit: mod.name === 'timesheet',
+          canDelete: false,
         };
-      });
-    }
+      }
+    });
 
     res.json({
       success: true,
       permissions: permissionMap,
-      hasCustomAccess: !!userPermission // Flag to indicate user-specific permissions
+      hasCustomAccess: !!userPermission
     });
   } catch (error) {
-    console.error("Error fetching current user permissions:", error);
+    console.error("❌ ERROR in getCurrentUserPermissions:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch current user permissions",

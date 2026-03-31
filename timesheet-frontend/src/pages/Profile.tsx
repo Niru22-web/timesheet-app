@@ -21,7 +21,7 @@ import Modal from '../components/ui/Modal';
 // Redesign Components
 import ProfileSidebar from '../components/profile/ProfileSidebar';
 import ProfileDetails from '../components/profile/ProfileDetails';
-import ProfileInsights from '../components/profile/ProfileInsights';
+import ProfileInsights from '../components/profile/ProfileInsights.tsx';
 
 import './Profile.css';
 
@@ -280,23 +280,31 @@ const Profile: React.FC = () => {
     }
 
     return (
-        <div className="profile-container">
-            <ProfileSidebar 
-                details={profileData} 
-                photoUrl={photoUrl}
-                onPhotoClick={() => setPhotoModalOpen(true)}
-                onEditClick={handleEditProfile}
-                onPasswordClick={() => setPasswordModalOpen(true)}
-                onStatusToggle={() => {}}
-            />
-            
-            <ProfileDetails details={profileData} />
-            
-            <ProfileInsights 
-                details={profileData} 
-                completeness={completenessPercentage}
-                onUpdateClick={handleEditProfile}
-            />
+        <div className="h-full flex flex-col overflow-hidden bg-secondary-50/50">
+            {/* Top info bar / Header-like section if needed, or just padding */}
+            <div className="flex-1 flex overflow-hidden p-6 gap-6">
+                
+                {/* Left Column: Sidebar & Identity */}
+                <ProfileSidebar 
+                    details={profileData} 
+                    photoUrl={photoUrl}
+                    onPhotoClick={() => setPhotoModalOpen(true)}
+                    onEditClick={handleEditProfile}
+                    onPasswordClick={() => setPasswordModalOpen(true)}
+                    onStatusToggle={() => {}}
+                />
+                
+                {/* Middle Column: Detailed Registry */}
+                <ProfileDetails details={profileData} loading={loading} />
+                
+                {/* Right Column: Insights & Matrix */}
+                <ProfileInsights 
+                    details={profileData} 
+                    completeness={completenessPercentage}
+                    onUpdateClick={handleEditProfile}
+                />
+
+            </div>
 
             {/* Profile Photo Upload Modal */}
             <Modal

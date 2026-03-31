@@ -68,6 +68,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       Object.entries(theme.colors.primary).forEach(([key, value]) => {
         root.style.setProperty(`--color-primary-${key}`, value);
       });
+
+      // Apply secondary colors
+      Object.entries(theme.colors.secondary).forEach(([key, value]) => {
+        root.style.setProperty(`--color-secondary-${key}`, value);
+      });
+
       
       // Apply semantic colors
       root.style.setProperty('--color-success', theme.colors.success[500]);

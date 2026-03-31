@@ -28,7 +28,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000
   },
   server: {
-    hmr: false,
+    hmr: true,
     proxy: {
       '/api': {
         target: 'http://localhost:5000',

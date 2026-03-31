@@ -8,7 +8,8 @@ import {
   bulkUploadClients,
   downloadClientTemplate,
   uploadClientFile,
-  toggleClientStatus
+  toggleClientStatus,
+  exportClients
 } from './client.controller';
 import { authenticate } from '../../middleware/auth.middleware';
 import { allowRoles } from '../../middleware/role.middleware';
@@ -20,6 +21,7 @@ router.use(authenticate);
 
 // Client CRUD operations
 router.get('/', getAllClients);
+router.get('/export', exportClients);
 router.get('/:id', getClientById);
 router.post('/', allowRoles('Admin', 'Partner'), createClient);
 router.put('/:id', allowRoles('Admin', 'Partner'), updateClient);

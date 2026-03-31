@@ -66,7 +66,7 @@ const App: React.FC = () => {
                                     <Route path="/" element={<Navigate to="/login" replace />} />
 
                                     {/* Public Routes */}
-                                    <Route path="/login" element={<ResponsiveAuthLayout mode="login" />} />
+                                    <Route path="/login" element={<SimpleLogin />} />
                                     <Route path="/signup" element={<ResponsiveAuthLayout mode="signup" />} />
                                     <Route path="/forgot-password" element={<ResponsiveAuthLayout type="forgot" />} />
                                     <Route path="/reset-password" element={<ResetPassword />} />

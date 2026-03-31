@@ -1,52 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../../contexts/ToastContext';
-
-// Icons
-import {
-  EnvelopeIcon,
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  EnvelopeIcon, 
+  ArrowRightIcon, 
   ArrowLeftIcon,
   CheckCircleIcon,
-  ExclamationTriangleIcon,
-  ArrowRightIcon
+  SunIcon,
+  MoonIcon
 } from '@heroicons/react/24/outline';
-
-// UI Components
+import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import Button from '../ui/Button';
-import Input from '../ui/Input';
 
 const ForgotPassword3DLayout: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const { forgotPassword } = useAuth();
+  const [status, setStatus] = useState<{ type: 'idle' | 'success' | 'error'; message: string }>({ type: 'idle', message: '' });
+  const [isLoaded, setIsLoaded] = useState(false);
+  
   const navigate = useNavigate();
-  const toast = useToast();
+  const { themeMode, toggleTheme } = useTheme();
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = 'Please enter a valid email';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!email) {
+      setStatus({ type: 'error', message: 'Please enter your email address' });
+      return;
+    }
 
     setIsLoading(true);
+    setStatus({ type: 'idle', message: '' });
 
     try {
+      // Re-using the fetch logic from the original ForgotPassword3DLayout
       const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: {
@@ -55,345 +47,233 @@ const ForgotPassword3DLayout: React.FC = () => {
         body: JSON.stringify({ email }),
       });
 
-      // Check if response is empty or not JSON
       const text = await response.text();
       let data;
-      
       try {
         data = text ? JSON.parse(text) : {};
-      } catch (jsonError) {
-        console.error('Failed to parse JSON response:', text);
-        data = { success: false, message: 'Invalid server response' };
+      } catch (e) {
+        data = { success: false, message: 'Invalid response' };
       }
 
       if (response.ok && data.success) {
-        setIsSubmitted(true);
-        toast.success('Reset link sent! Check your email for password reset instructions');
+        setStatus({ type: 'success', message: 'Reset link sent successfully. Please check your email.' });
+        setEmail('');
       } else {
-        // Show actual error from backend
-        const errorMessage = data?.message || `Server error (${response.status})`;
-        toast.error(`Request failed: ${errorMessage}`);
+        setStatus({ type: 'error', message: data.message || 'Email not found or failed to send link.' });
       }
-    } catch (err) {
-      console.error('Forgot password error:', err);
-      
-      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
-        toast.error('Connection error: Unable to connect to the server. Please check if the server is running.');
-      } else {
-        toast.error('Request failed: An unexpected error occurred. Please try again.');
-      }
+    } catch (error) {
+      setStatus({ type: 'error', message: 'An error occurred. Please try again.' });
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (isSubmitted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 flex items-center justify-center p-4 overflow-hidden">
-        {/* Background decoration */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-200/30 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-sky-100/20 rounded-full blur-3xl" />
-        </div>
-
-        <div className="relative w-full max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-8 items-center">
-            
-            {/* Left Side - 3D Illustration */}
-            <div className="hidden lg:flex flex-col items-center justify-center p-8">
-              <div className="relative">
-                {/* 3D Scene Container */}
-                <div className="relative w-full max-w-md">
-                  {/* Success illustration */}
-                  <div className="aspect-square bg-white/40 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8 flex items-center justify-center">
-                    <div className="text-center space-y-6">
-                      {/* Email sent illustration */}
-                      <div className="relative">
-                        <div className="w-48 h-48 mx-auto relative">
-                          {/* Mail envelope */}
-                          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-32 h-20 bg-gradient-to-b from-blue-500 to-blue-600 rounded-lg shadow-xl">
-                            <div className="absolute top-2 left-2 right-2 h-16 bg-gradient-to-b from-white to-gray-100 rounded-t-sm" />
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-1 bg-blue-700 rounded-b-sm" />
-                          </div>
-                          
-                          {/* Flying envelope */}
-                          <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-16 h-12 bg-gradient-to-b from-sky-400 to-sky-500 rounded-lg shadow-lg animate-bounce">
-                            <div className="absolute top-1 left-1 right-1 h-10 bg-gradient-to-b from-white to-gray-100 rounded-t-sm" />
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-sky-600 rounded-b-sm" />
-                          </div>
-                          
-                          {/* Check mark */}
-                          <div className="absolute -top-8 right-8 w-12 h-12 bg-gradient-to-b from-green-400 to-green-500 rounded-full shadow-lg flex items-center justify-center">
-                            <CheckCircleIcon className="h-6 w-6 text-white" />
-                          </div>
-                        </div>
-                        
-                        {/* Floating elements */}
-                        <div className="absolute -top-4 -right-4 w-8 h-8 bg-blue-400/20 rounded-full animate-bounce" />
-                        <div className="absolute top-1/2 -left-6 w-6 h-6 bg-sky-400/20 rounded-full animate-pulse" />
-                        <div className="absolute -bottom-4 right-2 w-4 h-4 bg-cyan-400/20 rounded-full animate-bounce" style={{ animationDelay: '1s' }} />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-xl font-semibold text-gray-800">
-                          Reset Link Sent!
-                        </h3>
-                        <p className="text-gray-600 text-sm max-w-xs mx-auto">
-                          We've sent password reset instructions to your email
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Decorative cards */}
-                  <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/30 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 transform rotate-12" />
-                  <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-white/30 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 transform -rotate-12" />
-                </div>
-              </div>
-            </div>
-
-            {/* Right Side - Glassmorphism Card */}
-            <div className="flex items-center justify-center">
-              <div className="w-full max-w-md">
-                {/* Glass Card */}
-                <div className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 space-y-6">
-                  
-                  {/* Header */}
-                  <div className="text-center space-y-4">
-                    <div className="w-16 h-16 bg-gradient-to-b from-green-400 to-green-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                      <CheckCircleIcon className="h-8 w-8 text-white" />
-                    </div>
-                    <div className="space-y-2">
-                      <h1 className="text-2xl font-bold text-gray-900">
-                        Check Your Email
-                      </h1>
-                      <p className="text-gray-600 text-sm">
-                        We've sent a password reset link to
-                      </p>
-                      <p className="text-blue-600 font-medium">
-                        {email}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Instructions */}
-                  <div className="bg-blue-50/50 backdrop-blur-sm rounded-xl p-4 border border-blue-200">
-                    <h3 className="font-medium text-gray-800 mb-2">What's next?</h3>
-                    <ul className="text-sm text-gray-600 space-y-2">
-                      <li className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
-                        <span>Check your email inbox</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
-                        <span>Click the reset link in the email</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0" />
-                        <span>Create your new password</span>
-                      </li>
-                    </ul>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="space-y-3">
-                    <Button
-                      onClick={() => navigate('/login')}
-                      className="w-full h-11 bg-gradient-to-r from-blue-500 to-sky-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-                    >
-                      <span className="flex items-center justify-center gap-2">
-                        Back to Login
-                        <ArrowRightIcon className="h-4 w-4" />
-                      </span>
-                    </Button>
-                    
-                    <button
-                      onClick={() => {
-                        setIsSubmitted(false);
-                        setEmail('');
-                        setErrors({});
-                      }}
-                      className="w-full h-11 bg-white/50 backdrop-blur-sm border border-gray-200 rounded-xl font-medium hover:bg-white/70 transition-all duration-200 text-gray-700"
-                    >
-                      Send to different email
-                    </button>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="text-center pt-4">
-                    <p className="text-xs text-gray-500">
-                      Didn't receive the email? Check your spam folder or try a different email address.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 flex items-center justify-center p-4 overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/30 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-200/30 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-sky-100/20 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-screen animate-mesh flex items-center justify-center p-4 sm:p-6 overflow-hidden relative font-sans selection:bg-primary-100 selection:text-primary-900">
+      
+      {/* Floating background shapes */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/20 rounded-full blur-[100px] animate-float pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-400/20 rounded-full blur-[100px] animate-float delay-neg-5s pointer-events-none" />
+      <div className="absolute top-[20%] right-[10%] w-[20%] h-[20%] bg-indigo-400/10 rounded-full blur-[80px] animate-float delay-neg-2s pointer-events-none" />
 
-      <div className="relative w-full max-w-6xl mx-auto">
-        <div className="grid lg:grid-cols-2 gap-8 items-center">
-          
-          {/* Left Side - 3D Illustration */}
-          <div className="hidden lg:flex flex-col items-center justify-center p-8">
-            <div className="relative">
-              {/* 3D Scene Container */}
-              <div className="relative w-full max-w-md">
-                {/* Main illustration placeholder */}
-                <div className="aspect-square bg-white/40 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8 flex items-center justify-center">
-                  <div className="text-center space-y-6">
-                    {/* 3D Password Reset Illustration */}
-                    <div className="relative">
-                      <div className="w-48 h-48 mx-auto relative">
-                        {/* Lock */}
-                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-16 h-20 bg-gradient-to-b from-gray-700 to-gray-800 rounded-t-lg shadow-xl">
-                          <div className="absolute top-3 left-1/2 -translate-x-1/2 w-8 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-t-sm" />
-                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-gray-600 rounded-full" />
-                        </div>
-                        
-                        {/* Key */}
-                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-12 h-6 bg-gradient-to-b from-amber-500 to-amber-600 rounded-lg shadow-lg transform rotate-12 animate-pulse" />
-                        
-                        {/* Mail */}
-                        <div className="absolute -right-8 top-1/2 -translate-y-1/2 w-14 h-10 bg-gradient-to-b from-sky-400 to-sky-500 rounded-lg shadow-lg">
-                          <div className="absolute top-1 left-1 right-1 h-8 bg-gradient-to-b from-white to-gray-100 rounded-t-sm" />
-                          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-1 bg-sky-600 rounded-b-sm" />
-                        </div>
-                      </div>
-                      
-                      {/* Floating elements */}
-                      <div className="absolute -top-4 -right-4 w-8 h-8 bg-blue-400/20 rounded-full animate-bounce" />
-                      <div className="absolute top-1/2 -left-6 w-6 h-6 bg-sky-400/20 rounded-full animate-pulse" />
-                      <div className="absolute -bottom-4 right-2 w-4 h-4 bg-cyan-400/20 rounded-full animate-bounce" style={{ animationDelay: '1s' }} />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <h3 className="text-xl font-semibold text-gray-800">
-                        Forgot Password?
-                      </h3>
-                      <p className="text-gray-600 text-sm max-w-xs mx-auto">
-                        No worries! We'll send you reset instructions
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Decorative cards */}
-                <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/30 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 transform rotate-12" />
-                <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-white/30 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 transform -rotate-12" />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 glass-card rounded-[2rem] overflow-hidden shadow-2xl relative z-10"
+      >
+        {/* Left Side: Branding & Info */}
+        <div className="hidden lg:flex flex-col justify-between p-12 bg-gradient-to-br from-primary-600/10 to-primary-900/5 relative overflow-hidden border-r border-white/20 dark:border-white/5">
+          <div className="relative z-20">
+             <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              onClick={() => navigate('/login')}
+              className="flex items-center gap-3 mb-12 cursor-pointer group"
+            >
+              <div className="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg transform rotate-3 group-hover:rotate-0 transition-transform">
+                <span className="text-white text-2xl font-black">A</span>
               </div>
+              <span className="text-xl font-bold text-secondary-900 dark:text-white tracking-tight">ASA Portal</span>
+            </motion.div>
+            
+            <div className="space-y-6 mt-20">
+              <motion.h2 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+                className="text-5xl font-black text-secondary-900 dark:text-white leading-[1.1] tracking-tight"
+              >
+                Recover Your <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-indigo-600 dark:from-primary-400 dark:to-indigo-400">
+                  Account
+                </span>
+              </motion.h2>
+              <motion.p 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="text-lg text-secondary-600 dark:text-secondary-400 max-w-md font-medium leading-relaxed"
+              >
+                Enter your registered email to receive recovery instructions. We'll help you get back to your dashboard in no time.
+              </motion.p>
             </div>
           </div>
 
-          {/* Right Side - Glassmorphism Card */}
-          <div className="flex items-center justify-center">
-            <div className="w-full max-w-md">
-              {/* Glass Card */}
-              <div className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 space-y-6">
-                
-                {/* Header */}
-                <div className="text-center space-y-4">
-                  <div className="space-y-2">
-                    <h1 className="text-2xl font-bold text-gray-900">
-                      Forgot Password
-                    </h1>
-                    <p className="text-gray-600 text-sm">
-                      No worries! Enter your email and we'll send you a reset link
-                    </p>
-                  </div>
-                </div>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            className="flex items-center gap-4 relative z-20"
+          >
+             <div className="w-10 h-10 rounded-full border-2 border-white dark:border-secondary-800 bg-secondary-100 dark:bg-secondary-800 flex items-center justify-center">
+                <CheckCircleIcon className="w-6 h-6 text-primary-500" />
+             </div>
+             <div>
+               <p className="text-sm font-bold text-secondary-900 dark:text-white">Secure Recovery</p>
+               <p className="text-xs font-medium text-secondary-500 dark:text-secondary-400 font-sans">We'll never share your email with anyone.</p>
+             </div>
+          </motion.div>
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  
-                  {/* Email Field */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Email
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <EnvelopeIcon className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <Input
-                        type="email"
-                        placeholder="john@example.com"
-                        value={email}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                        className="pl-10 h-11 bg-white/50 border-gray-200 rounded-xl"
-                        error={errors.email}
-                      />
-                    </div>
-                    {errors.email && (
-                      <p className="text-red-500 text-xs flex items-center gap-1">
-                        <ExclamationTriangleIcon className="h-3 w-3" />
-                        {errors.email}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Submit Button */}
-                  <Button
-                    type="submit"
-                    className="w-full h-11 bg-gradient-to-r from-blue-500 to-sky-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-                    disabled={isLoading}
-                    isLoading={isLoading}
-                  >
-                    {isLoading ? (
-                      <span className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Sending reset link...
-                      </span>
-                    ) : (
-                      <span className="flex items-center justify-center gap-2">
-                        Send Reset Link
-                        <EnvelopeIcon className="h-4 w-4" />
-                      </span>
-                    )}
-                  </Button>
-                </form>
-
-                {/* Back to Login */}
-                <div className="text-center">
-                  <button
-                    onClick={() => navigate('/login')}
-                    className="text-sm text-blue-600 hover:text-blue-700 font-medium underline flex items-center gap-2 mx-auto"
-                  >
-                    <ArrowLeftIcon className="h-4 w-4" />
-                    Back to Login
-                  </button>
-                </div>
-
-                {/* Footer Links */}
-                <div className="text-center space-y-4 pt-4">
-                  <div className="text-xs text-gray-500">
-                    By continuing, you agree to our{' '}
-                    <a href="#" className="text-blue-600 hover:text-blue-700 underline">
-                      Terms of Service
-                    </a>{' '}
-                    and{' '}
-                    <a href="#" className="text-blue-600 hover:text-blue-700 underline">
-                      Privacy Policy
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* Decorative Background Elements */}
+          <div className="absolute top-0 right-0 w-full h-full pointer-events-none opacity-30 select-none">
+             <div className="absolute top-1/4 right-0 w-64 h-64 bg-primary-500/20 rounded-full blur-[80px]" />
+             <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/20 rounded-full blur-[60px]" />
           </div>
         </div>
+
+        {/* Right Side: Recovery Form */}
+        <div className="p-8 sm:p-12 lg:p-16 flex flex-col justify-center">
+          <div className="mb-10 text-center lg:text-left">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="lg:hidden flex justify-center mb-8"
+            >
+              <div className="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center shadow-xl mb-4">
+                <span className="text-white text-3xl font-black">A</span>
+              </div>
+            </motion.div>
+
+            <motion.h3 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-3xl font-black text-secondary-900 dark:text-white mb-2 tracking-tight"
+            >
+              Forgot Password
+            </motion.h3>
+            <motion.p 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-secondary-500 dark:text-secondary-400 font-medium"
+            >
+              No worries! Enter your email to reset your account.
+            </motion.p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="space-y-2"
+            >
+              <label className="text-sm font-bold text-secondary-700 dark:text-secondary-300 ml-1">Registered Email Address</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <EnvelopeIcon className="h-5 w-5 text-secondary-400 group-focus-within:text-primary-500 transition-colors" />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your registered email"
+                  required
+                  className="w-full pl-11 pr-4 py-4 bg-white/50 dark:bg-black/20 border border-secondary-200 dark:border-secondary-700 rounded-2xl outline-none transition-all duration-300 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 dark:focus:border-primary-400 text-secondary-900 dark:text-white font-medium"
+                />
+              </div>
+            </motion.div>
+
+            <AnimatePresence mode="wait">
+              {status.message && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className={`${
+                    status.type === 'success' 
+                      ? 'bg-success-50 dark:bg-success-900/20 text-success-600 dark:text-success-400 border-success-100 dark:border-success-900/30' 
+                      : 'bg-danger-50 dark:bg-danger-900/20 text-danger-600 dark:text-danger-400 border-danger-100 dark:border-danger-900/30'
+                  } px-4 py-3 rounded-xl text-sm font-bold border flex items-center gap-3`}
+                >
+                  <div className={`w-1.5 h-1.5 rounded-full ${status.type === 'success' ? 'bg-success-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-danger-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
+                  {status.message}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="pt-2"
+            >
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-14 relative overflow-hidden group rounded-2xl transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-xl"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-indigo-600 transition-all group-hover:scale-105" />
+                <div className="relative flex items-center justify-center gap-2 text-white font-black text-lg">
+                  {isLoading ? (
+                    <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      Send Reset Link
+                      <EnvelopeIcon className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+                </div>
+              </button>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 }}
+              className="text-center pt-4"
+            >
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="inline-flex items-center gap-2 text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 transition-colors group"
+              >
+                <ArrowLeftIcon className="h-4 w-4 transform group-hover:-translate-x-1 transition-transform" />
+                Back to Login
+              </button>
+            </motion.div>
+          </form>
+        </div>
+      </motion.div>
+
+      {/* Theme Toggle */}
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1 }}
+        onClick={toggleTheme}
+        className="absolute top-8 right-8 p-3 rounded-full bg-white/10 dark:bg-black/20 hover:bg-white/20 dark:hover:bg-black/30 backdrop-blur-md border border-white/20 dark:border-white/10 text-secondary-900 dark:text-white transition-all shadow-lg z-50"
+        aria-label="Toggle Theme"
+      >
+        {themeMode === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
+      </motion.button>
+
+      <div className="absolute bottom-8 text-[10px] uppercase tracking-[0.2em] font-black text-secondary-400/50 dark:text-white/20 select-none">
+        Secure Account Recovery • Powered by ASA Insights
       </div>
     </div>
   );

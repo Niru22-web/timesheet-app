@@ -566,3 +566,124 @@ export const resetPassword = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Failed to reset password' });
   }
 };
+
+export const validateRegistrationToken = async (req: Request, res: Response) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({ valid: false, reason: "missing" });
+    }
+
+    const registrationToken = await prisma.registrationToken.findUnique({
+      where: { token: token as string },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            officeEmail: true
+          }
+        }
+      }
+    });
+
+    if (!registrationToken) {
+      return res.status(404).json({ valid: false, reason: "not_found" });
+    }
+
+    if (registrationToken.isUsed) {
+      return res.status(400).json({ valid: false, reason: "used" });
+    }
+
+    if (registrationToken.expiresAt < new Date()) {
+      return res.status(400).json({ valid: false, reason: "expired" });
+    }
+
+    res.json({
+      valid: true,
+      email: registrationToken.employee.officeEmail,
+      firstName: registrationToken.employee.firstName,
+      lastName: registrationToken.employee.lastName
+    });
+  } catch (error) {
+    console.error('Validate registration token error:', error);
+    res.status(500).json({ valid: false, reason: "internal_error" });
+  }
+};
+
+export const completeRegistration = async (req: Request, res: Response) => {
+  try {
+    const { token, password, dob, joiningDate, gender, maritalStatus } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ message: "Token and password are required" });
+    }
+
+    const registrationToken = await prisma.registrationToken.findUnique({
+      where: { token },
+      include: { employee: true }
+    });
+
+    if (!registrationToken || registrationToken.isUsed || registrationToken.expiresAt < new Date()) {
+      return res.status(400).json({ message: "Invalid or expired registration token" });
+    }
+
+    const employee = registrationToken.employee;
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Update employee status and password
+    await prisma.employee.update({
+      where: { id: employee.id },
+      data: {
+        password: hashedPassword,
+        status: "pending_approval"
+      }
+    });
+
+    // Create or update profile
+    await prisma.employeeProfile.upsert({
+      where: { employeeId: employee.id },
+      update: {
+        dob: dob ? new Date(dob) : undefined,
+        doj: joiningDate ? new Date(joiningDate) : undefined,
+        gender,
+        maritalStatus
+      },
+      create: {
+        employeeId: employee.id,
+        dob: dob ? new Date(dob) : new Date(),
+        doj: joiningDate ? new Date(joiningDate) : new Date(),
+        gender: gender || "Not Specified",
+        maritalStatus: maritalStatus || "Single"
+      }
+    });
+
+    // Mark token as used
+    await prisma.registrationToken.update({
+      where: { id: registrationToken.id },
+      data: { isUsed: true }
+    });
+
+    // Notification to admins (existing logic in controller)
+    const fullName = `${employee.firstName} ${employee.lastName || ''}`.trim();
+    await notifyAdmins(
+      'New User Registration 🎉',
+      `${fullName} has registered and is pending approval.`,
+      'employee_approval',
+      undefined,
+      employee.id
+    );
+
+    res.json({ message: "Registration completed successfully" });
+  } catch (error) {
+    console.error('Complete registration error:', error);
+    res.status(500).json({ 
+      message: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+};

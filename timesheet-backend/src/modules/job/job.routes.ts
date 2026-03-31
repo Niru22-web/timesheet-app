@@ -7,20 +7,29 @@ import {
   deleteJob,
   getJobsByProject,
   getJobsByClient,
-  searchJobs
+  searchJobs,
+  bulkUploadJobs,
+  exportJobs,
+  downloadJobTemplate,
+  uploadJobExcel
 } from './job.controller';
+import { allowRoles } from '../../middleware/role.middleware';
 
 const router = Router();
 
 // Job CRUD operations
 router.get('/', getAllJobs);
+router.get('/export', exportJobs);
+router.get('/template/download', downloadJobTemplate);
 router.get('/search', searchJobs);
 router.get('/:id', getJobById);
-router.post('/', createJob);
-router.put('/:id', updateJob);
-router.delete('/:id', deleteJob);
 
-// Job relationships
+router.post('/bulk-upload', allowRoles('Admin', 'Partner'), uploadJobExcel, bulkUploadJobs);
+router.post('/', allowRoles('Admin', 'Partner'), createJob);
+router.put('/:id', allowRoles('Admin', 'Partner'), updateJob);
+router.delete('/:id', allowRoles('Admin', 'Partner'), deleteJob);
+
+// Client/Project based retrieval
 router.get('/project/:projectId', getJobsByProject);
 router.get('/client/:clientId', getJobsByClient);
 

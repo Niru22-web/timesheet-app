@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermissions } from '../contexts/PermissionsContext';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   HomeIcon,
   CalendarIcon,
@@ -41,6 +42,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   const { hasPermission } = usePermissions();
   const location = useLocation();
   const navigate = useNavigate();
+  const { themeMode } = useTheme();
+  const isDark = themeMode === 'dark';
   const [isMobile, setIsMobile] = React.useState(false);
 
   // Detect mobile screen size
@@ -202,54 +205,60 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside className={`
-      h-full bg-white border-r border-secondary-200 flex flex-col relative
+      h-full bg-transparent flex flex-col relative
       transition-all duration-300 ease-in-out select-none
-      ${isCollapsed && !isMobile ? 'w-20' : 'w-full'}
+      w-full
     `}>
       {/* Sidebar Header */}
       <div className={`
-        p-6 border-b border-secondary-100 flex-shrink-0 flex items-center
-        ${isCollapsed && !isMobile ? 'justify-center px-2' : 'gap-3'}
+        h-[72px] flex-shrink-0 w-full relative overflow-hidden border-b
+        ${!isMobile ? '' : 'flex items-center px-6 gap-3'}
+        ${ isDark ? 'border-slate-700/60' : 'border-blue-100/60' }
       `}>
-        <div className="w-9 h-9 bg-primary-600 rounded-xl flex items-center justify-center text-white font-extrabold shadow-lg shadow-primary-500/20 flex-shrink-0 animate-in zoom-in duration-300">
-          A
-        </div>
-        {!isCollapsed || isMobile ? (
-          <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
-            <h1 className="text-sm font-black text-secondary-900 leading-tight tracking-tight uppercase">Timesheet</h1>
-            <p className="text-[10px] font-bold text-secondary-400 leading-tight uppercase tracking-widest">Enterprise v2.0</p>
+          {!isMobile ? (
+              <div 
+              className="absolute inset-0 flex items-center justify-start cursor-pointer group transition-opacity hover:opacity-80 px-4" 
+              onClick={() => navigate('/')}
+          >
+              {/* We render at full size then shrink to bypass browser min-font caps (which normally break layouts >10px) */}
+              <div className="flex flex-col items-start w-[240px] origin-left scale-[0.40]">
+                  <span className={`text-[64px] font-black leading-[0.8] tracking-wide mb-2 ${ isDark ? 'text-blue-400' : 'text-[#1D54A6]' }`}>ASA</span>
+                  <span className={`text-[14px] font-bold uppercase tracking-[0.15em] whitespace-nowrap leading-none ${ isDark ? 'text-slate-500' : 'text-[#A3A3A3]' }`}>Ashish Shah &amp; Associates</span>
+                  <div className="flex items-center gap-2.5 w-full mt-2">
+                      <div className={`h-[3px] w-[50px] opacity-90 ${ isDark ? 'bg-slate-600' : 'bg-[#A3A3A3]' }`}></div>
+                      <span className={`text-[12px] font-bold uppercase tracking-[0.16em] leading-none whitespace-nowrap ${ isDark ? 'text-blue-400' : 'text-[#1D54A6]' }`}>Delivering Value</span>
+                  </div>
+              </div>
           </div>
-        ) : null}
+          ) : (
+            <>
+              <div className="flex flex-col items-start justify-center cursor-pointer group transition-all" onClick={() => navigate('/')}>
+                  <span className="text-2xl font-black text-[#607D9B] leading-[0.8] tracking-tighter mix-blend-multiply">ASA</span>
+                  <span className="text-[6px] font-bold text-gray-500 mt-1 uppercase tracking-[0.1em] whitespace-nowrap leading-none">Ashish Shah & Associates</span>
+              </div>
+              <div className="flex-1 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300 ml-2">
+                <h1 className="text-sm font-bold text-slate-800 leading-tight tracking-tight uppercase">Timesheet</h1>
+                <p className="text-[10px] font-semibold text-slate-500 leading-tight uppercase tracking-widest mt-0.5">Enterprise v2.0</p>
+              </div>
+            </>
+          )}
       </div>
 
-      {/* Collapse Toggle Button (Desktop only) */}
-      {!isMobile && (
-        <button
-          onClick={onCollapse}
-          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="absolute -right-3 top-20 w-6 h-6 bg-white border border-secondary-200 rounded-full flex items-center justify-center shadow-sm text-secondary-400 hover:text-primary-600 hover:border-primary-200 transition-all z-50 active:scale-90"
-        >
-          {isCollapsed ? <ChevronRightIcon className="w-3.5 h-3.5" /> : <ChevronLeftIcon className="w-3.5 h-3.5" />}
-        </button>
-      )}
-
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-6 overflow-y-auto no-scrollbar space-y-6">
+      <nav className={`flex-1 overflow-y-auto custom-scrollbar ${!isMobile ? 'px-2 py-4 space-y-4' : 'px-3 py-6 space-y-6'}`}>
         {filteredGroups.map((group, groupIndex) => (
           <div key={group.title}>
             {/* Section Label */}
-            {(!isCollapsed || isMobile) && (
+            {!isMobile ? (
+              groupIndex !== 0 && <div className={`mx-auto w-6 h-[1.5px] my-3 ${ isDark ? 'bg-slate-700' : 'bg-[#1D54A6]/10' }`} />
+          ) : (
               <div className="px-3 mb-3">
-                <h3 className="text-[10px] font-extrabold text-secondary-400 uppercase tracking-[0.2em]">{group.title}</h3>
+                <h3 className={`text-[10px] font-bold uppercase tracking-widest ${ isDark ? 'text-slate-600' : 'text-slate-400' }`}>{group.title}</h3>
               </div>
-            )}
-            {isCollapsed && !isMobile && (
-                 <div className="mx-auto w-8 h-px bg-secondary-100 mb-4" />
-            )}
+          )}
             
             {/* Section Items */}
-            <div className="space-y-1">
+            <div className={`${!isMobile ? 'space-y-1.5' : 'space-y-1.5'}`}>
               {group.items.map((item: any) => {
                 const isActive = isActiveRoute(item.href);
                 return (
@@ -259,37 +268,56 @@ const Sidebar: React.FC<SidebarProps> = ({
                         navigate(item.href);
                         if (isMobile && onClose) onClose();
                     }}
-                    title={isCollapsed && !isMobile ? item.name : ''}
+                    title={!isMobile ? item.name : ''}
                     aria-label={item.name}
                     className={`
-                      w-full flex items-center rounded-xl transition-all duration-200 group relative
-                      ${isCollapsed && !isMobile ? 'justify-center p-3' : 'px-3 py-2.5 gap-3'}
+                      w-full transition-all duration-300 group relative flex 
+                      ${!isMobile ? 'flex-col items-center justify-center px-1.5 py-2.5 rounded-[12px] gap-1.5' : 'flex-row items-center px-3 py-2.5 rounded-xl gap-3'}
                       ${isActive
-                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30'
-                        : 'text-secondary-600 hover:bg-secondary-50 hover:text-secondary-900'
+                        ? isDark
+                          ? 'bg-slate-700/80 text-blue-400 shadow-[0_2px_10px_-2px_rgba(59,130,246,0.2)] ring-1 ring-blue-500/20'
+                          : 'bg-white text-[#1D54A6] shadow-[0_2px_10px_-2px_rgba(29,84,166,0.15)] ring-1 ring-[#1D54A6]/10'
+                        : isDark
+                          ? 'text-slate-500 hover:bg-slate-700/40 hover:text-slate-100'
+                          : 'text-slate-500 hover:bg-[#1D54A6]/5 hover:text-[#1D54A6]'
                       }
                     `}
                   >
-                    <item.icon className={`
-                        flex-shrink-0 transition-transform duration-200 group-active:scale-90
-                        ${isCollapsed && !isMobile ? 'w-6 h-6' : 'w-5 h-5'}
-                        ${isActive ? 'text-white' : 'text-secondary-400 group-hover:text-secondary-600'}
-                    `} />
+                    <div className={`
+                        flex-shrink-0 flex items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-110 group-active:scale-95
+                        ${!isMobile ? '' : 'p-1.5'}
+                        ${isActive
+                          ? isDark
+                            ? (isMobile ? 'bg-blue-900/40 text-blue-400' : 'text-blue-400')
+                            : (isMobile ? 'bg-blue-50 text-[#1D54A6]' : 'text-[#1D54A6]')
+                          : isDark
+                            ? 'text-slate-500 group-hover:text-slate-100 bg-transparent'
+                            : 'text-slate-400 group-hover:text-[#1D54A6] bg-transparent'
+                        }
+                    `}>
+                        <item.icon className={`${!isMobile ? 'w-[22px] h-[22px] stroke-[1.5]' : 'w-5 h-5'}`} />
+                    </div>
                     
-                    {(!isCollapsed || isMobile) && (
-                      <>
-                        <span className="font-bold text-sm tracking-tight truncate">{item.name}</span>
-                        {item.badge && (
-                          <Badge variant="primary" className="ml-auto flex-shrink-0 bg-white/20 text-white border-none text-[10px] py-0.5">
-                            {item.badge}
-                          </Badge>
-                        )}
-                      </>
-                    )}
-
-                    {/* Active State Indicator */}
-                    {isActive && isCollapsed && !isMobile && (
-                        <div className="absolute left-0 w-1 h-6 bg-white rounded-r-full" />
+                    {/* Label */}
+                    <span className={`
+                         tracking-tight flex-1
+                         ${!isMobile ? 'font-semibold text-center leading-[1.15] mx-auto px-0.5 whitespace-normal w-full text-[11px]' : 'font-semibold text-sm text-left truncate'}
+                    `}>
+                      {item.name}
+                    </span>
+                    
+                    {item.badge && (
+                      <span className={`
+                        flex-shrink-0 font-bold py-[2px] px-[6px] rounded-md absolute -top-1.5 -right-1 z-10
+                        ${!isMobile
+                          ? isDark
+                            ? 'bg-blue-600 text-white text-[8px] shadow-sm ring-2 ring-[#111827]'
+                            : 'bg-[#1D54A6] text-white text-[8px] shadow-sm ring-2 ring-[#f0f4f8]'
+                          : 'ml-auto bg-blue-50 text-blue-700 border border-blue-100 text-[9px]'
+                        }
+                      `}>
+                        {item.badge}
+                      </span>
                     )}
                   </button>
                 );
@@ -301,30 +329,38 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {/* User Profile Footer */}
       <div className={`
-        p-4 border-t border-secondary-100 bg-secondary-50/50 flex-shrink-0
-        ${isCollapsed && !isMobile ? 'items-center' : ''}
+        flex-shrink-0 border-t
+        ${!isMobile ? 'p-3 flex flex-col items-center justify-center space-y-3 bg-transparent' : 'p-4'}
+        ${ isDark ? 'border-slate-700/60' : 'border-blue-100/60' }
       `}>
-        {(!isCollapsed || isMobile) ? (
-            <div className="bg-white rounded-2xl p-3 shadow-sm border border-secondary-100 mb-3 group hover:border-primary-200 transition-colors cursor-pointer" onClick={() => navigate('/profile')}>
-                <div className="flex items-center gap-3">
-                    <Avatar 
-                        name={user?.name || 'User'} 
-                        size="sm" 
-                        src={user?.profile?.employeePhotoUrl ? `${import.meta.env.VITE_API_BASE_URL}${user.profile.employeePhotoUrl}` : undefined}
-                    />
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-black text-secondary-900 truncate tracking-tight">{user?.name || 'Guest User'}</p>
-                        <p className="text-[10px] font-bold text-primary-600 truncate uppercase tracking-widest">{user?.role || 'Guest'}</p>
-                    </div>
-                </div>
-            </div>
+        {isMobile ? (
+                      <div className={`rounded-2xl p-2.5 shadow-sm border mb-3 group hover:shadow transition-all cursor-pointer ${
+              isDark
+                ? 'bg-slate-800/80 border-slate-700/60 hover:border-slate-600'
+                : 'bg-white/80 border-blue-50 hover:border-blue-100'
+            }`} onClick={() => navigate('/profile')}>
+              <div className="flex items-center gap-3">
+                  <Avatar 
+                      name={user?.name || 'User'} 
+                      size="sm" 
+                      src={user?.profile?.employeePhotoUrl ? `${import.meta.env.VITE_API_BASE_URL}${user.profile.employeePhotoUrl}` : undefined}
+                  />
+                  <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-bold truncate tracking-tight ${ isDark ? 'text-slate-200' : 'text-slate-700' }`}>{user?.name || 'Guest User'}</p>
+                      <p className="text-[10px] font-bold text-blue-500 truncate uppercase tracking-widest">{user?.role || 'Guest'}</p>
+                  </div>
+              </div>
+          </div>
         ) : (
-            <div className="flex justify-center mb-3 cursor-pointer" onClick={() => navigate('/profile')}>
-                 <Avatar 
-                    name={user?.name || 'User'} 
-                    size="sm" 
-                    src={user?.profile?.employeePhotoUrl ? `${import.meta.env.VITE_API_BASE_URL}${user.profile.employeePhotoUrl}` : undefined}
-                />
+            <div className="flex flex-col items-center justify-center cursor-pointer group w-full pt-1" onClick={() => navigate('/profile')}>
+                 <div className="ring-2 ring-transparent group-hover:ring-blue-200 rounded-full transition-all group-hover:scale-105 mb-1.5">
+                   <Avatar 
+                      name={user?.name || 'User'} 
+                      size="sm" 
+                      src={user?.profile?.employeePhotoUrl ? `${import.meta.env.VITE_API_BASE_URL}${user.profile.employeePhotoUrl}` : undefined}
+                  />
+                 </div>
+                 <span className={`text-[11px] font-semibold truncate max-w-[85px] leading-tight text-center ${ isDark ? 'text-slate-400' : 'text-slate-600' }`}>{user?.name || 'User'}</span>
             </div>
         )}
         
@@ -336,16 +372,21 @@ const Sidebar: React.FC<SidebarProps> = ({
           title="Sign Out"
           aria-label="Sign Out"
           className={`
-            font-bold text-danger-600 hover:bg-danger-50 hover:text-danger-700 hover:border-danger-100 border-secondary-200
-            ${isCollapsed && !isMobile ? 'px-0 justify-center' : ''}
+            font-semibold text-slate-500 hover:bg-white hover:text-red-600 hover:border-transparent hover:shadow-sm border-transparent shadow-none group transition-all duration-200
+            ${!isMobile ? 'p-2 rounded-[12px] flex flex-col justify-center items-center h-auto gap-1' : ''}
           `}
-          leftIcon={
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4 4m0 0H9a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2V8a2 2 0 00-2-2H9a2 2 0 00-2-2z" />
-            </svg>
-          }
         >
-          {(!isCollapsed || isMobile) ? 'Sign Out' : ''}
+          {isMobile ? (
+             <div className="flex items-center justify-center gap-2">
+                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4 4m0 0H9a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2V8a2 2 0 00-2-2H9a2 2 0 00-2-2z" /></svg>
+                 Sign Out
+             </div>
+          ) : (
+             <>
+                 <svg className="w-5 h-5 text-slate-400 group-hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4 4m0 0H9a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2V8a2 2 0 00-2-2H9a2 2 0 00-2-2z" /></svg>
+                 <span className="text-[10px] hidden group-hover:block transition-all mt-0.5 text-red-500">Sign Out</span>
+             </>
+          )}
         </Button>
       </div>
     </aside>

@@ -42,6 +42,8 @@ import StatusToggle from '../components/ui/StatusToggle';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
 import { TableSkeleton, Skeleton } from '../components/ui/Skeleton';
+import TableToolbar from '../components/ui/TableToolbar';
+import ActionBar from '../components/ui/ActionBar';
 
 interface Client {
     id: string;
@@ -85,6 +87,8 @@ const Clients: React.FC = () => {
     const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
     const [showViewModal, setShowViewModal] = useState(false);
     const [viewingClient, setViewingClient] = useState<Client | null>(null);
+    const [statusFilter, setStatusFilter] = useState('Active');
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
     const isManager = user?.role === 'Manager' || user?.role === 'Admin' || user?.role === 'Partner' || user?.role === 'manager' || user?.role === 'admin' || user?.role === 'partner';
 
@@ -96,7 +100,12 @@ const Clients: React.FC = () => {
     const fetchClients = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await API.get('/clients');
+            const response = await API.get('/clients', {
+                params: {
+                    q: searchTerm,
+                    status: statusFilter
+                }
+            });
             const clientData = response.data?.success ? response.data.data : response.data;
             setClients(Array.isArray(clientData) ? clientData : []);
         } catch (err) {
@@ -105,7 +114,7 @@ const Clients: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [searchTerm, statusFilter]);
 
     useEffect(() => {
         fetchClients();
@@ -264,6 +273,25 @@ const Clients: React.FC = () => {
         setShowBulkUploadModal(false);
     };
 
+    const handleExport = async () => {
+        try {
+            const response = await API.get('/clients/export', {
+                params: { q: searchTerm, status: statusFilter },
+                responseType: 'blob',
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'clients_export.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error('Export failed:', err);
+            showMessage('Export failed', 'error');
+        }
+    };
+
     const toggleClientStatus = async (clientId: string) => {
         try {
             const response = await API.patch(`/clients/${clientId}/toggle-status`);
@@ -278,11 +306,7 @@ const Clients: React.FC = () => {
         }
     };
 
-    const filteredClients = clients.filter(c =>
-        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.clientId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.alias?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredClients = clients; // Backend now handles filtering
 
     // Memoized callbacks to prevent modal re-renders
     const handleModalClose = useCallback(() => {
@@ -301,47 +325,13 @@ const Clients: React.FC = () => {
                     <h1 className="text-3xl font-extrabold text-secondary-900 tracking-tight">Client Directory</h1>
                     <p className="text-sm font-medium text-secondary-500 mt-1">Manage global enterprise clients and fiscal registrations.</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <Button
-                        variant="secondary"
-                        size="sm"
-                        className="h-10 border-secondary-200"
-                        onClick={fetchClients}
-                    >
-                        Refresh List
-                    </Button>
-                    {isManager && (
-                        <>
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                className="h-10 border-secondary-200"
-                                onClick={downloadTemplate}
-                                leftIcon={<DocumentArrowDownIcon className="w-4 h-4" />}
-                            >
-                                Download Template
-                            </Button>
-                            <Button
-                                variant="secondary"
-                                size="sm"
-                                className="h-10 border-secondary-200"
-                                onClick={() => setShowBulkUploadModal(true)}
-                                leftIcon={<DocumentArrowUpIcon className="w-4 h-4" />}
-                            >
-                                Bulk Upload
-                            </Button>
-                            <Button
-                                variant="primary"
-                                size="sm"
-                                className="h-10 px-6 font-bold"
-                                onClick={() => setShowAddModal(true)}
-                                leftIcon={<PlusIcon className="w-4 h-4" />}
-                            >
-                                Add New Client
-                            </Button>
-                        </>
-                    )}
-                </div>
+                <ActionBar
+                    onAdd={() => setShowAddModal(true)}
+                    addLabel="Add New Client"
+                    onUpload={isManager ? () => setShowBulkUploadModal(true) : undefined}
+                    onDownload={handleExport}
+                    onDownloadTemplate={isManager ? downloadTemplate : undefined}
+                />
             </div>
 
             {/* Stats Summary */}
@@ -391,18 +381,24 @@ const Clients: React.FC = () => {
 
             {/* Search and Table */}
             <Card className="flex-1 flex flex-col overflow-hidden min-h-0 shadow-lg">
-                <div className="p-4 border-b border-secondary-100 flex items-center gap-4">
-                    <div className="flex-1 relative group">
-                        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 group-focus-within:text-primary-500 transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Filter by name, ID or alias..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 bg-secondary-50/50 border border-secondary-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
-                        />
-                    </div>
-                </div>
+                <TableToolbar
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
+                    showFilters={showAdvancedFilters}
+                    setShowFilters={setShowAdvancedFilters}
+                    placeholder="Search by name, ID, alias, PAN or GSTIN..."
+                    filters={
+                        <Select
+                            label="Filter by Status"
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                        >
+                            <option value="All Status">All Status</option>
+                            <option value="Active">Active Only</option>
+                            <option value="Inactive">Inactive Only</option>
+                        </Select>
+                    }
+                />
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                     <table className="w-full text-left border-collapse">

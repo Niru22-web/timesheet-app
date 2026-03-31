@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useToast } from '../../contexts/ToastContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import API from '../../api';
 import { 
   Briefcase, Users, CheckCircle, Clock, Calendar, 
@@ -40,6 +41,8 @@ const ModernRoleDashboard: React.FC<ModernRoleDashboardProps> = ({ userRole }) =
   const { user } = useAuth();
   const { removeNotification, state } = useNotifications();
   const toast = useToast();
+  const { themeMode } = useTheme();
+  const isDark = themeMode === 'dark';
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({});
   const [profileCompletion, setProfileCompletion] = useState(0);
@@ -254,11 +257,11 @@ const ModernRoleDashboard: React.FC<ModernRoleDashboardProps> = ({ userRole }) =
                   <metric.icon size={20} />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">{metric.title}</p>
-                  <p className="text-2xl font-bold text-gray-900">{metric.value}</p>
+                  <p className={`text-sm ${ isDark ? 'text-slate-400' : 'text-gray-600' }`}>{metric.title}</p>
+                  <p className={`text-2xl font-bold ${ isDark ? 'text-slate-100' : 'text-gray-900' }`}>{metric.value}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1 text-green-600 text-sm">
+              <div className="flex items-center gap-1 text-green-500 text-sm">
                 <TrendingUp size={14} />
                 <span>{metric.trend}</span>
               </div>
@@ -273,7 +276,7 @@ const ModernRoleDashboard: React.FC<ModernRoleDashboardProps> = ({ userRole }) =
         <div className="lg:col-span-2">
           <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+              <h3 className={`text-lg font-semibold ${ isDark ? 'text-slate-100' : 'text-gray-900' }`}>Recent Activity</h3>
               <Button variant="ghost" size="sm">View All</Button>
             </div>
             
@@ -292,14 +295,18 @@ const ModernRoleDashboard: React.FC<ModernRoleDashboardProps> = ({ userRole }) =
                   const { icon: ActivityIcon, color } = getIcon();
                   
                   return (
-                    <div key={activity.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                      <div className={`p-2 bg-${color}-100 rounded-lg`}>
+                    <div key={activity.id} className={`flex items-center gap-4 p-4 rounded-xl hover:transition-colors ${
+                      isDark
+                        ? 'bg-slate-700/50 hover:bg-slate-700'
+                        : 'bg-gray-50 hover:bg-gray-100'
+                    }`}>
+                      <div className={`p-2 rounded-lg bg-${color}-100`}>
                         <ActivityIcon size={16} className={`text-${color}-600`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                        <p className="text-xs text-gray-500">{activity.description}</p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className={`text-sm font-medium ${ isDark ? 'text-slate-100' : 'text-gray-900' }`}>{activity.title}</p>
+                        <p className={`text-xs ${ isDark ? 'text-slate-400' : 'text-gray-500' }`}>{activity.description}</p>
+                        <p className={`text-xs mt-1 ${ isDark ? 'text-slate-600' : 'text-gray-400' }`}>
                           {new Date(activity.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                         </p>
                       </div>
@@ -344,11 +351,11 @@ const ModernRoleDashboard: React.FC<ModernRoleDashboardProps> = ({ userRole }) =
                   );
                 })
               ) : (
-                <div className="text-center py-8 text-gray-400">
+                <div className={`text-center py-8 ${ isDark ? 'text-slate-600' : 'text-gray-400' }`}>
                   <FileText size={48} className="mx-auto mb-4 opacity-50" />
                   <p>No recent activity</p>
                 </div>
-              )}
+              )}   
             </div>
           </Card>
         </div>

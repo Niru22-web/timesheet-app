@@ -1,6 +1,6 @@
 export const APP_CONFIG = {
-  COMPANY_NAME: "Ashish Shah and Associates",
-  COMPANY_SHORT_NAME: "Ashish Shah & Associates",
+  COMPANY_NAME: "Timesheet Management System",
+  COMPANY_SHORT_NAME: "Timesheet Pro",
   APP_NAME: "Timesheet Management System",
   APP_VERSION: "1.0.0",
   
@@ -15,7 +15,7 @@ export const APP_CONFIG = {
   BRAND: {
     PRIMARY_COLOR: "#4f46e5",
     SECONDARY_COLOR: "#6b7280",
-    LOGO_ALT: "Ashish Shah and Associates Logo"
+    LOGO_ALT: "Application Logo"
   },
   
   // URLs

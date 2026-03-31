@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { ClientService } from './client.service';
 import multer from 'multer';
 import * as XLSX from 'xlsx';
+import { ExcelService } from '../../utils/ExcelService';
 
 const clientService = new ClientService();
 
@@ -24,7 +25,11 @@ const upload = multer({
 
 export const getAllClients = async (req: any, res: Response) => {
   try {
-    const clients = await clientService.getAllClients(req.user);
+    const { q, status } = req.query;
+    const clients = await clientService.getAllClients(req.user, { 
+      q: q as string, 
+      status: status as string 
+    });
     res.json({
       success: true,
       data: clients,
@@ -166,36 +171,39 @@ export const bulkUploadClients = async (req: Request, res: Response) => {
   }
 };
 
+export const exportClients = async (req: any, res: Response) => {
+  try {
+    const { q, status } = req.query;
+    const clients = await clientService.getAllClients(req.user, { 
+      q: q as string, 
+      status: status as string 
+    });
+
+    const exportData = clients.map(c => ({
+      'Client ID': c.clientId,
+      'Name': c.name,
+      'Alias': c.alias || '',
+      'Status': c.status,
+      'GST Status': c.gstStatus,
+      'GSTIN': c.gstin || '',
+      'PAN': c.pan || '',
+      'Country': c.country || '',
+      'State': c.state || '',
+      'Address': c.address || '',
+      'PIN': c.pin || ''
+    }));
+
+    ExcelService.exportToExcel(res, exportData, 'clients');
+  } catch (error: any) {
+    console.error('Error exporting clients:', error);
+    res.status(500).json({ error: 'Failed to export clients' });
+  }
+};
+
 export const downloadClientTemplate = async (req: Request, res: Response) => {
   try {
-    // Create template data
-    const templateData = [
-      {
-        name: 'Example Company Pvt Ltd',
-        alias: 'ECL',
-        address: '123 Business Park, Andheri East',
-        pin: '400069',
-        state: 'Maharashtra',
-        country: 'India',
-        gstStatus: 'Yes',
-        gstin: '27AAAPL1234C1ZV',
-        pan: 'AAAPL1234C',
-        clientId: 'CL123456' // Optional - will be auto-generated if empty
-      }
-    ];
-
-    // Create workbook
-    const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(templateData);
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Clients');
-
-    // Set headers for file download
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=client_upload_template.xlsx');
-
-    // Write buffer
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-    res.send(buffer);
+    const columns = ['name', 'alias', 'address', 'pin', 'state', 'country', 'gstStatus', 'gstin', 'pan', 'clientId'];
+    ExcelService.generateTemplate(res, columns, 'client_template');
   } catch (error) {
     console.error('Error generating template:', error);
     res.status(500).json({ error: 'Failed to generate template' });
