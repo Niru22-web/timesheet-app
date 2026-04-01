@@ -199,7 +199,7 @@ const EmailConfiguration: React.FC = () => {
 
   const fetchProviderConfigs = async () => {
     try {
-      const response = await API.get('/admin/provider-configurations');
+      const response = await API.get('/email/provider-configurations');
       if (response?.data && Array.isArray(response.data)) {
         setProviderConfigs(response.data);
         const outlookProvider = response.data.find((p: ProviderConfig) => p.id === 'outlook-365');
@@ -229,7 +229,7 @@ const EmailConfiguration: React.FC = () => {
   const fetchEmailConfig = async () => {
     try {
       setLoading(true);
-      const response = await API.get('/admin/email-configuration');
+      const response = await API.get('/email/email-configuration');
       if (response?.data && typeof response.data === 'object') {
         setConfig(prev => ({ 
           ...prev, 
@@ -328,7 +328,7 @@ const EmailConfiguration: React.FC = () => {
   const handleTestConnection = async () => {
     try {
       setTestLoading(true);
-      const response = await API.post('/admin/test-email-configuration', {
+      const response = await API.post('/email/test-email-configuration', {
         to: user?.officeEmail || user?.email,
         subject: 'Test Email from Timesheet Pro',
         text: 'This is a test email sent from your Timesheet Pro application using your connected Outlook account.',
@@ -366,7 +366,7 @@ const EmailConfiguration: React.FC = () => {
   const handleSaveSettings = async () => {
     try {
       setLoading(true);
-      await API.post('/admin/email-configuration', config);
+      await API.post('/email/email-configuration', config);
       setSavedConfig(config);
       setTestResult({ success: true, message: 'Email configuration saved successfully!' });
       setShowTestModal(true);

@@ -50,8 +50,8 @@ const checkAdminRole = (req: any, res: any, next: any) => {
 
 // Health check endpoint
 router.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
+  res.status(200).json({
+    status: 'OK',
     message: 'Email service is running',
     timestamp: new Date().toISOString()
   });
@@ -73,10 +73,10 @@ router.post('/admin/oauth/disconnect', checkAdminRole, disconnectEmail);
 router.get('/admin/oauth/status', checkAdminRole, getConnectionStatus);
 
 // Email Configuration routes (Admin only)
-router.get('/email-configuration', checkAdminRole, getConnectionStatus);
-router.post('/email-configuration', checkAdminRole, sendTestEmail);
-router.post('/test-email-configuration', checkAdminRole, sendTestEmail);
-router.get('/provider-configurations', checkAdminRole, getAllConnections);
+router.get('/email-configuration', checkAdminRole, getEmailConfiguration);
+router.post('/email-configuration', checkAdminRole, saveEmailConfiguration);
+router.post('/test-email-configuration', checkAdminRole, testEmailConfiguration);
+router.get('/provider-configurations', checkAdminRole, getProviderConfigurations);
 
 // Email Templates routes (Admin only)
 router.get('/templates', checkAdminRole, getEmailTemplates);
