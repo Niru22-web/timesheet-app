@@ -3,12 +3,22 @@ import cors from "cors";
 
 const app = express();
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://13.232.211.142"
+];
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || "http://localhost:5173",
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true
 }));
+
 
 // Handle preflight requests
 app.options("*", cors());

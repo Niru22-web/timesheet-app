@@ -332,7 +332,8 @@ function generateResetToken(): string {
 async function sendResetEmail(email: string, resetToken: string): Promise<boolean> {
   // In a real implementation, you would use a service like SendGrid, Nodemailer, etc.
   // For now, we'll just log the reset link
-  const resetLink = `http://localhost:5173/reset-password?token=${resetToken}`;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
   
   console.log(`📧 Password reset link for ${email}:`);
   console.log(`   ${resetLink}`);

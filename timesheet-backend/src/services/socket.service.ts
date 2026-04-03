@@ -6,16 +6,23 @@ let io: SocketIOServer;
 export const initSocket = (server: Server) => {
   io = new SocketIOServer(server, {
     cors: {
-      origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [
-        "http://localhost:5173", 
-        "http://localhost:5174", 
-        "http://localhost:5175", 
-        "http://localhost:5176", 
-        "http://13.232.211.142", 
-        "http://13.232.211.142:3000", 
-        "http://13.232.211.142:5173", 
-        "http://13.232.211.142:9000"
-      ],
+      origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        const allowedOrigins = [
+          "http://localhost:5173", 
+          "http://localhost:5174", 
+          "http://localhost:5175", 
+          "http://localhost:5176", 
+          "http://13.232.211.142", 
+          "http://13.232.211.142:3000", 
+          "http://13.232.211.142:5173", 
+          "http://13.232.211.142:9000"
+        ];
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
       methods: ['GET', 'POST', 'PATCH', 'DELETE', 'PUT'],
       credentials: true
     }
