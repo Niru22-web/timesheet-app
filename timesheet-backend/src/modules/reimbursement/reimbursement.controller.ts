@@ -6,11 +6,15 @@ import { startOfMonth, endOfMonth } from 'date-fns';
 export const getAllReimbursements = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    if (!user) {
-      return res.status(401).json({ success: false, error: "Unauthorized access" });
+
+    if (!user || !user.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - user not found"
+      });
     }
 
-    // Extract all query parameters only once at the top
+    // Extract all query parameters only once at the top of the function
     const { 
       status, 
       employeeId, 
@@ -22,10 +26,10 @@ export const getAllReimbursements = async (req: Request, res: Response) => {
       q 
     } = req.query as Record<string, string | undefined>;
 
-    // Log incoming request parameters for debugging
-    console.log('Fetching reimbursements [REQUEST]:', { 
+    // Log incoming request parameters and user info for debugging
+    console.log("API Request:", {
       user: { id: user.id, role: user.role },
-      params: { status, employeeId, category, startDate, endDate, q, minAmount, maxAmount } 
+      query: req.query
     });
 
     const where: any = {};
@@ -157,22 +161,18 @@ export const getAllReimbursements = async (req: Request, res: Response) => {
       orderBy: { date: 'desc' }
     });
 
-    res.json({
+    return res.json({
       success: true,
       data: claims,
       count: claims.length,
       message: 'Reimbursement claims retrieved successfully'
     });
   } catch (error: any) {
-    console.error('Reimbursement API Error [getAll]:', {
-      user: (req as any).user?.id,
-      error: error.message,
-      stack: error.stack
-    });
-    res.status(500).json({ 
+    console.error("🔥 API ERROR:", error);
+
+    return res.status(500).json({
       success: false,
-      error: "Something went wrong while fetching reimbursements",
-      message: error.message 
+      message: error.message || "Internal Server Error"
     });
   }
 };
@@ -180,16 +180,20 @@ export const getAllReimbursements = async (req: Request, res: Response) => {
 export const getReimbursementKPIs = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    if (!user) {
-      return res.status(401).json({ success: false, error: "Unauthorized access" });
+
+    if (!user || !user.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - user not found"
+      });
     }
 
     const { month, year, employeeId } = req.query as Record<string, string | undefined>;
 
-    // Log incoming parameters
-    console.log('Fetching reimbursement KPIs [REQUEST]:', {
+    // Log incoming request parameters and user info for debugging
+    console.log("API Request:", {
       user: { id: user.id, role: user.role },
-      params: { month, year, employeeId }
+      query: req.query
     });
 
     let startDate: Date;
@@ -279,15 +283,11 @@ export const getReimbursementKPIs = async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    console.error('Reimbursement API Error [getKPIs]:', {
-      user: (req as any).user?.id,
-      error: error.message,
-      stack: error.stack
-    });
-    res.status(500).json({ 
-      success: false, 
-      error: "Something went wrong while fetching KPIs",
-      message: error.message 
+    console.error("🔥 API ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error"
     });
   }
 };
@@ -417,11 +417,15 @@ export const bulkUploadReimbursements = async (req: Request, res: Response) => {
 export const exportReimbursements = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    if (!user) {
-      return res.status(401).json({ success: false, error: "Unauthorized access" });
+
+    if (!user || !user.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized - user not found"
+      });
     }
 
-    // Extract all query parameters only once at the top
+    // Extract all query parameters only once at the top of the function
     const { 
       status, 
       employeeId, 
@@ -433,10 +437,10 @@ export const exportReimbursements = async (req: Request, res: Response) => {
       q 
     } = req.query as Record<string, string | undefined>;
 
-    // Log incoming request parameters for debugging
-    console.log('Exporting reimbursements [REQUEST]:', { 
+    // Log incoming request parameters and user info for debugging
+    console.log("API Request:", {
       user: { id: user.id, role: user.role },
-      params: { status, employeeId, category, startDate, endDate, q, minAmount, maxAmount } 
+      query: req.query
     });
 
     const where: any = {};
@@ -546,11 +550,11 @@ export const exportReimbursements = async (req: Request, res: Response) => {
 
     ExcelService.exportToExcel(res, exportData, 'reimbursements');
   } catch (error: any) {
-    console.error('Reimbursement API Error [export]:', {
-      user: (req as any).user?.id,
-      error: error.message,
-      stack: error.stack
+    console.error("🔥 API ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error"
     });
-    res.status(500).json({ success: false, error: error.message });
   }
 };
