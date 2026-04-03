@@ -150,9 +150,7 @@ const Modal: React.FC<ModalProps> = ({
 
                 {/* Fixed Footer */}
                 {footer && (
-                    <div className="flex-shrink-0 flex items-center justify-end gap-3 px-4 sm:px-5 py-3 border-t border-secondary-100 bg-secondary-50/50 dark:border-gray-700 dark:bg-gray-900/50"
-                         style={{ paddingBottom: `max(0.75rem, env(safe-area-inset-bottom, 0px))` }}
-                    >
+                    <div className="flex-shrink-0 flex items-center justify-end gap-3 px-4 sm:px-5 py-3 border-t border-secondary-100 bg-secondary-50/50 dark:border-gray-700 dark:bg-gray-900/50 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
                         {footer}
                     </div>
                 )}

@@ -148,11 +148,9 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
               {/* Notifications Dropdown */}
               {isNotificationOpen && (
-                 <div className={`absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-96 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] animate-in fade-in zoom-in-95 duration-200 origin-top-right z-50 overflow-hidden flex flex-col max-h-[70vh] border transition-colors ${
+                 <div className={`absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-96 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] animate-in fade-in zoom-in-95 duration-200 origin-top-right z-50 overflow-hidden flex flex-col max-h-[70vh] border transition-colors max-w-[calc(100vw-1rem)] ${
                    isDark ? 'bg-[#1E293B] border-slate-700/60' : 'bg-white border-slate-100'
-                 }`}
-                 style={{ right: 0, maxWidth: 'calc(100vw - 1rem)' }}
-                 >
+                 }`}>
                     <div className={`px-4 py-3 border-b flex items-center justify-between sticky top-0 backdrop-blur-sm z-10 ${
                       isDark ? 'border-slate-700/60 bg-[#1E293B]/90' : 'border-blue-50 bg-white/90'
                     }`}>

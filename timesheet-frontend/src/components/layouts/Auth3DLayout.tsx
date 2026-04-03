@@ -178,7 +178,7 @@ const Auth3DLayout: React.FC<Auth3DLayoutProps> = ({ mode = 'login' }) => {
                       {/* Floating elements */}
                       <div className="absolute -top-4 -right-4 w-8 h-8 bg-blue-400/20 rounded-full animate-bounce" />
                       <div className="absolute top-1/2 -left-6 w-6 h-6 bg-sky-400/20 rounded-full animate-pulse" />
-                      <div className="absolute -bottom-4 right-2 w-4 h-4 bg-cyan-400/20 rounded-full animate-bounce" style={{ animationDelay: '1s' }} />
+                      <div className="absolute -bottom-4 right-2 w-4 h-4 bg-cyan-400/20 rounded-full animate-bounce [animation-delay:1s]" />
                     </div>
                     
                     <div className="space-y-2">

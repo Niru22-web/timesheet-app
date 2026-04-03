@@ -149,6 +149,8 @@ const Admin: React.FC = () => {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
+                title="View Notifications"
+                aria-label="View Notifications"
                 className="relative p-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
               >
                 <BellIcon className="w-6 h-6" />
@@ -234,6 +236,8 @@ const Admin: React.FC = () => {
                   <select
                     value={dateFilter}
                     onChange={(e) => setDateFilter(e.target.value)}
+                    title="Filter by Date"
+                    aria-label="Filter by Date"
                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="all">All Time</option>
@@ -244,6 +248,8 @@ const Admin: React.FC = () => {
                   <select
                     value={actorFilter}
                     onChange={(e) => setActorFilter(e.target.value)}
+                    title="Filter by Actor"
+                    aria-label="Filter by Actor"
                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="all">All Actors</option>
@@ -255,6 +261,8 @@ const Admin: React.FC = () => {
                   <select
                     value={operationFilter}
                     onChange={(e) => setOperationFilter(e.target.value)}
+                    title="Filter by Operation"
+                    aria-label="Filter by Operation"
                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="all">All Operations</option>

@@ -17,6 +17,7 @@ import {
   UserCircleIcon as UserCircleIconSolid,
   Squares2X2Icon as Squares2X2IconSolid,
 } from '@heroicons/react/24/solid';
+import { Button } from '@headlessui/react';
 
 interface BottomNavBarProps {
   onMorePress?: () => void;
@@ -34,8 +35,8 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ onMorePress }) => {
 
   const dashboardPath = userRole === 'admin' ? '/admin'
     : userRole === 'manager' ? '/manager'
-    : userRole === 'partner' ? '/partner'
-    : '/employee';
+      : userRole === 'partner' ? '/partner'
+        : '/employee';
 
   const tabs = [
     {
@@ -92,29 +93,26 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ onMorePress }) => {
     <nav
       className={`
         md:hidden fixed bottom-0 left-0 right-0 z-50
-        border-t backdrop-blur-xl
+        border-t backdrop-blur-xl pb-safe
         transition-colors duration-300
         ${isDark
           ? 'bg-[#0F172A]/95 border-slate-700/60'
           : 'bg-white/95 border-slate-200/80'
         }
       `}
-      style={{
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      }}
-      role="tablist"
       aria-label="Main navigation"
     >
       <div className="flex items-center justify-around px-1 h-[60px]">
         {tabs.map((tab) => {
           const active = isActive(tab.matchPaths);
           const Icon = active ? tab.activeIcon : tab.icon;
+          const isSelected = active;
 
           return (
-            <button
+            <Button
               key={tab.name}
-              role="tab"
-              aria-selected={active}
+              type="button"
+              aria-current={active ? 'page' : undefined}
               aria-label={tab.name}
               onClick={() => handleTabPress(tab)}
               className={`
@@ -148,7 +146,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ onMorePress }) => {
               <span className={`text-[10px] font-bold leading-none tracking-tight ${active ? 'font-extrabold' : ''}`}>
                 {tab.name}
               </span>
-            </button>
+            </Button>
           );
         })}
       </div>

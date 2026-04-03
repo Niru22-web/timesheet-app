@@ -29,7 +29,7 @@ const FAB: React.FC<FABProps> = ({
       onClick={onClick}
       className={`
         md:hidden fixed z-40 shadow-2xl
-        right-4 bottom-[76px]
+        right-4 fab-safe-bottom
         w-14 h-14 rounded-2xl
         flex items-center justify-center
         transition-all duration-300 ease-out
@@ -40,9 +40,6 @@ const FAB: React.FC<FABProps> = ({
           : 'bg-blue-600 text-white shadow-blue-600/40 hover:bg-blue-700'
         }
       `}
-      style={{
-        bottom: `calc(76px + env(safe-area-inset-bottom, 0px))`,
-      }}
       aria-label={label}
       title={label}
     >

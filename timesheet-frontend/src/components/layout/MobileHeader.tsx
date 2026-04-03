@@ -63,7 +63,10 @@ export default function MobileHeader({ isSidebarOpen, onMenuToggle }: MobileHead
           <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold shadow-sm">A</div>
         </div>
         <div className="flex items-center gap-3">
-          <button className="relative p-2 text-secondary-400 hover:text-secondary-900 hover:bg-secondary-50 rounded-xl transition-all group shadow-sm border border-secondary-100 overflow-hidden">
+          <button 
+            aria-label="Notifications"
+            className="relative p-2 text-secondary-400 hover:text-secondary-900 hover:bg-secondary-50 rounded-xl transition-all group shadow-sm border border-secondary-100 overflow-hidden"
+          >
             <BellIcon className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary-500 rounded-full border-2 border-white" />
           </button>
