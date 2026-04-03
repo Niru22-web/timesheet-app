@@ -6,40 +6,49 @@ import { startOfMonth, endOfMonth } from 'date-fns';
 export const getAllReimbursements = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { status, employeeId, category, startDate, endDate, minAmount, maxAmount, q } = req.query;
-
-    // Log incoming query parameters for debugging as requested
-    console.log('Fetching reimbursements [REQUEST]:', { 
-      user: { id: user?.id, role: user?.role },
-      params: { status, employeeId, category, startDate, endDate, q, minAmount, maxAmount } 
-    });
-
     if (!user) {
       return res.status(401).json({ success: false, error: "Unauthorized access" });
     }
 
+    // Extract all query parameters only once at the top
+    const { 
+      status, 
+      employeeId, 
+      category, 
+      startDate, 
+      endDate, 
+      minAmount, 
+      maxAmount, 
+      q 
+    } = req.query as Record<string, string | undefined>;
+
+    // Log incoming request parameters for debugging
+    console.log('Fetching reimbursements [REQUEST]:', { 
+      user: { id: user.id, role: user.role },
+      params: { status, employeeId, category, startDate, endDate, q, minAmount, maxAmount } 
+    });
+
     const where: any = {};
     
-    // Role-based visibility with client-based restriction
+    // Role-based visibility logic
     const isAdmin = ['Admin', 'Partner', 'Owner'].includes(user.role);
     
     if (isAdmin) {
-      // Only include employeeId in the filter if it is not empty/undefined
-      if (employeeId && (employeeId as string).trim() !== '') {
-        where.employeeId = employeeId as string;
+      // Apply employeeId filter only if it is not empty or undefined
+      if (employeeId && employeeId.trim() !== '') {
+        where.employeeId = employeeId;
       }
     } else {
-      // For non-admin users: apply user-level and client-based restrictions
+      // For non-admin users: restricted to their own data
       where.employeeId = user.id;
       
-      // Get assigned clients via project mapping
+      // Maintain client/project-based filtering for non-admin users
       const assignedProjects = await prisma.projectUser.findMany({
         where: { employeeId: user.id },
         select: { projectId: true }
       });
       
       if (assignedProjects.length === 0) {
-        // User has no assigned projects/clients - return empty array
         return res.json({
           success: true,
           data: [],
@@ -49,17 +58,14 @@ export const getAllReimbursements = async (req: Request, res: Response) => {
       }
       
       const projectIds = assignedProjects.map(p => p.projectId);
-      
-      // Get unique client IDs from assigned projects
       const projectsWithClients = await prisma.project.findMany({
         where: { id: { in: projectIds } },
         select: { clientId: true }
       });
       
-      const assignedClientIds = [...new Set(projectsWithClients.map(p => p.clientId).filter(Boolean))];
+      const assignedClientIds = [...new Set(projectsWithClients.map(p => p.clientId).filter(Boolean) as string[])];
       
       if (assignedClientIds.length === 0) {
-        // User has projects but no clients assigned
         return res.json({
           success: true,
           data: [],
@@ -68,18 +74,24 @@ export const getAllReimbursements = async (req: Request, res: Response) => {
         });
       }
       
-      // Apply client filter
       where.clientId = { in: assignedClientIds };
     }
 
-    // Filters
-    if (status && status !== 'All Status') where.status = (status as string).toLowerCase();
-    if (category && category !== 'All Categories') where.category = category as string;
+    // Status Filter
+    if (status && status !== 'All Status' && status.trim() !== '') {
+      where.status = status.toLowerCase();
+    }
+
+    // Category Filter
+    if (category && category !== 'All Categories' && category.trim() !== '') {
+      where.category = category;
+    }
     
-    // Date filtering: Only apply if BOTH startDate and endDate are provided and valid
-    if (startDate && endDate && (startDate as string).trim() !== '' && (endDate as string).trim() !== '') {
-      const start = new Date(startDate as string);
-      const end = new Date(endDate as string);
+    // Date Filtering (Critical Fix)
+    // Apply date filter only if both startDate and endDate are provided and not empty
+    if (startDate && endDate && startDate.trim() !== '' && endDate.trim() !== '') {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
       
       if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
         where.date = {
@@ -91,22 +103,28 @@ export const getAllReimbursements = async (req: Request, res: Response) => {
       }
     }
 
+    // Amount Filtering
     if (minAmount || maxAmount) {
-      where.amount = {};
-      if (minAmount && (minAmount as string).trim() !== '') {
-        const min = parseFloat(minAmount as string);
-        if (!isNaN(min)) where.amount.gte = min;
+      const amountFilter: any = {};
+      
+      if (minAmount && minAmount.trim() !== '') {
+        const min = parseFloat(minAmount);
+        if (!isNaN(min)) amountFilter.gte = min;
       }
-      if (maxAmount && (maxAmount as string).trim() !== '') {
-        const max = parseFloat(maxAmount as string);
-        if (!isNaN(max)) where.amount.lte = max;
+      
+      if (maxAmount && maxAmount.trim() !== '') {
+        const max = parseFloat(maxAmount);
+        if (!isNaN(max)) amountFilter.lte = max;
       }
-      if (Object.keys(where.amount).length === 0) delete where.amount;
+      
+      if (Object.keys(amountFilter).length > 0) {
+        where.amount = amountFilter;
+      }
     }
 
-    // Global Search
-    if (q && (q as string).trim() !== "") {
-      const search = (q as string).trim();
+    // Global Search (Search Filter)
+    if (q && q.trim() !== "") {
+      const search = q.trim();
       where.OR = [
         { claimId: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
@@ -162,14 +180,32 @@ export const getAllReimbursements = async (req: Request, res: Response) => {
 export const getReimbursementKPIs = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { month, year, employeeId } = req.query;
+    if (!user) {
+      return res.status(401).json({ success: false, error: "Unauthorized access" });
+    }
+
+    const { month, year, employeeId } = req.query as Record<string, string | undefined>;
+
+    // Log incoming parameters
+    console.log('Fetching reimbursement KPIs [REQUEST]:', {
+      user: { id: user.id, role: user.role },
+      params: { month, year, employeeId }
+    });
 
     let startDate: Date;
     let endDate: Date;
 
-    if (month && year) {
-      startDate = new Date(parseInt(year as string), parseInt(month as string) - 1, 1);
-      endDate = endOfMonth(startDate);
+    if (month && year && month.trim() !== '' && year.trim() !== '') {
+      const yearInt = parseInt(year);
+      const monthInt = parseInt(month);
+      
+      if (!isNaN(yearInt) && !isNaN(monthInt)) {
+        startDate = new Date(yearInt, monthInt - 1, 1);
+        endDate = endOfMonth(startDate);
+      } else {
+        startDate = startOfMonth(new Date());
+        endDate = endOfMonth(startDate);
+      }
     } else {
       startDate = startOfMonth(new Date());
       endDate = endOfMonth(startDate);
@@ -182,12 +218,17 @@ export const getReimbursementKPIs = async (req: Request, res: Response) => {
       }
     };
 
-    // Role filtering for KPIs with client-based restriction
+    // Role filtering for KPIs
     const isAdmin = ['Admin', 'Partner', 'Owner'].includes(user.role);
-    if (!isAdmin) {
+    
+    if (isAdmin) {
+      if (employeeId && employeeId.trim() !== '') {
+        where.employeeId = employeeId;
+      }
+    } else {
+      // Non-admin: restrict to own data and assigned clients
       where.employeeId = user.id;
       
-      // Get assigned clients via project mapping for non-admin users
       const assignedProjects = await prisma.projectUser.findMany({
         where: { employeeId: user.id },
         select: { projectId: true }
@@ -195,46 +236,27 @@ export const getReimbursementKPIs = async (req: Request, res: Response) => {
       
       if (assignedProjects.length > 0) {
         const projectIds = assignedProjects.map(p => p.projectId);
-        
-        // Get unique client IDs from assigned projects
         const projectsWithClients = await prisma.project.findMany({
           where: { id: { in: projectIds } },
           select: { clientId: true }
         });
         
-        const assignedClientIds = [...new Set(projectsWithClients.map(p => p.clientId).filter(Boolean))];
+        const assignedClientIds = [...new Set(projectsWithClients.map(p => p.clientId).filter(Boolean) as string[])];
         
         if (assignedClientIds.length > 0) {
-          // Apply client filter
           where.clientId = { in: assignedClientIds };
         } else {
-          // User has projects but no clients assigned - return zero KPIs
           return res.json({
             success: true,
-            data: {
-              totalSubmitted: 0,
-              approvedCount: 0,
-              rejectedCount: 0,
-              approvalRate: 0,
-              rejectedVsApproved: 0
-            }
+            data: { totalSubmitted: 0, approvedCount: 0, rejectedCount: 0, approvalRate: 0, rejectedVsApproved: 0 }
           });
         }
       } else {
-        // User has no assigned projects - return zero KPIs
         return res.json({
           success: true,
-          data: {
-            totalSubmitted: 0,
-            approvedCount: 0,
-            rejectedCount: 0,
-            approvalRate: 0,
-            rejectedVsApproved: 0
-          }
+          data: { totalSubmitted: 0, approvedCount: 0, rejectedCount: 0, approvalRate: 0, rejectedVsApproved: 0 }
         });
       }
-    } else if (employeeId) {
-      where.employeeId = employeeId;
     }
 
     const [totalSubmitted, approvedResult, rejectedResult] = await Promise.all([
@@ -273,7 +295,16 @@ export const getReimbursementKPIs = async (req: Request, res: Response) => {
 export const createReimbursement = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
+    if (!user) {
+      return res.status(401).json({ success: false, error: "Unauthorized access" });
+    }
+
     const { category, amount, description, date, clientId } = req.body;
+
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount)) {
+      return res.status(400).json({ success: false, error: "Invalid amount provided" });
+    }
 
     const count = await prisma.reimbursement.count();
     const claimId = `CLM-${String(count + 1).padStart(3, '0')}`;
@@ -281,14 +312,15 @@ export const createReimbursement = async (req: Request, res: Response) => {
     const newClaim = await prisma.reimbursement.create({
       data: {
         claimId,
-        category,
-        amount: parseFloat(amount),
-        description,
+        category: category || 'Other',
+        amount: parsedAmount,
+        description: description || '',
         date: date ? new Date(date) : new Date(),
         employeeId: user.id,
         clientId: clientId || null
       }
     });
+    
     res.status(201).json({
       success: true,
       data: newClaim,
@@ -307,6 +339,10 @@ export const updateReimbursementStatus = async (req: Request, res: Response) => 
   try {
     const { id } = req.params;
     const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ success: false, error: "Status is required" });
+    }
 
     const updatedClaim = await prisma.reimbursement.update({
       where: { id },
@@ -381,26 +417,40 @@ export const bulkUploadReimbursements = async (req: Request, res: Response) => {
 export const exportReimbursements = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { status, employeeId, category, startDate, endDate, minAmount, maxAmount, q } = req.query;
+    if (!user) {
+      return res.status(401).json({ success: false, error: "Unauthorized access" });
+    }
 
+    // Extract all query parameters only once at the top
+    const { 
+      status, 
+      employeeId, 
+      category, 
+      startDate, 
+      endDate, 
+      minAmount, 
+      maxAmount, 
+      q 
+    } = req.query as Record<string, string | undefined>;
+
+    // Log incoming request parameters for debugging
     console.log('Exporting reimbursements [REQUEST]:', { 
-      user: { id: user?.id, role: user?.role },
+      user: { id: user.id, role: user.role },
       params: { status, employeeId, category, startDate, endDate, q, minAmount, maxAmount } 
     });
 
     const where: any = {};
     
-    // Role-based visibility with client-based restriction for export
-    const isAdmin = ['Manager', 'Admin', 'Partner', 'Owner'].includes(user.role);
+    // Role-based visibility logic (Matching getAllReimbursements)
+    const isAdmin = ['Admin', 'Partner', 'Owner'].includes(user.role);
     
     if (isAdmin) {
-      if (employeeId && (employeeId as string).trim() !== '') {
-        where.employeeId = employeeId as string;
+      if (employeeId && employeeId.trim() !== '') {
+        where.employeeId = employeeId;
       }
     } else {
       where.employeeId = user.id;
       
-      // Get assigned clients via project mapping for non-admin users
       const assignedProjects = await prisma.projectUser.findMany({
         where: { employeeId: user.id },
         select: { projectId: true }
@@ -408,55 +458,60 @@ export const exportReimbursements = async (req: Request, res: Response) => {
       
       if (assignedProjects.length > 0) {
         const projectIds = assignedProjects.map(p => p.projectId);
-        
-        // Get unique client IDs from assigned projects
         const projectsWithClients = await prisma.project.findMany({
           where: { id: { in: projectIds } },
           select: { clientId: true }
         });
         
-        const assignedClientIds = [...new Set(projectsWithClients.map(p => p.clientId).filter(Boolean))];
+        const assignedClientIds = [...new Set(projectsWithClients.map(p => p.clientId).filter(Boolean) as string[])];
         
         if (assignedClientIds.length > 0) {
-          // Apply client filter
           where.clientId = { in: assignedClientIds };
         } else {
-          // User has projects but no clients assigned - return empty export
           return ExcelService.exportToExcel(res, [], 'reimbursements');
         }
       } else {
-        // User has no assigned projects - return empty export
         return ExcelService.exportToExcel(res, [], 'reimbursements');
       }
     }
 
-    // Apply same filters as list
-    if (status && status !== 'All Status') where.status = (status as string).toLowerCase();
-    if (category && category !== 'All Categories') where.category = category as string;
+    // Filters
+    if (status && status !== 'All Status' && status.trim() !== '') {
+      where.status = status.toLowerCase();
+    }
     
-    // Date filtering: Only apply if BOTH startDate and endDate are provided and valid
-    if (startDate && endDate && (startDate as string).trim() !== '' && (endDate as string).trim() !== '') {
-      const start = new Date(startDate as string);
-      const end = new Date(endDate as string);
+    if (category && category !== 'All Categories' && category.trim() !== '') {
+      where.category = category;
+    }
+    
+    // Date Filtering (Critical Fix)
+    if (startDate && endDate && startDate.trim() !== '' && endDate.trim() !== '') {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
       if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
         where.date = { gte: start, lte: end };
       }
     }
+
+    // Amount Filtering
     if (minAmount || maxAmount) {
-      where.amount = {};
-      if (minAmount && (minAmount as string).trim() !== '') {
-        const min = parseFloat(minAmount as string);
-        if (!isNaN(min)) where.amount.gte = min;
+      const amountFilter: any = {};
+      if (minAmount && minAmount.trim() !== '') {
+        const min = parseFloat(minAmount);
+        if (!isNaN(min)) amountFilter.gte = min;
       }
-      if (maxAmount && (maxAmount as string).trim() !== '') {
-        const max = parseFloat(maxAmount as string);
-        if (!isNaN(max)) where.amount.lte = max;
+      if (maxAmount && maxAmount.trim() !== '') {
+        const max = parseFloat(maxAmount);
+        if (!isNaN(max)) amountFilter.lte = max;
       }
-      if (Object.keys(where.amount).length === 0) delete where.amount;
+      if (Object.keys(amountFilter).length > 0) {
+        where.amount = amountFilter;
+      }
     }
     
-    if (q && (q as string).trim() !== "") {
-      const search = (q as string).trim();
+    // Global Search
+    if (q && q.trim() !== "") {
+      const search = q.trim();
       where.OR = [
         { claimId: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
@@ -468,7 +523,14 @@ export const exportReimbursements = async (req: Request, res: Response) => {
 
     const claims = await prisma.reimbursement.findMany({
       where,
-      include: { employee: true },
+      include: { 
+        employee: {
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        }
+      },
       orderBy: { date: 'desc' }
     });
 
@@ -484,6 +546,11 @@ export const exportReimbursements = async (req: Request, res: Response) => {
 
     ExcelService.exportToExcel(res, exportData, 'reimbursements');
   } catch (error: any) {
+    console.error('Reimbursement API Error [export]:', {
+      user: (req as any).user?.id,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ success: false, error: error.message });
   }
 };
