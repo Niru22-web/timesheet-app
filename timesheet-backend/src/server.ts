@@ -68,7 +68,6 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/tasks", jobRoutes);
 app.use("/api/timelogs", timelogRoutes);
-app.use("/api/timelogs", timelogWeeklyRoutes);
 app.use("/api/timesheets", timelogRoutes);
 app.use("/api/leaves", leaveRoutes);
 app.use("/api/admin", userPermissionsRoutes);

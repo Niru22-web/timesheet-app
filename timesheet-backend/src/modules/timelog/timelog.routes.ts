@@ -20,43 +20,64 @@ import {
   approveTimelogHandler,
   rejectTimelogHandler
 } from './timelog.controller';
+import {
+  getWeeklyTimesheets,
+  createWeeklyTimelog,
+  submitWeeklyTimesheet,
+  approveWeeklyTimesheet,
+  getWeeklySubmissionStatus,
+  getWeekRange,
+  getLogTimeFormData
+} from './timelog-weekly.controller';
 
 const router = Router();
 
+// Apply authentication to all timelog routes
+router.use(authenticate);
+
 // Add debugging middleware to see what's happening
-router.use((req, res, next) => {
+router.use((req: any, res: any, next: any) => {
   console.log('🔍 TIMELOG ROUTE - Request received:', {
     method: req.method,
     url: req.url,
     path: req.path,
-    headers: req.headers
+    user: req.user ? { id: req.user.id, email: req.user.email } : 'anonymous'
   });
   next();
 });
 
 // Timelog CRUD operations
-router.get('/my', authenticate, getMyTimelogs);
-router.get('/team', authenticate, getTeamTimelogs);
-router.get('/', authenticate, getTimelogs);
-router.post('/', authenticate, createTimelog);
-router.put('/:id', authenticate, updateTimelog);
-router.delete('/:id', authenticate, deleteTimelog);
-router.patch('/:id/submit', authenticate, submitTimelog);
-router.put('/:id/approve', authenticate, approveTimelogHandler);
-router.put('/:id/reject', authenticate, rejectTimelogHandler);
+router.get('/my', getMyTimelogs);
+router.get('/team', getTeamTimelogs);
+router.get('/', getTimelogs);
+router.post('/', createTimelog);
+router.put('/:id', updateTimelog);
+router.delete('/:id', deleteTimelog);
+router.patch('/:id/submit', submitTimelog);
+router.put('/:id/approve', approveTimelogHandler);
+router.put('/:id/reject', rejectTimelogHandler);
+
+// Weekly Operations
+router.get('/weekly', getWeeklyTimesheets);
+router.get('/week-range', getWeekRange);
+router.get('/weekly/submission-status', getWeeklySubmissionStatus);
+router.get('/log-time/form-data', getLogTimeFormData);
+router.post('/weekly', createWeeklyTimelog);
+router.post('/weekly/submit', submitWeeklyTimesheet);
+router.post('/weekly/approve', approveWeeklyTimesheet);
 
 // Hierarchical data access
-router.get('/accessible/clients', authenticate, getAccessibleClients);
-router.get('/accessible/projects', authenticate, getAccessibleProjects);
-router.get('/accessible/jobs', authenticate, getAccessibleJobs);
+router.get('/accessible/clients', getAccessibleClients);
+router.get('/accessible/projects', getAccessibleProjects);
+router.get('/accessible/jobs', getAccessibleJobs);
 
 // Excel operations
-router.get('/export', authenticate, exportTimelogsToExcel);
-router.post('/import', authenticate, uploadTimelogFile, importTimelogsFromExcel);
-router.get('/template', authenticate, downloadTimelogTemplate);
+router.get('/export', exportTimelogsToExcel);
+router.post('/import', uploadTimelogFile, importTimelogsFromExcel);
+router.get('/template', downloadTimelogTemplate);
 
 // Dashboard and Reports
-router.get('/reports', authenticate, getTimesheetReports);
-router.get('/missing-timesheets', authenticate, getMissingTimesheets);
+router.get('/reports', getTimesheetReports);
+router.get('/missing-timesheets', getMissingTimesheets);
 
-export default router;
+export default router;
