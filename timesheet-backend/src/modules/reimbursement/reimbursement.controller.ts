@@ -14,17 +14,20 @@ export const getAllReimbursements = async (req: Request, res: Response) => {
       });
     }
 
-    // Extract all query parameters only once at the top of the function
-    const { 
-      status, 
-      employeeId, 
-      category, 
-      startDate, 
-      endDate, 
-      minAmount, 
-      maxAmount, 
-      q 
-    } = req.query as Record<string, string | undefined>;
+    // Helper for safe query string extraction
+    const getQueryParam = (param: any): string => {
+      if (Array.isArray(param)) return String(param[0] || '').trim();
+      return String(param || '').trim();
+    };
+
+    const q = getQueryParam(req.query.q);
+    const status = getQueryParam(req.query.status);
+    const employeeId = getQueryParam(req.query.employeeId);
+    const category = getQueryParam(req.query.category);
+    const startDate = getQueryParam(req.query.startDate);
+    const endDate = getQueryParam(req.query.endDate);
+    const minAmount = getQueryParam(req.query.minAmount);
+    const maxAmount = getQueryParam(req.query.maxAmount);
 
     // Log incoming request parameters and user info for debugging
     console.log("API Request:", {
@@ -168,7 +171,13 @@ export const getAllReimbursements = async (req: Request, res: Response) => {
       message: 'Reimbursement claims retrieved successfully'
     });
   } catch (error: any) {
-    console.error("🔥 API ERROR:", error);
+    const errorUser = (req as any).user;
+    console.error("🔥 API ERROR [getAllReimbursements]:", {
+      message: error.message,
+      stack: error.stack,
+      userId: errorUser?.id,
+      query: req.query
+    });
 
     return res.status(500).json({
       success: false,
@@ -188,10 +197,18 @@ export const getReimbursementKPIs = async (req: Request, res: Response) => {
       });
     }
 
-    const { month, year, employeeId } = req.query as Record<string, string | undefined>;
+    // Helper for safe query string extraction
+    const getQueryParam = (param: any): string => {
+      if (Array.isArray(param)) return String(param[0] || '').trim();
+      return String(param || '').trim();
+    };
+
+    const month = getQueryParam(req.query.month);
+    const year = getQueryParam(req.query.year);
+    const employeeId = getQueryParam(req.query.employeeId);
 
     // Log incoming request parameters and user info for debugging
-    console.log("API Request:", {
+    console.log("API Request [getReimbursementKPIs]:", {
       user: { id: user.id, role: user.role },
       query: req.query
     });
@@ -199,7 +216,7 @@ export const getReimbursementKPIs = async (req: Request, res: Response) => {
     let startDate: Date;
     let endDate: Date;
 
-    if (month && year && month.trim() !== '' && year.trim() !== '') {
+    if (month !== '' && year !== '') {
       const yearInt = parseInt(year);
       const monthInt = parseInt(month);
       
@@ -327,10 +344,15 @@ export const createReimbursement = async (req: Request, res: Response) => {
       message: 'Reimbursement claim submitted successfully'
     });
   } catch (error: any) {
-    console.error('Error submitting claim:', error);
-    res.status(500).json({ 
+    const errorUser = (req as any).user;
+    console.error("🔥 API ERROR [createReimbursement]:", {
+      message: error.message,
+      stack: error.stack,
+      userId: errorUser?.id
+    });
+    return res.status(500).json({ 
       success: false,
-      error: error.message || "Failed to submit claim" 
+      message: error.message || "Failed to submit claim" 
     });
   }
 };
@@ -355,10 +377,15 @@ export const updateReimbursementStatus = async (req: Request, res: Response) => 
       message: `Reimbursement claim ${status} successfully`
     });
   } catch (error: any) {
-    console.error('Error updating status:', error);
-    res.status(500).json({ 
+    const errorUser = (req as any).user;
+    console.error("🔥 API ERROR [updateReimbursementStatus]:", {
+      message: error.message,
+      stack: error.stack,
+      userId: errorUser?.id
+    });
+    return res.status(500).json({ 
       success: false,
-      error: error.message || "Failed to update claim status" 
+      message: error.message || "Failed to update claim status" 
     });
   }
 };
@@ -410,7 +437,13 @@ export const bulkUploadReimbursements = async (req: Request, res: Response) => {
       message: 'Bulk upload completed'
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    const errorUser = (req as any).user;
+    console.error("🔥 API ERROR [bulkUploadReimbursements]:", {
+      message: error.message,
+      stack: error.stack,
+      userId: errorUser?.id
+    });
+    return res.status(500).json({ success: false, message: error.message || "Internal Server Error" });
   }
 };
 
@@ -425,20 +458,23 @@ export const exportReimbursements = async (req: Request, res: Response) => {
       });
     }
 
-    // Extract all query parameters only once at the top of the function
-    const { 
-      status, 
-      employeeId, 
-      category, 
-      startDate, 
-      endDate, 
-      minAmount, 
-      maxAmount, 
-      q 
-    } = req.query as Record<string, string | undefined>;
+    // Helper for safe query string extraction
+    const getQueryParam = (param: any): string => {
+      if (Array.isArray(param)) return String(param[0] || '').trim();
+      return String(param || '').trim();
+    };
+
+    const status = getQueryParam(req.query.status);
+    const employeeId = getQueryParam(req.query.employeeId);
+    const category = getQueryParam(req.query.category);
+    const startDate = getQueryParam(req.query.startDate);
+    const endDate = getQueryParam(req.query.endDate);
+    const minAmount = getQueryParam(req.query.minAmount);
+    const maxAmount = getQueryParam(req.query.maxAmount);
+    const q = getQueryParam(req.query.q);
 
     // Log incoming request parameters and user info for debugging
-    console.log("API Request:", {
+    console.log("API Request [exportReimbursements]:", {
       user: { id: user.id, role: user.role },
       query: req.query
     });

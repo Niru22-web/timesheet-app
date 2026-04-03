@@ -3,9 +3,11 @@ import { notifyReportingManager, triggerNotification } from '../../services/noti
 
 // Utility to calculate dynamically accrued balance from transactions
 const calculateLeaveBalance = async (employeeId: string, currentYear: number) => {
+  console.log(`Calculating leave balance for ${employeeId} in year ${currentYear}`);
   const transactions = await prisma.leaveTransaction.findMany({
     where: { employeeId, year: currentYear }
   });
+  console.log(`Found ${transactions.length} transactions.`);
 
   let accrued = 0;
   let used = 0;
@@ -67,11 +69,20 @@ export const getLeaves = async (req: any, res: any) => {
       });
     }
 
-    // Extract all query parameters only once at the top of the function
-    const { type, status, dateFrom, dateTo, employeeId } = req.query as Record<string, string | undefined>;
+    // Helper for safe query string extraction
+    const getQueryParam = (param: any): string => {
+      if (Array.isArray(param)) return String(param[0] || '').trim();
+      return String(param || '').trim();
+    };
+
+    const type = getQueryParam(req.query.type);
+    const status = getQueryParam(req.query.status);
+    const dateFrom = getQueryParam(req.query.dateFrom);
+    const dateTo = getQueryParam(req.query.dateTo);
+    const employeeId = getQueryParam(req.query.employeeId);
 
     // Log incoming request parameters and user info for debugging
-    console.log("API Request:", {
+    console.log("API Request [getLeaves]:", {
       user: { id: user.id, role: user.role },
       query: req.query
     });
@@ -439,7 +450,12 @@ export const getLeaveBalance = async (req: any, res: any) => {
       message: 'Leave balance retrieved successfully'
     });
   } catch (error: any) {
-    console.error("🔥 API ERROR:", error);
+    const errorUser = (req as any).user;
+    console.error("🔥 API ERROR [getLeaveBalance]:", {
+      message: error.message,
+      stack: error.stack,
+      userId: errorUser?.id
+    });
 
     return res.status(500).json({
       success: false,
