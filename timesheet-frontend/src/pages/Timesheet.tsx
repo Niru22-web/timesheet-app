@@ -81,7 +81,7 @@ const Timesheet: React.FC = () => {
         }
       });
 
-      const endpoint = activeTab === 'team' ? '/api/timelogs/team' : '/api/timelogs/my';
+      const endpoint = activeTab === 'team' ? '/timelogs/team' : '/timelogs/my';
       const res = await API.get(endpoint, { params });
       setEntries(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch (err) {

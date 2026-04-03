@@ -1,16 +1,21 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api';
+const rawBaseURL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api';
+const baseURL = rawBaseURL.replace(/\/$/, '') + '/';
 
 export const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add authentication interceptor
+// Normalize request URLs in services/api.ts
 api.interceptors.request.use((config) => {
+  if (config.url && config.url.startsWith('/')) {
+    config.url = config.url.substring(1);
+  }
+  
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -46,10 +51,12 @@ export const projectAPI = {
 };
 
 export const timesheetAPI = {
-  getTimeEntries: () => api.get('/timelogs'),
-  createTimeEntry: (entry: any) => api.post('/timelogs', entry),
-  updateTimeEntry: (id: string, entry: any) => api.put(`/timelogs/${id}`, entry),
-  deleteTimeEntry: (id: string) => api.delete(`/timelogs/${id}`),
+  getTimeEntries: () => api.get('timelogs'),
+  getMyTimelogs: () => api.get('timelogs/my'),
+  getTeamTimelogs: () => api.get('timelogs/team'),
+  createTimeEntry: (entry: any) => api.post('timelogs', entry),
+  updateTimeEntry: (id: string, entry: any) => api.put(`timelogs/${id}`, entry),
+  deleteTimeEntry: (id: string) => api.delete(`timelogs/${id}`),
 };
 
 export default api;
