@@ -79,6 +79,19 @@ app.use("/api/reimbursements", reimbursementRoutes);
 app.use("/api/reports", reportRoutes);
 app.get("/api/registration/validate", validateRegistrationToken);
 
+// Catch-all route for any unmatched /api routes
+app.all("/api/*", (req, res) => {
+  console.log(`❌ UNMATCHED API ROUTE: ${req.method} ${req.url}`);
+  res.status(404).json({
+    success: false,
+    message: `API Route not found: ${req.method} ${req.url}`,
+    availableRoutes: [
+      "/api/auth", "/api/employees", "/api/clients", "/api/projects", 
+      "/api/jobs", "/api/timelogs", "/api/leaves", "/api/notifications"
+    ]
+  });
+});
+
 // Global Error Handler
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('🔥 GLOBAL API ERROR:', err);

@@ -72,7 +72,15 @@ const Timesheet: React.FC = () => {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const params: any = { ...filters };
+      
+      // Clean up empty params
+      const params: any = {};
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== '') {
+           params[key] = value;
+        }
+      });
+      
       const endpoint = activeTab === 'team' ? '/timelogs/team' : '/timelogs/my';
       const res = await API.get(endpoint, { params });
       setEntries(Array.isArray(res.data?.data) ? res.data.data : []);

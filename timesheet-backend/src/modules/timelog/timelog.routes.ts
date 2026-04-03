@@ -23,6 +23,17 @@ import {
 
 const router = Router();
 
+// Add debugging middleware to see what's happening
+router.use((req, res, next) => {
+  console.log('🔍 TIMELOG ROUTE - Request received:', {
+    method: req.method,
+    url: req.url,
+    path: req.path,
+    headers: req.headers
+  });
+  next();
+});
+
 // Timelog CRUD operations
 router.get('/my', authenticate, getMyTimelogs);
 router.get('/team', authenticate, getTeamTimelogs);
