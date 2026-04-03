@@ -8,10 +8,10 @@ export const getAllReimbursements = async (req: Request, res: Response) => {
     const user = (req as any).user;
     const { status, employeeId, category, startDate, endDate, minAmount, maxAmount, q } = req.query;
 
-    console.log('Fetching reimbursements:', { 
-      userId: user?.id, 
-      role: user?.role, 
-      query: { status, employeeId, category, startDate, endDate, q } 
+    // Log incoming query parameters for debugging as requested
+    console.log('Fetching reimbursements [REQUEST]:', { 
+      user: { id: user?.id, role: user?.role },
+      params: { status, employeeId, category, startDate, endDate, q, minAmount, maxAmount } 
     });
 
     if (!user) {
@@ -24,7 +24,10 @@ export const getAllReimbursements = async (req: Request, res: Response) => {
     const isAdmin = ['Admin', 'Partner', 'Owner'].includes(user.role);
     
     if (isAdmin) {
-      if (employeeId) where.employeeId = employeeId;
+      // Only include employeeId in the filter if it is not empty/undefined
+      if (employeeId && (employeeId as string).trim() !== '') {
+        where.employeeId = employeeId as string;
+      }
     } else {
       // For non-admin users: apply user-level and client-based restrictions
       where.employeeId = user.id;
@@ -73,35 +76,31 @@ export const getAllReimbursements = async (req: Request, res: Response) => {
     if (status && status !== 'All Status') where.status = (status as string).toLowerCase();
     if (category && category !== 'All Categories') where.category = category as string;
     
-    if (startDate || endDate) {
-      where.date = {};
+    // Date filtering: Only apply if BOTH startDate and endDate are provided and valid
+    if (startDate && endDate && (startDate as string).trim() !== '' && (endDate as string).trim() !== '') {
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
       
-      if (startDate) {
-        const start = new Date(startDate as string);
-        if (isNaN(start.getTime())) {
-          console.warn('Invalid startDate provided:', startDate);
-        } else {
-          where.date.gte = start;
-        }
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+        where.date = {
+          gte: start,
+          lte: end
+        };
+      } else {
+        console.warn('Invalid date parameters provided:', { startDate, endDate });
       }
-      
-      if (endDate) {
-        const end = new Date(endDate as string);
-        if (isNaN(end.getTime())) {
-          console.warn('Invalid endDate provided:', endDate);
-        } else {
-          where.date.lte = end;
-        }
-      }
-
-      // If date object is empty, remove it
-      if (Object.keys(where.date).length === 0) delete where.date;
     }
 
     if (minAmount || maxAmount) {
       where.amount = {};
-      if (minAmount) where.amount.gte = parseFloat(minAmount as string);
-      if (maxAmount) where.amount.lte = parseFloat(maxAmount as string);
+      if (minAmount && (minAmount as string).trim() !== '') {
+        const min = parseFloat(minAmount as string);
+        if (!isNaN(min)) where.amount.gte = min;
+      }
+      if (maxAmount && (maxAmount as string).trim() !== '') {
+        const max = parseFloat(maxAmount as string);
+        if (!isNaN(max)) where.amount.lte = max;
+      }
       if (Object.keys(where.amount).length === 0) delete where.amount;
     }
 
@@ -382,14 +381,23 @@ export const bulkUploadReimbursements = async (req: Request, res: Response) => {
 export const exportReimbursements = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { status, category, startDate, endDate, minAmount, maxAmount, q } = req.query;
+    const { status, employeeId, category, startDate, endDate, minAmount, maxAmount, q } = req.query;
+
+    console.log('Exporting reimbursements [REQUEST]:', { 
+      user: { id: user?.id, role: user?.role },
+      params: { status, employeeId, category, startDate, endDate, q, minAmount, maxAmount } 
+    });
 
     const where: any = {};
     
     // Role-based visibility with client-based restriction for export
     const isAdmin = ['Manager', 'Admin', 'Partner', 'Owner'].includes(user.role);
     
-    if (!isAdmin) {
+    if (isAdmin) {
+      if (employeeId && (employeeId as string).trim() !== '') {
+        where.employeeId = employeeId as string;
+      }
+    } else {
       where.employeeId = user.id;
       
       // Get assigned clients via project mapping for non-admin users
@@ -425,21 +433,36 @@ export const exportReimbursements = async (req: Request, res: Response) => {
     // Apply same filters as list
     if (status && status !== 'All Status') where.status = (status as string).toLowerCase();
     if (category && category !== 'All Categories') where.category = category as string;
-    if (startDate || endDate) {
-      where.date = {};
-      if (startDate) where.date.gte = new Date(startDate as string);
-      if (endDate) where.date.lte = new Date(endDate as string);
+    
+    // Date filtering: Only apply if BOTH startDate and endDate are provided and valid
+    if (startDate && endDate && (startDate as string).trim() !== '' && (endDate as string).trim() !== '') {
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+        where.date = { gte: start, lte: end };
+      }
     }
     if (minAmount || maxAmount) {
       where.amount = {};
-      if (minAmount) where.amount.gte = parseFloat(minAmount as string);
-      if (maxAmount) where.amount.lte = parseFloat(maxAmount as string);
+      if (minAmount && (minAmount as string).trim() !== '') {
+        const min = parseFloat(minAmount as string);
+        if (!isNaN(min)) where.amount.gte = min;
+      }
+      if (maxAmount && (maxAmount as string).trim() !== '') {
+        const max = parseFloat(maxAmount as string);
+        if (!isNaN(max)) where.amount.lte = max;
+      }
+      if (Object.keys(where.amount).length === 0) delete where.amount;
     }
-    if (q) {
+    
+    if (q && (q as string).trim() !== "") {
+      const search = (q as string).trim();
       where.OR = [
-        { claimId: { contains: q as string, mode: 'insensitive' } },
-        { description: { contains: q as string, mode: 'insensitive' } },
-        { employee: { firstName: { contains: q as string, mode: 'insensitive' } } },
+        { claimId: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { category: { contains: search, mode: 'insensitive' } },
+        { employee: { firstName: { contains: search, mode: 'insensitive' } } },
+        { employee: { lastName: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
