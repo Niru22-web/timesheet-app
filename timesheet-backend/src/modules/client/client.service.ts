@@ -225,6 +225,15 @@ export class ClientService {
 
   async deleteClient(id: string) {
     try {
+      // Check if client exists first
+      const existingClient = await prisma.client.findUnique({
+        where: { id }
+      });
+
+      if (!existingClient) {
+        throw new Error('Client not found');
+      }
+
       // Check if client has associated projects
       const projectCount = await prisma.project.count({
         where: { clientId: id }
@@ -232,6 +241,15 @@ export class ClientService {
 
       if (projectCount > 0) {
         throw new Error(`Cannot delete client with ${projectCount} associated projects`);
+      }
+
+      // Check if client has associated reimbursements
+      const reimbursementCount = await prisma.reimbursement.count({
+        where: { clientId: id }
+      });
+
+      if (reimbursementCount > 0) {
+        throw new Error(`Cannot delete client with ${reimbursementCount} associated reimbursements`);
       }
 
       await prisma.client.delete({

@@ -1,19 +1,72 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 import { ExcelService } from '../../utils/ExcelService';
+import { startOfMonth, endOfMonth } from 'date-fns';
 
 export const getAllReimbursements = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
     const { status, employeeId, category, startDate, endDate, minAmount, maxAmount, q } = req.query;
 
+    console.log('Fetching reimbursements:', { 
+      userId: user?.id, 
+      role: user?.role, 
+      query: { status, employeeId, category, startDate, endDate, q } 
+    });
+
+    if (!user) {
+      return res.status(401).json({ success: false, error: "Unauthorized access" });
+    }
+
     const where: any = {};
     
-    // Role-based visibility
-    if (['Manager', 'Admin', 'Partner', 'Owner'].includes(user.role)) {
+    // Role-based visibility with client-based restriction
+    const isAdmin = ['Admin', 'Partner', 'Owner'].includes(user.role);
+    
+    if (isAdmin) {
       if (employeeId) where.employeeId = employeeId;
     } else {
+      // For non-admin users: apply user-level and client-based restrictions
       where.employeeId = user.id;
+      
+      // Get assigned clients via project mapping
+      const assignedProjects = await prisma.projectUser.findMany({
+        where: { employeeId: user.id },
+        select: { projectId: true }
+      });
+      
+      if (assignedProjects.length === 0) {
+        // User has no assigned projects/clients - return empty array
+        return res.json({
+          success: true,
+          data: [],
+          count: 0,
+          message: 'No projects assigned to you'
+        });
+      }
+      
+      const projectIds = assignedProjects.map(p => p.projectId);
+      
+      // Get unique client IDs from assigned projects
+      const projectsWithClients = await prisma.project.findMany({
+        where: { id: { in: projectIds } },
+        select: { clientId: true }
+      });
+      
+      const assignedClientIds = [...new Set(projectsWithClients.map(p => p.clientId).filter(Boolean))];
+      
+      if (assignedClientIds.length === 0) {
+        // User has projects but no clients assigned
+        return res.json({
+          success: true,
+          data: [],
+          count: 0,
+          message: 'No clients assigned to you'
+        });
+      }
+      
+      // Apply client filter
+      where.clientId = { in: assignedClientIds };
     }
 
     // Filters
@@ -22,43 +75,198 @@ export const getAllReimbursements = async (req: Request, res: Response) => {
     
     if (startDate || endDate) {
       where.date = {};
-      if (startDate) where.date.gte = new Date(startDate as string);
-      if (endDate) where.date.lte = new Date(endDate as string);
+      
+      if (startDate) {
+        const start = new Date(startDate as string);
+        if (isNaN(start.getTime())) {
+          console.warn('Invalid startDate provided:', startDate);
+        } else {
+          where.date.gte = start;
+        }
+      }
+      
+      if (endDate) {
+        const end = new Date(endDate as string);
+        if (isNaN(end.getTime())) {
+          console.warn('Invalid endDate provided:', endDate);
+        } else {
+          where.date.lte = end;
+        }
+      }
+
+      // If date object is empty, remove it
+      if (Object.keys(where.date).length === 0) delete where.date;
     }
 
     if (minAmount || maxAmount) {
       where.amount = {};
       if (minAmount) where.amount.gte = parseFloat(minAmount as string);
       if (maxAmount) where.amount.lte = parseFloat(maxAmount as string);
+      if (Object.keys(where.amount).length === 0) delete where.amount;
     }
 
     // Global Search
-    if (q) {
+    if (q && (q as string).trim() !== "") {
+      const search = (q as string).trim();
       where.OR = [
-        { claimId: { contains: q as string, mode: 'insensitive' } },
-        { description: { contains: q as string, mode: 'insensitive' } },
-        { category: { contains: q as string, mode: 'insensitive' } },
-        { employee: { firstName: { contains: q as string, mode: 'insensitive' } } },
-        { employee: { lastName: { contains: q as string, mode: 'insensitive' } } },
+        { claimId: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { category: { contains: search, mode: 'insensitive' } },
+        { employee: { firstName: { contains: search, mode: 'insensitive' } } },
+        { employee: { lastName: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
     const claims = await prisma.reimbursement.findMany({
       where,
-      include: { employee: true },
+      include: { 
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            officeEmail: true
+          }
+        },
+        client: {
+          select: {
+            id: true,
+            clientId: true,
+            name: true,
+            alias: true
+          }
+        }
+      },
       orderBy: { date: 'desc' }
     });
 
     res.json({
       success: true,
       data: claims,
+      count: claims.length,
       message: 'Reimbursement claims retrieved successfully'
     });
   } catch (error: any) {
-    console.error('Error fetching claims:', error);
+    console.error('Reimbursement API Error [getAll]:', {
+      user: (req as any).user?.id,
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({ 
       success: false,
-      error: error.message || "Failed to fetch claims" 
+      error: "Something went wrong while fetching reimbursements",
+      message: error.message 
+    });
+  }
+};
+
+export const getReimbursementKPIs = async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { month, year, employeeId } = req.query;
+
+    let startDate: Date;
+    let endDate: Date;
+
+    if (month && year) {
+      startDate = new Date(parseInt(year as string), parseInt(month as string) - 1, 1);
+      endDate = endOfMonth(startDate);
+    } else {
+      startDate = startOfMonth(new Date());
+      endDate = endOfMonth(startDate);
+    }
+
+    const where: any = {
+      date: {
+        gte: startDate,
+        lte: endDate
+      }
+    };
+
+    // Role filtering for KPIs with client-based restriction
+    const isAdmin = ['Admin', 'Partner', 'Owner'].includes(user.role);
+    if (!isAdmin) {
+      where.employeeId = user.id;
+      
+      // Get assigned clients via project mapping for non-admin users
+      const assignedProjects = await prisma.projectUser.findMany({
+        where: { employeeId: user.id },
+        select: { projectId: true }
+      });
+      
+      if (assignedProjects.length > 0) {
+        const projectIds = assignedProjects.map(p => p.projectId);
+        
+        // Get unique client IDs from assigned projects
+        const projectsWithClients = await prisma.project.findMany({
+          where: { id: { in: projectIds } },
+          select: { clientId: true }
+        });
+        
+        const assignedClientIds = [...new Set(projectsWithClients.map(p => p.clientId).filter(Boolean))];
+        
+        if (assignedClientIds.length > 0) {
+          // Apply client filter
+          where.clientId = { in: assignedClientIds };
+        } else {
+          // User has projects but no clients assigned - return zero KPIs
+          return res.json({
+            success: true,
+            data: {
+              totalSubmitted: 0,
+              approvedCount: 0,
+              rejectedCount: 0,
+              approvalRate: 0,
+              rejectedVsApproved: 0
+            }
+          });
+        }
+      } else {
+        // User has no assigned projects - return zero KPIs
+        return res.json({
+          success: true,
+          data: {
+            totalSubmitted: 0,
+            approvedCount: 0,
+            rejectedCount: 0,
+            approvalRate: 0,
+            rejectedVsApproved: 0
+          }
+        });
+      }
+    } else if (employeeId) {
+      where.employeeId = employeeId;
+    }
+
+    const [totalSubmitted, approvedResult, rejectedResult] = await Promise.all([
+      prisma.reimbursement.count({ where }),
+      prisma.reimbursement.count({ where: { ...where, status: 'approved' } }),
+      prisma.reimbursement.count({ where: { ...where, status: 'rejected' } })
+    ]);
+
+    const approvalRate = totalSubmitted > 0 ? (approvedResult / totalSubmitted) * 100 : 0;
+    const rejectedVsApproved = approvedResult > 0 ? (rejectedResult / approvedResult) : 0;
+
+    res.json({
+      success: true,
+      data: {
+        totalSubmitted,
+        approvedCount: approvedResult,
+        rejectedCount: rejectedResult,
+        approvalRate: parseFloat(approvalRate.toFixed(1)),
+        rejectedVsApproved: parseFloat(rejectedVsApproved.toFixed(2))
+      }
+    });
+  } catch (error: any) {
+    console.error('Reimbursement API Error [getKPIs]:', {
+      user: (req as any).user?.id,
+      error: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({ 
+      success: false, 
+      error: "Something went wrong while fetching KPIs",
+      message: error.message 
     });
   }
 };
@@ -66,7 +274,7 @@ export const getAllReimbursements = async (req: Request, res: Response) => {
 export const createReimbursement = async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
-    const { category, amount, description, date } = req.body;
+    const { category, amount, description, date, clientId } = req.body;
 
     const count = await prisma.reimbursement.count();
     const claimId = `CLM-${String(count + 1).padStart(3, '0')}`;
@@ -78,7 +286,8 @@ export const createReimbursement = async (req: Request, res: Response) => {
         amount: parseFloat(amount),
         description,
         date: date ? new Date(date) : new Date(),
-        employeeId: user.id
+        employeeId: user.id,
+        clientId: clientId || null
       }
     });
     res.status(201).json({
@@ -176,8 +385,41 @@ export const exportReimbursements = async (req: Request, res: Response) => {
     const { status, category, startDate, endDate, minAmount, maxAmount, q } = req.query;
 
     const where: any = {};
-    if (!['Manager', 'Admin', 'Partner', 'Owner'].includes(user.role)) {
+    
+    // Role-based visibility with client-based restriction for export
+    const isAdmin = ['Manager', 'Admin', 'Partner', 'Owner'].includes(user.role);
+    
+    if (!isAdmin) {
       where.employeeId = user.id;
+      
+      // Get assigned clients via project mapping for non-admin users
+      const assignedProjects = await prisma.projectUser.findMany({
+        where: { employeeId: user.id },
+        select: { projectId: true }
+      });
+      
+      if (assignedProjects.length > 0) {
+        const projectIds = assignedProjects.map(p => p.projectId);
+        
+        // Get unique client IDs from assigned projects
+        const projectsWithClients = await prisma.project.findMany({
+          where: { id: { in: projectIds } },
+          select: { clientId: true }
+        });
+        
+        const assignedClientIds = [...new Set(projectsWithClients.map(p => p.clientId).filter(Boolean))];
+        
+        if (assignedClientIds.length > 0) {
+          // Apply client filter
+          where.clientId = { in: assignedClientIds };
+        } else {
+          // User has projects but no clients assigned - return empty export
+          return ExcelService.exportToExcel(res, [], 'reimbursements');
+        }
+      } else {
+        // User has no assigned projects - return empty export
+        return ExcelService.exportToExcel(res, [], 'reimbursements');
+      }
     }
 
     // Apply same filters as list

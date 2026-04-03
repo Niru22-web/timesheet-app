@@ -79,31 +79,24 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   };
 
   return (
-    <header className={`sticky top-0 z-30 backdrop-blur-xl h-[72px] select-none transition-all duration-300 ${
+    <header className={`sticky top-0 z-30 backdrop-blur-xl select-none transition-all duration-300 ${
       isDark
         ? 'bg-[#0F172A]/95 border-b border-slate-700/60 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.3)]'
         : 'bg-blue-50/80 border-b border-blue-100/60 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.02)]'
-    }`}>
-      <div className="px-6 lg:px-8 h-full">
+    } hidden md:block`}>
+      {/* Header is hidden on mobile since FrozenLayout renders a separate mobile header */}
+      <div className="px-4 md:px-6 lg:px-8 h-[72px]">
         <div className="flex items-center justify-between h-full">
           
-          {/* Left Section - Mobile Toggle + Branding + Search */}
-          <div className="flex items-center gap-6 flex-1">
-            <button
-              onClick={onMenuToggle}
-              className="lg:hidden p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-all active:scale-95"
-              aria-label="Toggle menu"
-            >
-              <Bars3Icon className="w-5 h-5" />
-            </button>
-
+          {/* Left Section - Branding + Search */}
+          <div className="flex items-center gap-4 md:gap-6 flex-1">
             {/* Breadcrumb / Title */}
-            <div className="hidden lg:flex flex-col">
+            <div className="hidden md:flex flex-col">
                 <span className={`text-[10px] font-bold uppercase tracking-widest leading-none mb-1.5 ${isDark ? 'text-blue-400' : 'text-blue-500'}`}>{APP_CONFIG.COMPANY_NAME}</span>
                 <h2 className={`text-lg font-bold tracking-tight leading-none ${isDark ? 'text-slate-100' : 'bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent'}`}>{title}</h2>
             </div>
 
-            {/* Global Search Bar (Optional but included for SaaS look) */}
+            {/* Global Search Bar */}
             <div className="hidden md:flex relative group max-w-sm w-full ml-4">
                 <MagnifyingGlassIcon className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors group-focus-within:text-blue-500 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
                 <input 
@@ -127,7 +120,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </div>
 
           {/* Right Section - User Profile / Notifications */}
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-3 md:gap-5">
             
             {/* Notifications Button */}
             <div className="relative" ref={notifRef}>
@@ -147,43 +140,63 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                     : isDark ? 'group-hover:text-blue-400' : 'group-hover:text-blue-600'
                 }`} />
                 {unreadCount > 0 && (
-                  <span className={`absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full border animate-pulse ${
-                    isDark ? 'border-slate-800 ring-2 ring-blue-800' : 'border-white ring-2 ring-blue-100'
+                  <span className={`absolute top-1 right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 animate-pulse ${
+                    isDark ? 'border-slate-800' : 'border-white'
                   }`}></span>
                 )}
               </button>
 
-              {/* Notifications Dropdown menu */}
+              {/* Notifications Dropdown */}
               {isNotificationOpen && (
-                 <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-blue-50 border border-slate-100 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] animate-in fade-in zoom-in-95 duration-200 origin-top-right z-50 overflow-hidden flex flex-col max-h-[85vh]">
-                    <div className="px-4 py-3 border-b border-blue-50 flex items-center justify-between sticky top-0 bg-blue-50/90 backdrop-blur-sm z-10">
-                       <h3 className="font-bold text-slate-800">Notifications</h3>
+                 <div className={`absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-96 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] animate-in fade-in zoom-in-95 duration-200 origin-top-right z-50 overflow-hidden flex flex-col max-h-[70vh] border transition-colors ${
+                   isDark ? 'bg-[#1E293B] border-slate-700/60' : 'bg-white border-slate-100'
+                 }`}
+                 style={{ right: 0, maxWidth: 'calc(100vw - 1rem)' }}
+                 >
+                    <div className={`px-4 py-3 border-b flex items-center justify-between sticky top-0 backdrop-blur-sm z-10 ${
+                      isDark ? 'border-slate-700/60 bg-[#1E293B]/90' : 'border-blue-50 bg-white/90'
+                    }`}>
+                       <h3 className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Notifications</h3>
                        {unreadCount > 0 && (
                           <button 
                              onClick={() => markAllAsRead()}
-                             className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1"
+                             className={`text-xs font-bold transition-colors flex items-center gap-1 ${
+                               isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
+                             }`}
                           >
                              <CheckIcon className="w-3 h-3" /> Mark all read
                           </button>
                        )}
                     </div>
 
-                    <div className="overflow-y-auto custom-scrollbar flex-1 divide-y divide-blue-50">
+                    <div className={`overflow-y-auto custom-scrollbar flex-1 divide-y ${
+                      isDark ? 'divide-slate-700/40' : 'divide-blue-50'
+                    }`}>
                        {notifications.length > 0 ? (
                           notifications.slice(0, 10).map((notif) => (
                              <div 
                                 key={notif.id}
                                 onClick={() => handleNotificationClick(notif)}
-                                className={`p-4 hover:bg-blue-50/50 transition-colors cursor-pointer relative group ${!notif.isRead ? 'bg-blue-50/30' : ''}`}
+                                className={`p-4 transition-colors cursor-pointer relative group ${
+                                  !notif.isRead
+                                    ? isDark ? 'bg-blue-900/10' : 'bg-blue-50/30'
+                                    : ''
+                                } ${isDark ? 'hover:bg-slate-700/40' : 'hover:bg-blue-50/50'}`}
                              >
                                 {!notif.isRead && (
                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
                                 )}
                                 <div className="pr-4">
-                                   <p className={`text-sm tracking-tight ${!notif.isRead ? 'font-bold text-slate-900' : 'font-medium text-slate-600 group-hover:text-slate-900 transition-colors'}`}>
+                                   <p className={`text-sm tracking-tight ${
+                                     !notif.isRead
+                                       ? isDark ? 'font-bold text-slate-100' : 'font-bold text-slate-900'
+                                       : isDark ? 'font-medium text-slate-400' : 'font-medium text-slate-600'
+                                   }`}>
                                       {notif.message}
                                    </p>
-                                   <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest leading-none">
+                                   <p className={`text-[10px] font-bold mt-1 uppercase tracking-widest leading-none ${
+                                     isDark ? 'text-slate-600' : 'text-slate-400'
+                                   }`}>
                                       {formatTimeAgo(notif.createdAt)}
                                    </p>
                                 </div>
@@ -191,17 +204,23 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                           ))
                        ) : (
                           <div className="py-12 px-4 text-center">
-                             <div className="w-12 h-12 bg-secondary-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                                <BellIcon className="w-6 h-6 text-secondary-300" />
+                             <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 ${
+                               isDark ? 'bg-slate-700/60' : 'bg-secondary-50'
+                             }`}>
+                                <BellIcon className={`w-6 h-6 ${isDark ? 'text-slate-500' : 'text-secondary-300'}`} />
                              </div>
-                             <p className="text-sm font-bold text-secondary-900">All caught up!</p>
-                             <p className="text-xs text-secondary-500 mt-1">Check back later for new notifications.</p>
+                             <p className={`text-sm font-bold ${isDark ? 'text-slate-300' : 'text-secondary-900'}`}>All caught up!</p>
+                             <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-secondary-500'}`}>Check back later for new notifications.</p>
                           </div>
                        )}
                     </div>
                     {notifications.length > 0 && (
-                      <div className="p-3 border-t border-secondary-50 bg-secondary-50/30">
-                        <button className="w-full py-2 text-xs font-bold text-secondary-600 hover:text-secondary-900 transition-colors text-center">
+                      <div className={`p-3 border-t ${
+                        isDark ? 'border-slate-700/60 bg-slate-800/30' : 'border-secondary-50 bg-secondary-50/30'
+                      }`}>
+                        <button className={`w-full py-2 text-xs font-bold transition-colors text-center ${
+                          isDark ? 'text-slate-400 hover:text-slate-200' : 'text-secondary-600 hover:text-secondary-900'
+                        }`}>
                            View All Notifications
                         </button>
                       </div>
@@ -217,7 +236,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                     title="User Profile"
                     aria-label="Open user menu"
                     className={`
-                        flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-full transition-all duration-200 active:scale-[0.98]
+                        flex items-center gap-2 pl-1.5 pr-2 md:pr-3 py-1.5 rounded-full transition-all duration-200 active:scale-[0.98]
                         ${isDropdownOpen
                           ? isDark ? 'bg-slate-700 ring-1 ring-slate-500 shadow-sm' : 'bg-blue-100 ring-1 ring-blue-300 shadow-sm'
                           : isDark ? 'bg-slate-800 border border-slate-700/60 shadow-sm hover:shadow hover:border-slate-600' : 'bg-white border border-blue-200/60 shadow-sm hover:shadow hover:border-blue-300'
@@ -235,7 +254,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                          <span className={`text-xs font-bold leading-none truncate max-w-[90px] text-left ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{user?.name || 'Guest'}</span>
                          <span className="text-[9px] font-bold text-blue-500 uppercase tracking-wider mt-1 leading-none">{user?.role || 'Member'}</span>
                      </div>
-                     <ChevronDownIcon className={`w-3.5 h-3.5 text-blue-400 transition-transform duration-200 ml-1 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                     <ChevronDownIcon className={`w-3.5 h-3.5 text-blue-400 transition-transform duration-200 ml-0.5 hidden sm:block ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Dropdown Menu */}

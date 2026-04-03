@@ -29,12 +29,12 @@ export const getReportSummary = async (req: Request, res: Response) => {
     ]);
 
     const reportData = {
-      totalHours: timelogs.reduce((sum, log) => sum + log.hours, 0),
+      totalHours: timelogs.length > 0 ? timelogs.reduce((sum, log) => sum + (log.hours || 0), 0) : 0,
       totalEmployees,
       activeProjects,
       totalClients,
       totalDisbursed: totalReimbursements._sum.amount || 0,
-      averageUtilization: totalEmployees > 0 ? (timelogs.reduce((sum, log) => sum + log.hours, 0) / (totalEmployees * 40)) * 100 : 0,
+      averageUtilization: totalEmployees > 0 && timelogs.length > 0 ? (timelogs.reduce((sum, log) => sum + (log.hours || 0), 0) / (totalEmployees * 40)) * 100 : 0,
       byEmployee: {} as any,
       byProject: {} as any,
       byJob: {} as any
@@ -42,12 +42,12 @@ export const getReportSummary = async (req: Request, res: Response) => {
 
     timelogs.forEach((log: any) => {
       const empName = `${log.employee.firstName} ${log.employee.lastName || ''}`;
-      const projName = log.job.project.name;
-      const jobName = log.job.name;
+      const projName = log.job?.project?.name || 'Unknown Project';
+      const jobName = log.job?.name || 'Unknown Job';
 
-      reportData.byEmployee[empName] = (reportData.byEmployee[empName] || 0) + log.hours;
-      reportData.byProject[projName] = (reportData.byProject[projName] || 0) + log.hours;
-      reportData.byJob[jobName] = (reportData.byJob[jobName] || 0) + log.hours;
+      reportData.byEmployee[empName] = (reportData.byEmployee[empName] || 0) + (log.hours || 0);
+      reportData.byProject[projName] = (reportData.byProject[projName] || 0) + (log.hours || 0);
+      reportData.byJob[jobName] = (reportData.byJob[jobName] || 0) + (log.hours || 0);
     });
 
     res.json({
@@ -92,9 +92,9 @@ export const getEmployeeSummary = async (req: Request, res: Response) => {
       })
     ]);
 
-    const totalHours = timelogs.reduce((sum, log) => sum + log.hours, 0);
-    const approvedHours = timelogs.filter((log: any) => log.submissionStatus === 'approved').reduce((sum: number, log: any) => sum + log.hours, 0);
-    const pendingHours = timelogs.filter((log: any) => log.submissionStatus === 'pending').reduce((sum: number, log: any) => sum + log.hours, 0);
+    const totalHours = timelogs.length > 0 ? timelogs.reduce((sum, log) => sum + (log.hours || 0), 0) : 0;
+    const approvedHours = timelogs.filter((log: any) => log.submissionStatus === 'approved').reduce((sum: number, log: any) => sum + (log.hours || 0), 0);
+    const pendingHours = timelogs.filter((log: any) => log.submissionStatus === 'pending').reduce((sum: number, log: any) => sum + (log.hours || 0), 0);
     const approvedReimbursements = reimbursements.filter(r => r.status === 'approved').reduce((sum, r) => sum + r.amount, 0);
 
     const reportData = {

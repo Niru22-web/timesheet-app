@@ -48,16 +48,10 @@ const checkAdminRole = (req: any, res: any, next: any) => {
   }
 };
 
-// Health check endpoint
-router.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    message: 'Email service is running',
-    timestamp: new Date().toISOString()
-  });
-});
+// Email service health check route
+router.get('/health', checkEmailHealth);
 
-// OAuth routes (Public access for email connection)
+// Email OAuth routes (Public access for email connection)
 router.get('/oauth/google', getGoogleOAuthAuth);
 router.get('/oauth/outlook', getOutlookOAuthAuth);
 router.post('/oauth/callback', handleOAuthCallback);
@@ -89,7 +83,5 @@ router.post('/send-email', sendTestEmail);
 // Admin approval routes
 router.get('/pending-approvals', checkAdminRole, getPendingApprovals);
 
-// Email health check route
-router.get('/health', checkEmailHealth);
-
+// Placeholder for any additional final routes
 export default router;

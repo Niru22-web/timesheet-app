@@ -4,7 +4,8 @@ import {
   createReimbursement, 
   updateReimbursementStatus, 
   bulkUploadReimbursements, 
-  exportReimbursements 
+  exportReimbursements,
+  getReimbursementKPIs
 } from './reimbursement.controller';
 import multer from 'multer';
 
@@ -27,6 +28,7 @@ const authenticate = (req: any, res: any, next: any) => {
 };
 
 router.get('/', authenticate, getAllReimbursements);
+router.get('/kpis', authenticate, getReimbursementKPIs);
 router.post('/', authenticate, createReimbursement);
 router.patch('/:id/status', authenticate, updateReimbursementStatus);
 router.post('/bulk-upload', authenticate, upload.single('file'), bulkUploadReimbursements);

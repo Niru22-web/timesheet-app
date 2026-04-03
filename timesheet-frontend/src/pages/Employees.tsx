@@ -32,6 +32,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import FAB from '../components/FAB';
 
 // UI Components
 import Card from '../components/ui/Card';
@@ -1378,39 +1379,40 @@ const Employees: React.FC = () => {
   return (
     <div className="flex flex-col h-screen bg-gray-50 animate-fade-in">
       {/* Top Header Section */}
-      <div className="flex-none px-6 py-4 bg-white border-b border-gray-200">
-        <div className="flex items-center justify-between">
+      <div className="flex-none px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Employee Database</h1>
-            <p className="text-sm text-gray-500 font-medium mt-1">Manage your team members</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Employee Database</h1>
+            <p className="text-xs sm:text-sm text-gray-500 font-medium mt-0.5 sm:mt-1">Manage your team members</p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {pendingApprovals.length > 0 && (
               <Button
                 variant="secondary"
                 size="sm"
-                className="h-10 border-amber-200 text-amber-700 hover:bg-amber-50 bg-white"
+                className="h-9 sm:h-10 border-amber-200 text-amber-700 hover:bg-amber-50 bg-white text-xs sm:text-sm"
                 onClick={() => setShowPendingApprovals(!showPendingApprovals)}
                 leftIcon={<PlusIcon className="w-4 h-4" />}
               >
-                {showPendingApprovals ? 'Hide' : 'Show'} Pending ({pendingApprovals.length})
+                {showPendingApprovals ? 'Hide' : 'Show'} <span className="hidden sm:inline">Pending</span> ({pendingApprovals.length})
               </Button>
             )}
             <Button
               variant="secondary"
               size="sm"
-              className="h-10 border-green-200 text-green-700 hover:bg-green-50 bg-white"
+              className="h-9 sm:h-10 border-green-200 text-green-700 hover:bg-green-50 bg-white text-xs sm:text-sm"
               onClick={handleDownloadExcel}
               leftIcon={<ArrowDownTrayIcon className="w-4 h-4" />}
             >
-              Employee Register
+              <span className="hidden sm:inline">Employee Register</span>
+              <span className="sm:hidden">Register</span>
             </Button>
             {canEditEmployee() && (
               <Button
                 variant="primary"
                 size="sm"
-                className="h-10 px-6 font-medium bg-blue-600 hover:bg-blue-700 border-blue-600"
+                className="hidden sm:flex h-10 px-6 font-medium bg-blue-600 hover:bg-blue-700 border-blue-600"
                 onClick={() => setShowAddModal(true)}
                 leftIcon={<PlusIcon className="w-4 h-4" />}
               >
@@ -1422,17 +1424,17 @@ const Employees: React.FC = () => {
       </div>
 
       {/* KPI Cards Section */}
-      <div className="flex-none px-6 py-4 bg-gray-50">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="flex-none px-4 sm:px-6 py-3 sm:py-4 bg-gray-50">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           {kpis.map((kpi, i) => (
-            <div key={i} className="bg-white rounded-xl px-5 py-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl ${kpi.bg} ${kpi.color} flex items-center justify-center`}>
-                  <kpi.icon className="w-6 h-6" />
+            <div key={i} className="bg-white rounded-xl px-3 sm:px-5 py-3 sm:py-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${kpi.bg} ${kpi.color} flex items-center justify-center shrink-0`}>
+                  <kpi.icon className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{kpi.label}</p>
-                  <p className="text-2xl font-bold text-gray-900 leading-none mt-1">{kpi.value}</p>
+                  <p className="text-[10px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wider">{kpi.label}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900 leading-none mt-0.5 sm:mt-1">{kpi.value}</p>
                 </div>
               </div>
             </div>
@@ -1527,9 +1529,9 @@ const Employees: React.FC = () => {
         {/* Left Section - Employee Table (65%) */}
         <div className="left-section">
           {/* Search and Filter Bar */}
-          <div className="flex-none px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 relative group">
+          <div className="flex-none px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+              <div className="w-full sm:flex-1 relative group">
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                 <input
                   type="text"
@@ -1537,17 +1539,17 @@ const Employees: React.FC = () => {
                   aria-label="Search employees"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                  className="w-full pl-10 pr-4 py-2 sm:py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                 />
               </div>
 
-              <div className="relative group">
+              <div className="w-full sm:w-auto relative group">
                 <FunnelIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                 <select
                   aria-label="Filter by role"
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
-                  className="pl-10 pr-8 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none appearance-none font-medium text-gray-700 cursor-pointer hover:border-gray-300"
+                  className="w-full sm:w-auto pl-10 pr-8 py-2 sm:py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none appearance-none font-medium text-gray-700 cursor-pointer hover:border-gray-300"
                 >
                   <option>All Roles</option>
                   <option>Admin</option>
@@ -1575,8 +1577,8 @@ const Employees: React.FC = () => {
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Modern Table */}
                 <div className="flex-1 overflow-x-auto">
-                  <table className="w-full min-w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+                  <table className="w-full min-w-full responsive-table">
+                    <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10 hidden sm:table-header-group">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Employee</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Role</th>
@@ -1594,14 +1596,14 @@ const Employees: React.FC = () => {
                           } ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}
                           onClick={() => handleSelectEmployee(employee)}
                         >
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap" data-label="Employee">
                             <div className="flex items-center min-w-0">
                               <Avatar
                                 name={`${employee.firstName || ''} ${employee.lastName || ''}`}
                                 size="sm"
                                 className="flex-shrink-0"
                               />
-                              <div className="ml-4 min-w-0 flex-1">
+                              <div className="ml-4 min-w-0 flex-1 text-left sm:text-left">
                                 <div className="text-sm font-medium text-gray-900 truncate">
                                   {employee.firstName && employee.lastName ? `${employee.firstName} ${employee.lastName}` :
                                    employee.firstName || employee.lastName || employee.name || 'No name'}
@@ -1611,35 +1613,37 @@ const Employees: React.FC = () => {
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap" data-label="Role">
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                               {employee.role}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            <div className="truncate">{employee.designation}</div>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600" data-label="Department">
+                            <div className="truncate text-right sm:text-left">{employee.designation}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {(() => {
-                              const statusConfig: Record<string, { variant: 'success' | 'danger' | 'warning' | 'secondary'; label: string }> = {
-                                'Active': { variant: 'success', label: 'Active' },
-                                'active': { variant: 'success', label: 'Active' },
-                                'Inactive': { variant: 'danger', label: 'Inactive' },
-                                'On Leave': { variant: 'warning', label: 'On Leave' },
-                                'pending': { variant: 'warning', label: 'Pending' },
-                                'rejected': { variant: 'danger', label: 'Rejected' }
-                              };
-                              const config = statusConfig[employee.status] || { variant: 'secondary', label: employee.status };
-                              return <StatusBadge status={config.variant} text={config.label} />;
-                            })()}
+                          <td className="px-6 py-4 whitespace-nowrap" data-label="Status">
+                            <div className="flex justify-end sm:justify-start">
+                              {(() => {
+                                const statusConfig: Record<string, { variant: 'success' | 'danger' | 'warning' | 'secondary'; label: string }> = {
+                                  'Active': { variant: 'success', label: 'Active' },
+                                  'active': { variant: 'success', label: 'Active' },
+                                  'Inactive': { variant: 'danger', label: 'Inactive' },
+                                  'On Leave': { variant: 'warning', label: 'On Leave' },
+                                  'pending': { variant: 'warning', label: 'Pending' },
+                                  'rejected': { variant: 'danger', label: 'Rejected' }
+                                };
+                                const config = statusConfig[employee.status] || { variant: 'secondary', label: employee.status };
+                                return <StatusBadge status={config.variant} text={config.label} />;
+                              })()}
+                            </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" data-label="Actions">
+                            <div className="flex items-center justify-end sm:justify-start gap-2" onClick={(e) => e.stopPropagation()}>
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 onClick={() => handleViewEmployee(employee)}
-                                className="text-gray-400 hover:text-blue-600"
+                                className="text-gray-400 hover:text-blue-600 h-8 w-8"
                               >
                                 <EyeIcon className="w-4 h-4" />
                               </Button>
@@ -1649,7 +1653,7 @@ const Employees: React.FC = () => {
                                     size="icon"
                                     variant="ghost"
                                     onClick={() => handleEditEmployee(employee)}
-                                    className="text-gray-400 hover:text-blue-600"
+                                    className="text-gray-400 hover:text-blue-600 h-8 w-8"
                                   >
                                     <PencilSquareIcon className="w-4 h-4" />
                                   </Button>
@@ -1663,7 +1667,7 @@ const Employees: React.FC = () => {
                                     size="icon"
                                     variant="ghost"
                                     onClick={() => handleViewDocuments(employee)}
-                                    className="text-gray-400 hover:text-purple-600"
+                                    className="text-gray-400 hover:text-purple-600 h-8 w-8"
                                   >
                                     <FolderOpenIcon className="w-4 h-4" />
                                   </Button>
@@ -1674,7 +1678,7 @@ const Employees: React.FC = () => {
                                   size="icon"
                                   variant="ghost"
                                   onClick={() => handleDeleteEmployee(employee.id, `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Unknown')}
-                                  className="text-gray-400 hover:text-red-600"
+                                  className="text-gray-400 hover:text-red-600 h-8 w-8"
                                 >
                                   <TrashIcon className="w-4 h-4" />
                                 </Button>
@@ -3372,6 +3376,11 @@ const Employees: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Mobile FAB for adding employee */}
+      {canEditEmployee() && (
+        <FAB onClick={() => setShowAddModal(true)} label="Add Employee" />
+      )}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import {
   CurrencyDollarIcon,
   PlusIcon,
@@ -37,6 +38,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import TableToolbar from '../components/ui/TableToolbar';
 import ActionBar from '../components/ui/ActionBar';
+import FAB from '../components/FAB';
 
 interface ReimbursementClaim {
   id: string;
@@ -82,6 +84,21 @@ const Reimbursement: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadResult, setUploadResult] = useState<any>(null);
+  
+  // KPI state
+  const [kpis, setKpis] = useState({
+    totalSubmitted: 0,
+    approvalRate: 0,
+    rejectedVsApproved: 0,
+    approvedCount: 0,
+    rejectedCount: 0
+  });
+
+  // Filter states
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+  const [employeeOptions, setEmployeeOptions] = useState<any[]>([]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -106,8 +123,36 @@ const Reimbursement: React.FC = () => {
 
   useEffect(() => {
     fetchClaims();
-    fetchMasterData();
-  }, [statusFilter, searchTerm]);
+    fetchKPIs();
+    if (!clients.length) fetchMasterData();
+    if (['Admin', 'Partner', 'Owner'].includes(user?.role || '') && !employeeOptions.length) fetchEmployees();
+  }, [statusFilter, searchTerm, selectedMonth, selectedYear, selectedEmployeeId]);
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await API.get('/employees');
+      setEmployeeOptions(res.data?.success ? res.data.data : res.data);
+    } catch (err) {
+      console.error('Failed to fetch employees:', err);
+    }
+  };
+
+  const fetchKPIs = async () => {
+    try {
+      const res = await API.get('/reimbursements/kpis', {
+        params: {
+          month: selectedMonth,
+          year: selectedYear,
+          employeeId: selectedEmployeeId
+        }
+      });
+      if (res.data?.success) {
+        setKpis(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch KPIs:', err);
+    }
+  };
 
   const fetchMasterData = async () => {
     try {
@@ -133,17 +178,31 @@ const Reimbursement: React.FC = () => {
   const fetchClaims = async () => {
     try {
       setLoading(true);
+      
+      const monthStart = startOfMonth(new Date(selectedYear, selectedMonth - 1));
+      const monthEnd = endOfMonth(monthStart);
+
+      // Validate dates
+      if (isNaN(monthStart.getTime()) || isNaN(monthEnd.getTime())) {
+        console.error('Invalid date selection:', { selectedMonth, selectedYear });
+        setClaims([]);
+        return;
+      }
+
       const res = await API.get('/reimbursements', {
         params: { 
           status: statusFilter !== 'All Status' ? statusFilter.toLowerCase() : undefined,
-          q: searchTerm
+          q: searchTerm,
+          startDate: monthStart.toISOString(),
+          endDate: monthEnd.toISOString(),
+          employeeId: selectedEmployeeId
         }
       });
       
-      setClaims(res.data?.success ? res.data.data : res.data);
+      setClaims(res.data?.success ? res.data.data : res.data || []);
     } catch (err) {
       console.error('Failed to fetch claims:', err);
-      setClaims([]);
+      setClaims([]); // Fallback
     } finally {
       setLoading(false);
     }
@@ -273,10 +332,10 @@ const Reimbursement: React.FC = () => {
   const filteredJobs = jobs.filter(j => j.projectId === formData.projectId);
 
   const stats = [
-    { label: 'Pending Claims', value: claims.filter(c => c.status === 'pending').length.toString(), icon: ClockIcon, color: 'text-warning-600', bg: 'bg-warning-50' },
-    { label: 'Approved', value: claims.filter(c => c.status === 'approved').length.toString(), icon: CheckCircleIcon, color: 'text-success-600', bg: 'bg-success-50' },
-    { label: 'Total Value', value: `₹${claims.reduce((acc, c) => acc + c.amount, 0).toLocaleString()}`, icon: CurrencyDollarIcon, color: 'text-primary-600', bg: 'bg-primary-50' },
-    { label: 'Integrity', value: '100%', icon: ShieldCheckIcon, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+    { label: 'Monthly Requests', value: kpis.totalSubmitted.toString(), icon: ClockIcon, color: 'text-primary-600', bg: 'bg-primary-50' },
+    { label: 'Approval Rate', value: `${kpis.approvalRate}%`, icon: CheckCircleIcon, color: 'text-success-600', bg: 'bg-success-50' },
+    { label: 'Rejection/Appr', value: kpis.rejectedVsApproved.toString(), icon: XCircleIcon, color: 'text-rose-600', bg: 'bg-rose-50' },
+    { label: 'Value (Pending)', value: `₹${claims.filter(c => c.status === 'pending').reduce((acc, c) => acc + c.amount, 0).toLocaleString()}`, icon: CurrencyDollarIcon, color: 'text-amber-600', bg: 'bg-amber-50' },
   ];
 
   const filteredClaims = claims; // Backend handles filtering
@@ -284,31 +343,33 @@ const Reimbursement: React.FC = () => {
   return (
     <div className="h-full flex flex-col space-y-6 animate-fade-in max-h-[calc(100vh-120px)] overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 flex-none">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-none px-4 sm:px-0">
         <div>
-          <h1 className="text-3xl font-extrabold text-secondary-900 tracking-tight">Expense Registry</h1>
-          <p className="text-sm font-medium text-secondary-500 mt-1 italic">Corporate disbursement and reimbursement management.</p>
+          <h1 className="text-xl sm:text-3xl font-extrabold text-secondary-900 tracking-tight">Expense Registry</h1>
+          <p className="text-xs sm:text-sm font-medium text-secondary-500 mt-1 italic">Corporate disbursement and reimbursement management.</p>
         </div>
-        <ActionBar
-          onAdd={() => setShowSubmitModal(true)}
-          addLabel="New Requisition"
-          onUpload={user?.role === 'Manager' || user?.role === 'Admin' ? () => setShowBulkModal(true) : undefined}
-          onDownload={handleExport}
-          showTemplate={false}
-        />
+        <div className="hidden sm:block">
+          <ActionBar
+            onAdd={() => setShowSubmitModal(true)}
+            addLabel="New Requisition"
+            onUpload={user?.role === 'Manager' || user?.role === 'Admin' ? () => setShowBulkModal(true) : undefined}
+            onDownload={handleExport}
+            showTemplate={false}
+          />
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-none">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 flex-none px-4 sm:px-0">
         {stats.map((stat, i) => (
-          <Card key={i} className="px-5 py-4 transition-all hover:-translate-y-1">
-            <div className="flex items-center gap-4">
-              <div className={`w-10 h-10 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm`}>
-                <stat.icon className="w-5 h-5" />
+          <Card key={i} className="px-3 py-3 sm:px-5 sm:py-4 transition-all hover:-translate-y-1 hover:shadow-md">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm`}>
+                <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div>
-                <p className="text-[10px] font-bold text-secondary-500 uppercase tracking-widest leading-none">{stat.label}</p>
-                <p className="text-xl font-bold text-secondary-900 leading-none mt-1.5">{stat.value}</p>
+              <div className="min-w-0">
+                <p className="text-[9px] sm:text-[10px] font-bold text-secondary-500 uppercase tracking-widest leading-none truncate">{stat.label}</p>
+                <p className="text-lg sm:text-xl font-bold text-secondary-900 leading-none mt-1 sm:mt-1.5 truncate">{stat.value}</p>
               </div>
             </div>
           </Card>
@@ -324,22 +385,57 @@ const Reimbursement: React.FC = () => {
           setShowFilters={setShowAdvancedFilters}
           placeholder="Search by ID or employee name..."
           filters={
-            <Select
-              label="Status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option>All Status</option>
-              <option>Pending</option>
-              <option>Approved</option>
-              <option>Rejected</option>
-            </Select>
+            <>
+              <Select
+                label="Month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              >
+                {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((name, i) => (
+                  <option key={name} value={i + 1}>{name}</option>
+                ))}
+              </Select>
+
+              <Select
+                label="Year"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              >
+                {[2023, 2024, 2025, 2026].map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </Select>
+
+              <Select
+                label="Status"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option>All Status</option>
+                <option>Pending</option>
+                <option>Approved</option>
+                <option>Rejected</option>
+              </Select>
+
+              {['Admin', 'Partner', 'Owner'].includes(user?.role || '') && (
+                <Select
+                  label="Employee"
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                >
+                  <option value="">All Employees</option>
+                  {employeeOptions.map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>
+                  ))}
+                </Select>
+              )}
+            </>
           }
         />
 
         <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <table className="w-full text-left">
-            <thead className="bg-secondary-50/50 sticky top-0 z-10">
+          <table className="w-full text-left border-collapse responsive-table">
+            <thead className="bg-secondary-50/50 sticky top-0 z-10 hidden sm:table-header-group">
               <tr>
                 <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Requester / ID</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Client</th>
@@ -353,7 +449,7 @@ const Reimbursement: React.FC = () => {
                 <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-secondary-50">
+            <tbody className="divide-y divide-secondary-50 sm:bg-white text-sm">
               {loading ? (
                 <tr>
                   <td colSpan={10} className="py-20 text-center">
@@ -363,50 +459,54 @@ const Reimbursement: React.FC = () => {
               ) : filteredClaims.length > 0 ? (
                 filteredClaims.map(claim => (
                   <tr key={claim.id} className="hover:bg-primary-50/20 group transition-colors">
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4" data-label="Requester / ID">
                       <div className="flex items-center gap-3">
                         <Avatar name={claim.employee.firstName} size="sm" />
-                        <div>
-                          <p className="text-sm font-bold text-secondary-900 group-hover:text-primary-600 transition-colors">{claim.employee.firstName} {claim.employee.lastName}</p>
+                        <div className="text-left sm:text-left">
+                          <p className="text-sm font-bold text-secondary-900 group-hover:text-primary-600 transition-colors uppercase sm:normal-case">{claim.employee.firstName} {claim.employee.lastName}</p>
                           <p className="text-[10px] font-bold text-secondary-400 mt-0.5">{claim.claimId}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-right sm:text-left" data-label="Client">
                       <span className="text-sm font-medium text-secondary-700">{claim.client?.name || 'N/A'}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-right sm:text-left" data-label="Project">
                       <span className="text-sm font-medium text-secondary-700">{claim.project?.name || 'N/A'}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-right sm:text-left" data-label="Job">
                       <span className="text-sm font-medium text-secondary-700">{claim.job?.name || 'N/A'}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-right sm:text-left" data-label="Expense Head">
                       <span className="text-[10px] font-black text-secondary-500 bg-secondary-100 px-2 py-0.5 rounded uppercase tracking-tighter">{claim.category}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-right sm:text-left" data-label="Amount">
                       <span className="text-sm font-black text-secondary-900">₹{claim.amount.toLocaleString()}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-right sm:text-left" data-label="Submission Date">
                       <span className="text-sm text-secondary-600">{new Date(claim.date).toLocaleDateString()}</span>
                     </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={claim.status as any} />
+                    <td className="px-6 py-4 justify-end sm:justify-start" data-label="Status">
+                      <div className="flex justify-end sm:justify-start">
+                        <StatusBadge status={claim.status as any} />
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
-                      {claim.attachments && claim.attachments.length > 0 ? (
-                        <div className="flex items-center gap-1">
-                          <PaperClipIcon className="w-4 h-4 text-secondary-400" />
-                          <span className="text-xs text-secondary-600">{claim.attachments.length}</span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-secondary-400">None</span>
-                      )}
+                    <td className="px-6 py-4 text-right sm:text-left" data-label="Attachments">
+                      <div className="flex items-center justify-end sm:justify-start gap-1">
+                        {claim.attachments && claim.attachments.length > 0 ? (
+                          <>
+                            <PaperClipIcon className="w-4 h-4 text-secondary-400" />
+                            <span className="text-xs text-secondary-600">{claim.attachments.length}</span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-secondary-400">None</span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <td className="px-6 py-4 text-right" data-label="Actions">
+                      <div className="flex items-center justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <button 
-                          className="p-1.5 text-secondary-400 hover:text-primary-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
+                          className="p-1.5 text-secondary-400 hover:text-primary-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all min-w-[36px] min-h-[36px] flex items-center justify-center"
                           title="View Claim Details"
                           aria-label="View Details"
                         >
@@ -415,14 +515,14 @@ const Reimbursement: React.FC = () => {
                         {claim.status === 'pending' && (
                           <>
                             <button 
-                              className="p-1.5 text-secondary-400 hover:text-warning-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
+                              className="p-1.5 text-secondary-400 hover:text-warning-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all min-w-[36px] min-h-[36px] flex items-center justify-center"
                               title="Edit Claim"
                               aria-label="Edit Claim"
                             >
                               <PencilSquareIcon className="w-4 h-4" />
                             </button>
                             <button 
-                              className="p-1.5 text-secondary-400 hover:text-danger-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
+                              className="p-1.5 text-secondary-400 hover:text-danger-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all min-w-[36px] min-h-[36px] flex items-center justify-center"
                               title="Delete Claim"
                               aria-label="Delete Claim"
                             >
@@ -709,6 +809,12 @@ const Reimbursement: React.FC = () => {
           )}
         </div>
       </Modal>
+
+      {/* Mobile FAB */}
+      <FAB
+        onClick={() => setShowSubmitModal(true)}
+        label="New Requisition"
+      />
     </div>
   );
 };

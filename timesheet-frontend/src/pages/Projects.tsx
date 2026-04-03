@@ -28,6 +28,7 @@ import Avatar from '../components/ui/Avatar';
 import { TableSkeleton, Skeleton } from '../components/ui/Skeleton';
 import TableToolbar from '../components/ui/TableToolbar';
 import ActionBar from '../components/ui/ActionBar';
+import FAB from '../components/FAB';
 import { DocumentArrowUpIcon, DocumentArrowDownIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 interface Project {
@@ -314,29 +315,31 @@ const Projects: React.FC = () => {
   return (
     <div className="h-full flex flex-col space-y-6 animate-fade-in max-h-[calc(100vh-120px)] overflow-hidden">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 flex-none">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-none px-4 sm:px-0">
         <div>
-          <h1 className="text-3xl font-extrabold text-secondary-900 tracking-tight">Project Master</h1>
-          <p className="text-sm font-medium text-secondary-500 mt-1">Configure enterprise engagements and core delivery teams.</p>
+          <h1 className="text-xl sm:text-3xl font-extrabold text-secondary-900 tracking-tight">Project Master</h1>
+          <p className="text-xs sm:text-sm font-medium text-secondary-500 mt-1">Configure enterprise engagements and core delivery teams.</p>
         </div>
-        <ActionBar
-          onAdd={() => {
-            generateProjectId();
-            setShowAddModal(true);
-          }}
-          addLabel="Initiate Project"
-          onUpload={isManager ? () => setShowBulkModal(true) : undefined}
-          onDownload={handleExport}
-          onDownloadTemplate={isManager ? downloadTemplate : undefined}
-        />
+        <div className="hidden sm:block">
+          <ActionBar
+            onAdd={() => {
+              generateProjectId();
+              setShowAddModal(true);
+            }}
+            addLabel="Initiate Project"
+            onUpload={isManager ? () => setShowBulkModal(true) : undefined}
+            onDownload={handleExport}
+            onDownloadTemplate={isManager ? downloadTemplate : undefined}
+          />
+        </div>
       </div>
 
       {/* Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-none">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 flex-none px-4 sm:px-0">
         {loading && projects.length === 0 ? (
           [1, 2, 3, 4].map((i) => (
-            <Card key={i} className="p-4 flex items-center gap-4 border-l-4 border-secondary-200">
-               <Skeleton variant="circular" width={48} height={48} />
+            <Card key={i} className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4 border-l-4 border-secondary-200">
+               <Skeleton variant="circular" width={40} height={40} />
                <div className="flex-1">
                   <Skeleton variant="text" width="40%" />
                   <Skeleton variant="text" width="60%" />
@@ -345,40 +348,40 @@ const Projects: React.FC = () => {
           ))
         ) : (
           <>
-            <Card className="p-4 flex items-center gap-4 border-l-4 border-primary-500">
-              <div className="p-3 bg-primary-50 text-primary-600 rounded-xl">
-                <BriefcaseIcon className="w-6 h-6" />
+            <Card className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4 border-l-4 border-primary-500 hover:shadow-md transition-shadow">
+              <div className="p-2 sm:p-3 bg-primary-50 text-primary-600 rounded-xl">
+                <BriefcaseIcon className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Active Projects</p>
-                <p className="text-xl font-bold text-secondary-900">{projects.length}</p>
+                <p className="text-[9px] sm:text-[10px] font-bold text-secondary-400 uppercase tracking-widest whitespace-nowrap">Active Projects</p>
+                <p className="text-lg sm:text-xl font-bold text-secondary-900 leading-none mt-1">{projects.length}</p>
               </div>
             </Card>
-            <Card className="p-4 flex items-center gap-4 border-l-4 border-indigo-500">
-              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-                <UserGroupIcon className="w-6 h-6" />
+            <Card className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4 border-l-4 border-indigo-500 hover:shadow-md transition-shadow">
+              <div className="p-2 sm:p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                <UserGroupIcon className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Billable Teams</p>
-                <p className="text-xl font-bold text-secondary-900">{projects.filter(p => p.billable).length}</p>
+                <p className="text-[9px] sm:text-[10px] font-bold text-secondary-400 uppercase tracking-widest whitespace-nowrap">Billable Teams</p>
+                <p className="text-lg sm:text-xl font-bold text-secondary-900 leading-none mt-1">{projects.filter(p => p.billable).length}</p>
               </div>
             </Card>
-            <Card className="p-4 flex items-center gap-4 border-l-4 border-amber-500">
-              <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
-                <ClockIcon className="w-6 h-6" />
+            <Card className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4 border-l-4 border-amber-500 hover:shadow-md transition-shadow">
+              <div className="p-2 sm:p-3 bg-amber-50 text-amber-600 rounded-xl">
+                <ClockIcon className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">In-Discussion</p>
-                <p className="text-xl font-bold text-secondary-900">{projects.filter(p => p.status === 'In-Discussion').length}</p>
+                <p className="text-[9px] sm:text-[10px] font-bold text-secondary-400 uppercase tracking-widest whitespace-nowrap">In-Discussion</p>
+                <p className="text-lg sm:text-xl font-bold text-secondary-900 leading-none mt-1">{projects.filter(p => p.status === 'In-Discussion').length}</p>
               </div>
             </Card>
-            <Card className="p-4 flex items-center gap-4 border-l-4 border-emerald-500">
-              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-                <ShieldCheckIcon className="w-6 h-6" />
+            <Card className="p-3 sm:p-4 flex items-center gap-3 sm:gap-4 border-l-4 border-emerald-500 hover:shadow-md transition-shadow">
+              <div className="p-2 sm:p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                <ShieldCheckIcon className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Completed</p>
-                <p className="text-xl font-bold text-secondary-900">{projects.filter(p => p.status === 'Completed').length}</p>
+                <p className="text-[9px] sm:text-[10px] font-bold text-secondary-400 uppercase tracking-widest whitespace-nowrap">Completed</p>
+                <p className="text-lg sm:text-xl font-bold text-secondary-900 leading-none mt-1">{projects.filter(p => p.status === 'Completed').length}</p>
               </div>
             </Card>
           </>
@@ -427,8 +430,8 @@ const Projects: React.FC = () => {
         />
 
         <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 bg-secondary-50/80 backdrop-blur-sm z-10 border-b border-secondary-100">
+          <table className="w-full text-left border-collapse responsive-table">
+            <thead className="sticky top-0 bg-secondary-50/80 backdrop-blur-sm z-10 border-b border-secondary-100 hidden sm:table-header-group">
               <tr>
                 <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Project / Client</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Status / Billing</th>
@@ -437,7 +440,7 @@ const Projects: React.FC = () => {
                 <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-secondary-50">
+            <tbody className="divide-y divide-secondary-50 sm:bg-white">
               {loading && projects.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-0">
@@ -447,25 +450,25 @@ const Projects: React.FC = () => {
               ) : filteredProjects.length > 0 ? (
                 filteredProjects.map((project) => (
                   <tr key={project.id} className="hover:bg-primary-50/20 group transition-colors">
-                    <td className="px-6 py-5">
+                    <td className="px-6 py-5 whitespace-nowrap" data-label="Project / Client">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center font-bold text-xs">
+                        <div className="w-9 h-9 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center font-bold text-xs shrink-0">
                           {project.name.substring(0, 2).toUpperCase()}
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-secondary-900 leading-tight">{project.name}</p>
-                          <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-wider">{project.projectId} • {project.client.name}</p>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-secondary-900 leading-tight truncate">{project.name}</p>
+                          <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-wider truncate">{project.projectId} • {project.client.name}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-5">
-                      <div className="space-y-1.5">
+                    <td className="px-6 py-5 whitespace-nowrap" data-label="Status / Billing">
+                      <div className="space-y-1 sm:space-y-1.5 flex flex-col items-end sm:items-start">
                         <StatusBadge status={project.status === 'Completed' ? 'active' : project.status === 'Started' ? 'active' : 'inactive'} />
                         <p className="text-[10px] font-bold text-secondary-400 uppercase">{project.billable ? 'Billable Resource' : 'Non-Billable'}</p>
                       </div>
                     </td>
-                    <td className="px-6 py-5">
-                      <div className="flex -space-x-2">
+                    <td className="px-6 py-5 whitespace-nowrap" data-label="Team Allocation">
+                      <div className="flex justify-end sm:justify-start -space-x-2">
                         {project.users?.slice(0, 3).map((u, i) => (
                           <Avatar key={i} name={u.employee.name} size="sm" border />
                         ))}
@@ -474,20 +477,25 @@ const Projects: React.FC = () => {
                             +{project.users.length - 3}
                           </div>
                         )}
+                        {(!project.users || project.users.length === 0) && (
+                          <span className="text-[10px] text-secondary-400 italic">No team assigned</span>
+                        )}
                       </div>
                     </td>
-                    <td className="px-6 py-5">
-                      <p className="text-xs font-bold text-secondary-700">Started {new Date(project.startDate).toLocaleDateString()}</p>
-                      <p className="text-[10px] font-bold text-secondary-400 uppercase mt-0.5">Contact: {project.contactPerson || 'N/A'}</p>
+                    <td className="px-6 py-5 whitespace-nowrap" data-label="Timeline">
+                      <div className="text-right sm:text-left">
+                        <p className="text-xs font-bold text-secondary-700">Started {new Date(project.startDate).toLocaleDateString()}</p>
+                        <p className="text-[10px] font-bold text-secondary-400 uppercase mt-0.5">Contact: {project.contactPerson || 'N/A'}</p>
+                      </div>
                     </td>
-                    <td className="px-6 py-5 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <td className="px-6 py-5 text-right whitespace-nowrap" data-label="Actions">
+                      <div className="flex items-center justify-end gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         {hasPermission('projects', 'canEdit') && (
                           <button 
                             onClick={() => handleEditProject(project)}
                             title="Edit Project"
                             aria-label="Edit Project"
-                            className="p-2 text-secondary-400 hover:text-primary-600 rounded-lg border border-transparent hover:border-secondary-100 hover:bg-white shadow-sm transition-all focus:outline-none"
+                            className="p-2 text-secondary-400 hover:text-primary-600 rounded-lg border border-transparent hover:border-secondary-100 hover:bg-white shadow-sm transition-all focus:outline-none min-w-[36px] min-h-[36px] flex items-center justify-center"
                           >
                             <PencilSquareIcon className="w-4 h-4" />
                           </button>
@@ -497,7 +505,7 @@ const Projects: React.FC = () => {
                             onClick={() => handleDeleteProject(project.id)}
                             title="Delete Project"
                             aria-label="Delete Project"
-                            className="p-2 text-secondary-400 hover:text-danger-600 rounded-lg border border-transparent hover:border-secondary-100 hover:bg-white shadow-sm transition-all focus:outline-none"
+                            className="p-2 text-secondary-400 hover:text-danger-600 rounded-lg border border-transparent hover:border-secondary-100 hover:bg-white shadow-sm transition-all focus:outline-none min-w-[36px] min-h-[36px] flex items-center justify-center"
                           >
                             <TrashIcon className="w-4 h-4" />
                           </button>
@@ -922,6 +930,17 @@ const Projects: React.FC = () => {
           )}
         </div>
       </Modal>
+
+      {/* Mobile FAB */}
+      {hasPermission('projects', 'canCreate') && (
+        <FAB
+          onClick={() => {
+            generateProjectId();
+            setShowAddModal(true);
+          }}
+          label="Initiate Project"
+        />
+      )}
     </div>
   );
 };

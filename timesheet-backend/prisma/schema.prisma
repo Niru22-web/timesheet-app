@@ -78,23 +78,24 @@ model EmployeeProfile {
 }
 
 model Client {
-  id        String    @id @default(uuid())
-  clientId  String    @unique
-  name      String
-  alias     String
-  gstStatus String
-  gstin     String?
-  pan       String
-  address   String?
-  country   String?
-  pin       String?
-  state     String?
-  createdAt DateTime  @default(now())
-  createdBy String
-  partnerId String?
-  status    String    @default("Active")
-  updatedAt DateTime  @updatedAt
-  projects  Project[]
+  id            String          @id @default(uuid())
+  clientId      String          @unique
+  name          String
+  alias         String
+  gstStatus     String
+  gstin         String?
+  pan           String
+  address       String?
+  country       String?
+  pin           String?
+  state         String?
+  createdAt     DateTime        @default(now())
+  createdBy     String
+  partnerId     String?
+  status        String          @default("Active")
+  updatedAt     DateTime        @updatedAt
+  projects      Project[]
+  reimbursements Reimbursement[]
 }
 
 model Project {
@@ -187,7 +188,9 @@ model Reimbursement {
   date        DateTime @default(now())
   status      String   @default("pending")
   employeeId  String
+  clientId    String?
   employee    Employee @relation(fields: [employeeId], references: [id])
+  client      Client?   @relation(fields: [clientId], references: [id])
 }
 
 model RegistrationToken {

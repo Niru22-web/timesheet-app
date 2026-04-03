@@ -30,6 +30,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
+import FAB from '../components/FAB';
 
 interface LeaveRecord {
   id: string;
@@ -416,14 +417,14 @@ const LeaveManagement: React.FC = () => {
   ];
 
   return (
-    <div className="h-full flex flex-col space-y-6 animate-fade-in max-h-[calc(100vh-120px)] overflow-hidden">
+    <div className="h-full flex flex-col space-y-4 sm:space-y-6 animate-fade-in max-h-[calc(100vh-120px)] overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 flex-none">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 flex-none">
         <div>
-          <h1 className="text-3xl font-extrabold text-secondary-900 tracking-tight">Leave Management</h1>
-          <p className="text-sm font-medium text-secondary-500 mt-1">Manage your leave requests and track leave balance.</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-secondary-900 tracking-tight">Leave Management</h1>
+          <p className="text-xs sm:text-sm font-medium text-secondary-500 mt-0.5 sm:mt-1 hidden sm:block">Manage your leave requests and track leave balance.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Button 
             variant="secondary" 
             size="sm" 
@@ -438,17 +439,18 @@ const LeaveManagement: React.FC = () => {
             <Button
               variant="secondary"
               size="sm"
-              className="h-10 px-4 font-bold whitespace-nowrap"
+              className="h-10 px-3 sm:px-4 font-bold whitespace-nowrap text-xs sm:text-sm"
               onClick={() => setShowAdjustModal(true)}
               leftIcon={<AdjustmentsVerticalIcon className="w-4 h-4" />}
             >
-              Adjust Balance
+              <span className="hidden sm:inline">Adjust Balance</span>
+              <span className="sm:hidden">Adjust</span>
             </Button>
           )}
           <Button
             variant="primary"
             size="sm"
-            className="h-10 px-6 font-bold whitespace-nowrap"
+            className="hidden sm:flex h-10 px-6 font-bold whitespace-nowrap"
             onClick={() => setShowApplyModal(true)}
             leftIcon={<PlusIcon className="w-4 h-4" />}
           >
@@ -458,7 +460,7 @@ const LeaveManagement: React.FC = () => {
       </div>
 
       {/* Leave Balance Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-none">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3 md:gap-4 flex-none">
         {balanceStats.map((stat, i) => (
           <Card key={i} className="px-5 py-4 transition-all hover:-translate-y-1">
             <div className="flex items-center gap-4">
@@ -474,212 +476,305 @@ const LeaveManagement: React.FC = () => {
         ))}
       </div>
 
-      {/* Filters */}
-      <Card className="p-4 flex flex-col md:flex-row gap-4 flex-none">
-        <div className="flex-1 relative group">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 group-focus-within:text-primary-500 transition-colors" />
-          <input
-            type="text"
-            placeholder="Search by reason or leave ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-secondary-50/50 border border-secondary-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
-          />
-        </div>
-        
-        {user && ['Admin', 'Manager', 'Partner'].includes(user.role) && (
-          <Select
-            value={employeeFilter}
-            onChange={(e) => setEmployeeFilter(e.target.value)}
-            className="w-48"
-          >
-            <option>All Employees</option>
-            {employees.map(emp => (
-              <option key={emp.id} value={emp.id}>
-                {emp.firstName} {emp.lastName}
-              </option>
-            ))}
-          </Select>
-        )}
+      {/* Filters - Scrollable on mobile */}
+      <Card className="p-3 sm:p-4 flex-none overflow-visible">
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+          <div className="flex-1 relative group">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 group-focus-within:text-primary-500 transition-colors" />
+            <input
+              type="text"
+              placeholder="Search by reason or leave ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-secondary-50/50 border border-secondary-200 rounded-lg text-sm focus:bg-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none"
+            />
+          </div>
+          
+          {/* Filter controls - horizontal scroll on mobile */}
+          <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide -mx-1 px-1">
+            {user && ['Admin', 'Manager', 'Partner'].includes(user.role) && (
+              <Select
+                value={employeeFilter}
+                onChange={(e) => setEmployeeFilter(e.target.value)}
+                className="min-w-[140px] sm:w-48 flex-shrink-0"
+              >
+                <option>All Employees</option>
+                {employees.map(emp => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.firstName} {emp.lastName}
+                  </option>
+                ))}
+              </Select>
+            )}
 
-        <Select
-          value={leaveTypeFilter}
-          onChange={(e) => setLeaveTypeFilter(e.target.value)}
-          className="w-48"
-        >
-          <option>All Types</option>
-          <option>Paid Leave</option>
-          <option>Sick Leave</option>
-          <option>Casual Leave</option>
-          <option>Unpaid Leave</option>
-        </Select>
+            <Select
+              value={leaveTypeFilter}
+              onChange={(e) => setLeaveTypeFilter(e.target.value)}
+              className="min-w-[120px] sm:w-48 flex-shrink-0"
+            >
+              <option>All Types</option>
+              <option>Paid Leave</option>
+              <option>Sick Leave</option>
+              <option>Casual Leave</option>
+              <option>Unpaid Leave</option>
+            </Select>
 
-        <Select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="w-48"
-        >
-          <option>All Status</option>
-          <option value="pending">Pending</option>
-          <option value="manager_approved">Manager Approved</option>
-          <option value="partner_approved">Fully Approved</option>
-          <option value="auto_approved">Auto Approved</option>
-          <option value="rejected">Rejected</option>
-        </Select>
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="min-w-[120px] sm:w-48 flex-shrink-0"
+            >
+              <option>All Status</option>
+              <option value="pending">Pending</option>
+              <option value="manager_approved">Manager Approved</option>
+              <option value="partner_approved">Fully Approved</option>
+              <option value="auto_approved">Auto Approved</option>
+              <option value="rejected">Rejected</option>
+            </Select>
 
-        <div className="flex gap-2">
-          <Input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            placeholder="From Date"
-            className="w-40"
-          />
-          <Input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            placeholder="To Date"
-            className="w-40"
-          />
+            <div className="flex gap-2 flex-shrink-0">
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                placeholder="From Date"
+                className="min-w-[130px] sm:w-40"
+              />
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                placeholder="To Date"
+                className="min-w-[130px] sm:w-40"
+              />
+            </div>
+          </div>
         </div>
       </Card>
 
-      {/* Leave Records Table */}
+      {/* Leave Records - Desktop Table + Mobile Cards */}
       <Card className="flex-1 flex flex-col overflow-hidden shadow-lg">
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <table className="w-full text-left">
-            <thead className="bg-secondary-50/50 sticky top-0 z-10">
-              <tr>
-                {(user && ['Admin', 'Manager', 'Partner'].includes(user.role)) && (
-                  <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Employee</th>
-                )}
-                <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Leave ID</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Type</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">From Date</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">To Date</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Duration</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Total Days</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Reason</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Applied Date</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-secondary-50">
-              {loading ? (
+        {/* Desktop Table - Hidden on mobile */}
+        <div className="hidden md:flex flex-1 flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <table className="w-full text-left">
+              <thead className="bg-secondary-50/50 sticky top-0 z-10">
                 <tr>
-                  <td colSpan={user && ['Admin', 'Manager', 'Partner'].includes(user.role) ? 11 : 10} className="py-20 text-center">
-                    <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
-                  </td>
+                  {(user && ['Admin', 'Manager', 'Partner'].includes(user.role)) && (
+                    <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Employee</th>
+                  )}
+                  <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Leave ID</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Type</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">From Date</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">To Date</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Duration</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Total Days</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Reason</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Applied Date</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest text-right">Actions</th>
                 </tr>
-              ) : filteredRecords.length > 0 ? (
-                filteredRecords.map(record => (
-                  <tr key={record.id} className="hover:bg-primary-50/20 group transition-colors">
-                    {(user && ['Admin', 'Manager', 'Partner'].includes(user.role)) && (
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar name={record.employee.firstName} size="sm" />
-                          <div>
-                            <p className="text-sm font-bold text-secondary-900 group-hover:text-primary-600 transition-colors">
-                              {record.employee.firstName} {record.employee.lastName}
-                            </p>
-                            <p className="text-[10px] font-bold text-secondary-400 mt-0.5">{record.employee.officeEmail}</p>
-                          </div>
-                        </div>
-                      </td>
-                    )}
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-mono font-bold text-secondary-900">{record.leaveId}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-[10px] font-black text-secondary-500 bg-secondary-100 px-2 py-0.5 rounded uppercase tracking-tighter">{record.type}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-secondary-600">{new Date(record.fromDate).toLocaleDateString()}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-secondary-600">{new Date(record.toDate).toLocaleDateString()}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-secondary-600">{record.duration}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-bold text-secondary-900">{record.totalDays}</span>
-                    </td>
-                    <td className="px-6 py-4 max-w-xs">
-                      <p className="text-sm text-secondary-600 truncate">{record.reason}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      {renderStatusBadge(record.status)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-secondary-600">{new Date(record.appliedDate).toLocaleDateString()}</span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          className="p-1.5 text-secondary-400 hover:text-primary-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
-                          title="View Details"
-                          aria-label="View Details"
-                        >
-                          <EyeIcon className="w-4 h-4" />
-                        </button>
-                        
-                        {canEditCancel(record) && (
-                          <>
-                            <button 
-                              className="p-1.5 text-secondary-400 hover:text-warning-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
-                              title="Edit Leave Request"
-                              aria-label="Edit Leave"
-                            >
-                              <PencilSquareIcon className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={() => handleCancelLeave(record.id)}
-                              className="p-1.5 text-secondary-400 hover:text-danger-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
-                              title="Cancel Leave Request"
-                              aria-label="Cancel Leave"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                        
-                        {canApprove(record) && (
-                          <button 
-                            onClick={() => handleUpdateLeave(record.id, 'approved')}
-                            className="p-1.5 text-secondary-400 hover:text-success-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all flex items-center gap-1"
-                            title={['Partner', 'Admin', 'Owner'].includes(user?.role || '') ? "Final Approve" : "Manager Approve"}
-                            aria-label="Approve Leave"
-                          >
-                            <CheckCircleIcon className="w-4 h-4" />
-                            <span className="hidden xl:inline text-[10px] font-bold uppercase tracking-widest">{['Partner', 'Admin', 'Owner'].includes(user?.role || '') ? "Final Approve" : "Approve"}</span>
-                          </button>
-                        )}
-                        
-                        {canReject(record) && (
-                          <button 
-                            onClick={() => handleUpdateLeave(record.id, 'rejected')}
-                            className="p-1.5 text-secondary-400 hover:text-danger-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all flex items-center gap-1"
-                            title="Reject Leave Request"
-                            aria-label="Reject Leave"
-                          >
-                            <XCircleIcon className="w-4 h-4" />
-                            <span className="hidden xl:inline text-[10px] font-bold uppercase tracking-widest">Reject</span>
-                          </button>
-                        )}
-                      </div>
+              </thead>
+              <tbody className="divide-y divide-secondary-50">
+                {loading ? (
+                  <tr>
+                    <td colSpan={user && ['Admin', 'Manager', 'Partner'].includes(user.role) ? 11 : 10} className="py-20 text-center">
+                      <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" />
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={user && ['Admin', 'Manager', 'Partner'].includes(user.role) ? 11 : 10} className="py-20 text-center text-secondary-400 font-bold uppercase text-[10px] tracking-widest">No leave records found</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                ) : filteredRecords.length > 0 ? (
+                  filteredRecords.map(record => (
+                    <tr key={record.id} className="hover:bg-primary-50/20 group transition-colors">
+                      {(user && ['Admin', 'Manager', 'Partner'].includes(user.role)) && (
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar name={record.employee.firstName} size="sm" />
+                            <div>
+                              <p className="text-sm font-bold text-secondary-900 group-hover:text-primary-600 transition-colors">
+                                {record.employee.firstName} {record.employee.lastName}
+                              </p>
+                              <p className="text-[10px] font-bold text-secondary-400 mt-0.5">{record.employee.officeEmail}</p>
+                            </div>
+                          </div>
+                        </td>
+                      )}
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-mono font-bold text-secondary-900">{record.leaveId}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-[10px] font-black text-secondary-500 bg-secondary-100 px-2 py-0.5 rounded uppercase tracking-tighter">{record.type}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-secondary-600">{new Date(record.fromDate).toLocaleDateString()}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-secondary-600">{new Date(record.toDate).toLocaleDateString()}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-secondary-600">{record.duration}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-bold text-secondary-900">{record.totalDays}</span>
+                      </td>
+                      <td className="px-6 py-4 max-w-xs">
+                        <p className="text-sm text-secondary-600 truncate">{record.reason}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        {renderStatusBadge(record.status)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-secondary-600">{new Date(record.appliedDate).toLocaleDateString()}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            className="p-1.5 text-secondary-400 hover:text-primary-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
+                            title="View Details"
+                            aria-label="View Details"
+                          >
+                            <EyeIcon className="w-4 h-4" />
+                          </button>
+                          
+                          {canEditCancel(record) && (
+                            <>
+                              <button 
+                                className="p-1.5 text-secondary-400 hover:text-warning-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
+                                title="Edit Leave Request"
+                                aria-label="Edit Leave"
+                              >
+                                <PencilSquareIcon className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleCancelLeave(record.id)}
+                                className="p-1.5 text-secondary-400 hover:text-danger-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all"
+                                title="Cancel Leave Request"
+                                aria-label="Cancel Leave"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                          
+                          {canApprove(record) && (
+                            <button 
+                              onClick={() => handleUpdateLeave(record.id, 'approved')}
+                              className="p-1.5 text-secondary-400 hover:text-success-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all flex items-center gap-1"
+                              title={['Partner', 'Admin', 'Owner'].includes(user?.role || '') ? "Final Approve" : "Manager Approve"}
+                              aria-label="Approve Leave"
+                            >
+                              <CheckCircleIcon className="w-4 h-4" />
+                              <span className="hidden xl:inline text-[10px] font-bold uppercase tracking-widest">{['Partner', 'Admin', 'Owner'].includes(user?.role || '') ? "Final Approve" : "Approve"}</span>
+                            </button>
+                          )}
+                          
+                          {canReject(record) && (
+                            <button 
+                              onClick={() => handleUpdateLeave(record.id, 'rejected')}
+                              className="p-1.5 text-secondary-400 hover:text-danger-600 rounded border border-transparent hover:border-secondary-100 hover:bg-white transition-all flex items-center gap-1"
+                              title="Reject Leave Request"
+                              aria-label="Reject Leave"
+                            >
+                              <XCircleIcon className="w-4 h-4" />
+                              <span className="hidden xl:inline text-[10px] font-bold uppercase tracking-widest">Reject</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={user && ['Admin', 'Manager', 'Partner'].includes(user.role) ? 11 : 10} className="py-20 text-center text-secondary-400 font-bold uppercase text-[10px] tracking-widest">No leave records found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden flex-1 overflow-y-auto custom-scrollbar p-3 space-y-3">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : filteredRecords.length > 0 ? (
+            filteredRecords.map(record => (
+              <div key={record.id} className="mobile-card">
+                <div className="mobile-card-header">
+                  <div className="flex items-center gap-2">
+                    {(user && ['Admin', 'Manager', 'Partner'].includes(user.role)) && (
+                      <Avatar name={record.employee.firstName} size="sm" />
+                    )}
+                    <div>
+                      {(user && ['Admin', 'Manager', 'Partner'].includes(user.role)) && (
+                        <p className="text-sm font-bold text-secondary-900">
+                          {record.employee.firstName} {record.employee.lastName}
+                        </p>
+                      )}
+                      <p className="text-[10px] font-mono text-secondary-500">{record.leaveId}</p>
+                    </div>
+                  </div>
+                  {renderStatusBadge(record.status)}
+                </div>
+                <div className="mobile-card-content">
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Type</span>
+                    <span className="mobile-card-value">{record.type}</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Duration</span>
+                    <span className="mobile-card-value">{record.totalDays} day(s) · {record.duration}</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Period</span>
+                    <span className="mobile-card-value text-xs">
+                      {new Date(record.fromDate).toLocaleDateString()} — {new Date(record.toDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Reason</span>
+                    <span className="mobile-card-value text-xs">{record.reason}</span>
+                  </div>
+                </div>
+                {/* Actions */}
+                <div className="mobile-card-actions">
+                  {canApprove(record) && (
+                    <button 
+                      onClick={() => handleUpdateLeave(record.id, 'approved')}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-success-600 bg-success-50 rounded-lg active:scale-95 transition-all"
+                    >
+                      <CheckCircleIcon className="w-4 h-4" />
+                      Approve
+                    </button>
+                  )}
+                  {canReject(record) && (
+                    <button 
+                      onClick={() => handleUpdateLeave(record.id, 'rejected')}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold text-danger-600 bg-danger-50 rounded-lg active:scale-95 transition-all"
+                    >
+                      <XCircleIcon className="w-4 h-4" />
+                      Reject
+                    </button>
+                  )}
+                  {canEditCancel(record) && (
+                    <button 
+                      onClick={() => handleCancelLeave(record.id)}
+                      className="flex items-center justify-center gap-1.5 p-2 text-xs font-bold text-danger-600 rounded-lg active:scale-95 transition-all"
+                      title="Cancel Leave"
+                      aria-label="Cancel Leave"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-12 text-secondary-400">
+              <p className="font-bold uppercase text-[10px] tracking-widest">No leave records found</p>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -860,6 +955,9 @@ const LeaveManagement: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Mobile FAB for Apply Leave */}
+      <FAB onClick={() => setShowApplyModal(true)} label="Apply Leave" />
     </div>
   );
 };

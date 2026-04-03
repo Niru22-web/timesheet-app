@@ -62,6 +62,7 @@ export const getJobById = async (req: Request, res: Response) => {
 
 export const createJob = async (req: Request, res: Response) => {
   try {
+    console.log("🔍 [CREATE JOB] User from request:", (req as any).user);
     const userEmail = (req as any).user?.email;
     const job = await jobService.createJob(req.body, userEmail);
     res.status(201).json({

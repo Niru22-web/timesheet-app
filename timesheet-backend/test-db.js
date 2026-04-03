@@ -1,48 +1,35 @@
+
 const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL
-    }
-  }
-});
-
-async function testDatabase() {
+async function checkDb() {
   try {
-    console.log('Testing database connection...');
-    
-    // Test basic connection
+    console.log('Testing connection...');
     await prisma.$connect();
-    console.log('✅ Database connection successful');
-    
-    // Count employees
-    const employeeCount = await prisma.employee.count();
-    console.log(`📊 Employee count: ${employeeCount}`);
-    
-    // Get first few employees
-    const employees = await prisma.employee.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' }
-    });
-    
-    console.log('👥 Sample employees:');
-    employees.forEach(emp => {
-      console.log(`- ${emp.firstName} ${emp.lastName} (${emp.employeeId}) - ${emp.role}`);
-    });
-    
-    if (employeeCount === 0) {
-      console.log('⚠️  No data found! Database is empty.');
-      console.log('💡 Run: npm run db:seed to populate sample data');
-    } else {
-      console.log('✅ Database contains data');
-    }
-    
-  } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    console.log('✅ Connected to database');
+
+    console.log('Checking Notification table...');
+    const notifications = await prisma.notification.findMany({ take: 1 });
+    console.log('✅ Notification table exists');
+
+    console.log('Checking RolePermission table...');
+    const rolePermissions = await prisma.rolePermission.findMany({ take: 1 });
+    console.log('✅ RolePermission table exists');
+
+    console.log('Checking UserPermission table...');
+    const userPermissions = await prisma.userPermission.findMany({ take: 1 });
+    console.log('✅ UserPermission table exists');
+
+    console.log('Checking EmailTemplate table...');
+    const templates = await prisma.emailTemplate.findMany({ take: 1 });
+    console.log('✅ EmailTemplate table exists');
+
+  } catch (err) {
+    console.error('❌ DB CHECK FAILED:');
+    console.error(err);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-testDatabase();
+checkDb();

@@ -3,6 +3,7 @@ import { ClientService } from './client.service';
 import multer from 'multer';
 import * as XLSX from 'xlsx';
 import { ExcelService } from '../../utils/ExcelService';
+import { validate as isUUID } from 'uuid';
 
 const clientService = new ClientService();
 
@@ -110,13 +111,65 @@ export const updateClient = async (req: Request, res: Response) => {
 export const deleteClient = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    
+    // Add detailed logging for debugging
+    console.log('Delete Client Request:', {
+      clientId: id,
+      method: req.method,
+      userAgent: req.get('User-Agent')
+    });
+    
+    // Validate UUID format
+    if (!id || !isUUID(id)) {
+      console.log('Invalid client ID format:', id);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid client ID format' 
+      });
+    }
+    
+    // Check if client exists before attempting deletion
+    const existingClient = await clientService.getClientById(id);
+    if (!existingClient) {
+      console.log('Client not found:', id);
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Client not found' 
+      });
+    }
+    
+    console.log('Client found, attempting deletion:', existingClient.name);
     const result = await clientService.deleteClient(id);
+    
+    console.log('Client deleted successfully:', result);
     res.json({
       success: true,
       message: 'Client deleted successfully'
     });
   } catch (error: any) {
-    console.error('Error deleting client:', error);
+    console.error('Delete Client Error:', {
+      clientId: req.params.id,
+      error: error.message,
+      code: error.code,
+      stack: error.stack
+    });
+    
+    // Handle foreign key constraint violations specifically
+    if (error.code === 'P2003') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot delete client. It is linked to existing records (projects, reimbursements, or other data).' 
+      });
+    }
+    
+    // Handle record not found errors
+    if (error.code === 'P2025') {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Client not found' 
+      });
+    }
+    
     res.status(400).json({ 
       success: false, 
       message: error.message || 'Failed to delete client' 

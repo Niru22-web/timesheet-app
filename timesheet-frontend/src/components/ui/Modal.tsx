@@ -90,31 +90,47 @@ const Modal: React.FC<ModalProps> = ({
     };
 
     const modalContent = (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" onClick={handleOverlayClick}>
-            {/* Simple Backdrop */}
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in" onClick={handleOverlayClick}>
+            {/* Backdrop */}
             <div
                 className="fixed inset-0 bg-secondary-900/40 backdrop-blur-sm transition-opacity duration-300 dark:bg-black/70"
             />
 
-            {/* Modal Container */}
+            {/* Modal Container - Bottom sheet on mobile, centered on desktop */}
             <div
                 ref={modalRef}
-                className={`relative w-full ${sizes[size]} bg-white rounded-2xl shadow-elevated transition-all transform animate-in zoom-in duration-300 border border-secondary-100/50 flex flex-col max-h-[100vh] overflow-hidden dark:bg-gray-800 dark:border-gray-700`}
+                className={`
+                    relative w-full ${sizes[size]} bg-white
+                    shadow-elevated transition-all transform
+                    border border-secondary-100/50
+                    flex flex-col overflow-hidden
+                    dark:bg-gray-800 dark:border-gray-700
+                    
+                    /* Mobile: bottom sheet with rounded top corners */
+                    rounded-t-2xl sm:rounded-2xl
+                    max-h-[90vh] sm:max-h-[85vh]
+                    animate-in slide-in-from-bottom sm:zoom-in duration-300
+                `}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="modal-title"
                 onClick={(e) => e.stopPropagation()}
             >
+                {/* Drag handle for mobile */}
+                <div className="sm:hidden flex justify-center pt-2 pb-1 flex-shrink-0">
+                    <div className="w-10 h-1 bg-slate-300 dark:bg-slate-600 rounded-full" />
+                </div>
+
                 {/* Fixed Header */}
-                <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-secondary-100 dark:border-gray-700">
+                <div className="flex-shrink-0 flex items-center justify-between px-4 sm:px-5 py-3 border-b border-secondary-100 dark:border-gray-700">
                     <div className="space-y-0.5">
-                        <h3 id="modal-title" className="text-lg font-bold text-secondary-900 leading-tight dark:text-white">{title}</h3>
-                        <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest italic opacity-60 dark:text-gray-500">{APP_CONFIG.COMPANY_NAME} Portal</p>
+                        <h3 id="modal-title" className="text-base sm:text-lg font-bold text-secondary-900 leading-tight dark:text-white">{title}</h3>
+                        <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest italic opacity-60 dark:text-gray-500 hidden sm:block">{APP_CONFIG.COMPANY_NAME} Portal</p>
                     </div>
                     {showCloseButton && (
                         <button
                             onClick={onClose}
-                            className="p-2 text-secondary-400 hover:text-secondary-600 hover:bg-secondary-50 rounded-lg transition-all dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"
+                            className="p-2 text-secondary-400 hover:text-secondary-600 hover:bg-secondary-50 rounded-lg transition-all dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 min-w-[44px] min-h-[44px] flex items-center justify-center"
                             aria-label="Close modal"
                             tabIndex={-1}
                             onMouseDown={(e) => e.preventDefault()}
@@ -124,17 +140,19 @@ const Modal: React.FC<ModalProps> = ({
                     )}
                 </div>
 
-                {/* Non-Scrollable Content - Takes remaining space */}
+                {/* Scrollable Content Area */}
                 <div 
                     ref={contentRef}
-                    className="flex-1 px-4 py-3 overflow-hidden"
+                    className="flex-1 px-4 sm:px-5 py-3 overflow-y-auto custom-scrollbar"
                 >
                     {children}
                 </div>
 
                 {/* Fixed Footer */}
                 {footer && (
-                    <div className="flex-shrink-0 flex items-center justify-end gap-3 px-4 py-3 border-t border-secondary-100 bg-secondary-50/50 dark:border-gray-700 dark:bg-gray-900/50">
+                    <div className="flex-shrink-0 flex items-center justify-end gap-3 px-4 sm:px-5 py-3 border-t border-secondary-100 bg-secondary-50/50 dark:border-gray-700 dark:bg-gray-900/50"
+                         style={{ paddingBottom: `max(0.75rem, env(safe-area-inset-bottom, 0px))` }}
+                    >
                         {footer}
                     </div>
                 )}

@@ -14,8 +14,13 @@ import {
   uploadJobExcel
 } from './job.controller';
 import { allowRoles } from '../../middleware/role.middleware';
+import { authenticate } from '../../middleware/auth.middleware';
+
 
 const router = Router();
+
+// Apply authentication middleware to all routes
+router.use(authenticate);
 
 // Job CRUD operations
 router.get('/', getAllJobs);

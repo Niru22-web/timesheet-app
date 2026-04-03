@@ -44,6 +44,7 @@ import Select from '../components/ui/Select';
 import { TableSkeleton, Skeleton } from '../components/ui/Skeleton';
 import TableToolbar from '../components/ui/TableToolbar';
 import ActionBar from '../components/ui/ActionBar';
+import FAB from '../components/FAB';
 
 interface Client {
     id: string;
@@ -320,22 +321,24 @@ const Clients: React.FC = () => {
     return (
         <div className="h-full flex flex-col space-y-6 animate-fade-in max-h-[calc(100vh-120px)] overflow-hidden">
             {/* Page Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 flex-none">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-none px-4 sm:px-0">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-secondary-900 tracking-tight">Client Directory</h1>
-                    <p className="text-sm font-medium text-secondary-500 mt-1">Manage global enterprise clients and fiscal registrations.</p>
+                    <h1 className="text-xl sm:text-3xl font-extrabold text-secondary-900 tracking-tight">Client Directory</h1>
+                    <p className="text-xs sm:text-sm font-medium text-secondary-500 mt-1">Manage global enterprise clients and fiscal registrations.</p>
                 </div>
-                <ActionBar
-                    onAdd={() => setShowAddModal(true)}
-                    addLabel="Add New Client"
-                    onUpload={isManager ? () => setShowBulkUploadModal(true) : undefined}
-                    onDownload={handleExport}
-                    onDownloadTemplate={isManager ? downloadTemplate : undefined}
-                />
+                <div className="hidden sm:block">
+                  <ActionBar
+                      onAdd={() => setShowAddModal(true)}
+                      addLabel="Add New Client"
+                      onUpload={isManager ? () => setShowBulkUploadModal(true) : undefined}
+                      onDownload={handleExport}
+                      onDownloadTemplate={isManager ? downloadTemplate : undefined}
+                  />
+                </div>
             </div>
 
             {/* Stats Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-none">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 flex-none px-4 sm:px-0">
                 {loading && clients.length === 0 ? (
                     [1, 2, 3].map((i) => (
                         <Card key={i} className="p-4 flex items-center gap-4 border-l-4 border-secondary-200">
@@ -348,31 +351,31 @@ const Clients: React.FC = () => {
                     ))
                 ) : (
                     <>
-                        <Card className="p-4 flex items-center gap-4 border-l-4 border-primary-500">
-                            <div className="p-3 bg-primary-50 text-primary-600 rounded-xl">
-                                <UsersIcon className="w-6 h-6" />
+                        <Card className="px-3 py-3 sm:p-4 flex items-center gap-3 sm:gap-4 border-l-4 border-primary-500 hover:shadow-md transition-shadow">
+                            <div className="p-2 sm:p-3 bg-primary-50 text-primary-600 rounded-xl">
+                                <UsersIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                             </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">Total Active Clients</p>
-                                <p className="text-2xl font-bold text-secondary-900">{clients.length}</p>
-                            </div>
-                        </Card>
-                        <Card className="p-4 flex items-center gap-4 border-l-4 border-indigo-500">
-                            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-                                <ShieldCheckIcon className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-widest">GST Registered</p>
-                                <p className="text-2xl font-bold text-secondary-900">{clients.filter(c => c.gstStatus === 'Yes').length}</p>
+                            <div className="min-w-0">
+                                <p className="text-[9px] sm:text-[10px] font-bold text-secondary-400 uppercase tracking-widest truncate">Clients</p>
+                                <p className="text-lg sm:text-2xl font-bold text-secondary-900 truncate">{clients.length}</p>
                             </div>
                         </Card>
-                        <Card className="p-4 flex items-center gap-4 border-l-4 border-emerald-500">
+                        <Card className="px-3 py-3 sm:p-4 flex items-center gap-3 sm:gap-4 border-l-4 border-indigo-500 hover:shadow-md transition-shadow">
+                            <div className="p-2 sm:p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                                <ShieldCheckIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-[9px] sm:text-[10px] font-bold text-secondary-400 uppercase tracking-widest truncate">GST Reg.</p>
+                                <p className="text-lg sm:text-2xl font-bold text-secondary-900 truncate">{clients.filter(c => c.gstStatus === 'Yes').length}</p>
+                            </div>
+                        </Card>
+                        <Card className="px-3 py-3 sm:p-4 hidden sm:flex items-center gap-4 border-l-4 border-emerald-500 hover:shadow-md transition-shadow">
                             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
                                 <ClipboardDocumentCheckIcon className="w-6 h-6" />
                             </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-wider">Active Projects</p>
-                                <p className="text-2xl font-bold text-secondary-900">12</p>
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-wider truncate">Active Projects</p>
+                                <p className="text-2xl font-bold text-secondary-900 truncate">12</p>
                             </div>
                         </Card>
                     </>
@@ -401,8 +404,8 @@ const Clients: React.FC = () => {
                 />
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="sticky top-0 bg-secondary-50/80 backdrop-blur-sm z-10 border-b border-secondary-100">
+                    <table className="w-full text-left border-collapse responsive-table">
+                        <thead className="sticky top-0 bg-secondary-50/80 backdrop-blur-sm z-10 border-b border-secondary-100 hidden sm:table-header-group">
                             <tr>
                                 <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Client Identity</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest">Contact Details</th>
@@ -412,7 +415,7 @@ const Clients: React.FC = () => {
                                 <th className="px-6 py-4 text-[10px] font-bold text-secondary-500 uppercase tracking-widest text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-secondary-50 px-2">
+                        <tbody className="divide-y divide-secondary-50 px-2 sm:bg-white text-sm">
                             {loading && clients.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="p-0">
@@ -422,79 +425,77 @@ const Clients: React.FC = () => {
                             ) : filteredClients.length > 0 ? (
                                 filteredClients.map((client) => (
                                     <tr key={client.id} className="hover:bg-primary-50/20 group transition-colors">
-                                        <td className="px-6 py-5">
+                                        <td className="px-6 py-5" data-label="Client Identity">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-9 h-9 bg-secondary-100 text-secondary-400 rounded-lg flex items-center justify-center font-bold text-xs uppercase group-hover:bg-primary-100 group-hover:text-primary-600 transition-colors">
                                                     {client.name.substring(0, 2)}
                                                 </div>
-                                                <div>
-                                                    <p className="text-sm font-bold text-secondary-900 leading-tight">{client.name}</p>
+                                                <div className="text-left sm:text-left">
+                                                    <p className="text-sm font-bold text-secondary-900 leading-tight uppercase sm:normal-case">{client.name}</p>
                                                     <p className="text-[10px] font-bold text-secondary-400 uppercase tracking-wider">{client.clientId}</p>
-                                                    {client.address && <p className="text-xs text-secondary-600 mt-1">{client.address}</p>}
+                                                    {client.address && <p className="text-xs text-secondary-600 mt-1 hidden sm:block">{client.address}</p>}
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5">
-                                            <div className="space-y-1">
-                                                {client.alias && <span className="text-xs font-bold text-secondary-600 bg-secondary-100 px-3 py-1 rounded-lg">{client.alias}</span>}
+                                        <td className="px-6 py-5 text-right sm:text-left" data-label="Contact Details">
+                                            <div className="flex flex-col items-end sm:items-start gap-1">
+                                                {client.alias && <span className="text-[10px] font-bold text-secondary-600 bg-secondary-100 px-2 py-0.5 rounded-lg">{client.alias}</span>}
                                                 {client.state && <p className="text-xs text-secondary-600">{client.state}, {client.country}</p>}
                                                 {client.pin && <p className="text-[10px] text-secondary-400">PIN: {client.pin}</p>}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5">
-                                            <div className="space-y-2">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`text-xs font-bold px-2 py-1 rounded ${client.gstin ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                        {client.gstin ? 'Registered' : 'Not Registered'}
-                                                    </span>
-                                                </div>
+                                        <td className="px-6 py-5 text-right sm:text-left" data-label="Tax Status">
+                                            <div className="flex flex-col items-end sm:items-start gap-1.5">
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${client.gstin ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                    {client.gstin ? 'GST REG' : 'NO GST'}
+                                                </span>
                                                 {client.gstin && <span className="text-[10px] font-bold text-secondary-400 tracking-wider">GST: {client.gstin}</span>}
                                                 {client.pan && <span className="text-[10px] font-bold text-secondary-400">PAN: {client.pan}</span>}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5">
-                                            <StatusBadge status={client.status === 'Active' ? 'active' : 'inactive'} />
+                                        <td className="px-6 py-5 justify-end sm:justify-start" data-label="Status">
+                                            <div className="flex justify-end sm:justify-start">
+                                                <StatusBadge status={client.status === 'Active' ? 'active' : 'inactive'} />
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-5">
-                                            <div className="flex items-center gap-2">
+                                        <td className="px-6 py-5 text-right sm:text-left" data-label="Projects">
+                                            <div className="flex items-center justify-end sm:justify-start gap-2">
                                                 <span className="text-sm font-bold text-secondary-900">{client._count?.projects || 0}</span>
                                                 <span className="text-xs text-secondary-400">projects</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-5 text-right">
-                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <td className="px-6 py-5 text-right" data-label="Actions">
+                                            <div className="flex items-center justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                                 <button 
                                                     onClick={() => handleViewClient(client)}
-                                                    className="p-2 text-secondary-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all border border-transparent hover:border-secondary-100"
+                                                    className="p-2 text-secondary-400 hover:text-blue-600 hover:bg-white rounded-lg transition-all border border-transparent hover:border-secondary-100 min-w-[36px] min-h-[36px] flex items-center justify-center"
                                                     title="View Client Details"
                                                 >
                                                     <EyeIcon className="w-4 h-4" />
                                                 </button>
                                                 {isManager && (
-                                                    <button 
-                                                        onClick={() => handleEditClient(client)}
-                                                        className="p-2 text-secondary-400 hover:text-primary-600 hover:bg-white rounded-lg transition-all border border-transparent hover:border-secondary-100"
-                                                        title="Edit Client"
-                                                    >
-                                                        <PencilSquareIcon className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                                {isManager && (
-                                                    <StatusToggle
-                                                        id={client.id}
-                                                        status={client.status || 'Active'}
-                                                        onUpdate={fetchClients}
-                                                        type="client"
-                                                    />
-                                                )}
-                                                {isManager && (
-                                                    <button 
-                                                        onClick={() => handleDeleteClient(client)}
-                                                        className="p-2 text-secondary-400 hover:text-danger-600 hover:bg-white rounded-lg transition-all border border-transparent hover:border-secondary-100"
-                                                        title="Delete Client"
-                                                    >
-                                                        <TrashIcon className="w-4 h-4" />
-                                                    </button>
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleEditClient(client)}
+                                                            className="p-2 text-secondary-400 hover:text-primary-600 hover:bg-white rounded-lg transition-all border border-transparent hover:border-secondary-100 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                                                            title="Edit Client"
+                                                        >
+                                                            <PencilSquareIcon className="w-4 h-4" />
+                                                        </button>
+                                                        <StatusToggle
+                                                            id={client.id}
+                                                            status={client.status || 'Active'}
+                                                            onUpdate={fetchClients}
+                                                            type="client"
+                                                        />
+                                                        <button 
+                                                            onClick={() => handleDeleteClient(client)}
+                                                            className="p-2 text-secondary-400 hover:text-danger-600 hover:bg-white rounded-lg transition-all border border-transparent hover:border-secondary-100 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                                                            title="Delete Client"
+                                                        >
+                                                            <TrashIcon className="w-4 h-4" />
+                                                        </button>
+                                                    </>
                                                 )}
                                             </div>
                                         </td>
@@ -827,6 +828,14 @@ const Clients: React.FC = () => {
                     )}
                     <span className="font-medium">{notification.message}</span>
                 </div>
+            )}
+
+            {/* Mobile FAB */}
+            {isManager && (
+                <FAB
+                    onClick={() => setShowAddModal(true)}
+                    label="Add New Client"
+                />
             )}
         </div>
     );

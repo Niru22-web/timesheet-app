@@ -16,8 +16,14 @@ import {
   uploadProjectExcel
 } from './project.controller';
 import { allowRoles } from '../../middleware/role.middleware';
+import { authenticate } from '../../middleware/auth.middleware';
+
 
 const router = Router();
+
+// Apply authentication middleware to all routes
+router.use(authenticate);
+
 
 // Project CRUD operations
 router.get('/', getAllProjects);

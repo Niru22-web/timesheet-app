@@ -8,7 +8,7 @@ export const authenticate = (req: any, res: Response, next: NextFunction) => {
   if (!authHeader && process.env.NODE_ENV === 'development') {
     console.log(' Development mode: Allowing request without authentication');
     req.user = {
-      id: 'dev-user-id',
+      id: '00000000-0000-0000-0000-000000000000',
       role: 'Admin',
       employeeId: 'DEV001'
     };

@@ -195,13 +195,13 @@ const CommonDashboard: React.FC<{ userRole?: string, title?: string, subtitle?: 
       subtitle={subtitle || `Welcome back, ${user?.name || 'User'}`}
     >
       <style>{dashboardStyles}</style>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
         
         {/* Left Section (2/3) */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6 lg:space-y-8">
           
           {/* Welcome Card */}
-          <div className="dashboard-welcome-banner bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-7 text-white shadow-2xl relative overflow-hidden backdrop-blur-xl">
+          <div className="dashboard-welcome-banner bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-2xl sm:rounded-3xl p-4 sm:p-7 text-white shadow-2xl relative overflow-hidden backdrop-blur-xl">
             {/* Subtle glass/blur effect overlay */}
             <div className="absolute inset-0 backdrop-blur-sm bg-white/5"></div>
             
@@ -267,7 +267,7 @@ const CommonDashboard: React.FC<{ userRole?: string, title?: string, subtitle?: 
           </div>
 
           {/* Stats Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {role === 'admin' || role === 'owner' ? (
               <>
                 <MetricCard title="Total Projects" value={stats.totalProjects || 0} icon={Briefcase} color="blue" />
@@ -300,7 +300,7 @@ const CommonDashboard: React.FC<{ userRole?: string, title?: string, subtitle?: 
           </div>
 
           {/* Team Executive Section (Chart) */}
-          <Card className="p-8 border-none shadow-premium bg-white rounded-3xl">
+          <Card className="p-4 sm:p-6 lg:p-8 border-none shadow-premium bg-white rounded-2xl sm:rounded-3xl">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">Team Executive Section</h3>
@@ -309,7 +309,7 @@ const CommonDashboard: React.FC<{ userRole?: string, title?: string, subtitle?: 
               <Button variant="ghost" size="sm" className="rounded-xl border-gray-200 text-gray-600 hover:bg-gray-50">View Report</Button>
             </div>
             
-            <div className="h-[300px] flex flex-col md:flex-row items-center gap-8">
+            <div className="h-[250px] sm:h-[300px] flex flex-col md:flex-row items-center gap-4 sm:gap-8">
               <div className="w-full md:w-1/2 h-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -355,7 +355,7 @@ const CommonDashboard: React.FC<{ userRole?: string, title?: string, subtitle?: 
         </div>
 
         {/* Right Section (1/3) */}
-        <div className="space-y-8">
+        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
           <div className="h-full min-h-[500px]">
             <NotificationWidget />
           </div>
