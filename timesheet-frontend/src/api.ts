@@ -3,10 +3,13 @@ import { loadingManager } from "./utils/loadingManager";
 import { getErrorMessage, ERROR_MESSAGES } from "./utils/messageUtils";
 import { dispatchError, handleSuccess } from "./utils/globalErrorHandler";
 
+const rawBaseURL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '';
+const baseURL = rawBaseURL.replace(/\/$/, '') + '/';
+
 const API: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL,
   withCredentials: true,
-  timeout: 15000, // 15 seconds timeout
+  timeout: 15000, 
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -14,20 +17,23 @@ const API: AxiosInstance = axios.create({
 });
 
 // Debug: Log API Base URL on startup
-console.log(' API Base URL configured as:', API.defaults.baseURL);
+console.log('🚀 API Base URL initialized as:', API.defaults.baseURL);
 
 API.interceptors.request.use((config) => {
+  // 🔥 Normalize URL: Remove leading slash if present to prevent Axios from overriding baseURL path
+  if (config.url && config.url.startsWith('/')) {
+    config.url = config.url.substring(1);
+    console.log(`🔧 Normalized Request URL to: ${config.url}`);
+  }
+
   const token = localStorage.getItem('token');
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
-    // Debug: Log the token being sent
-    console.log('API Request:', config.method?.toUpperCase(), config.url, 'with token:', token.substring(0, 20) + '...');
+    console.log('📡 API Request:', config.method?.toUpperCase(), config.url, 'with token (truncated)');
   }
 
-  // Start global loading for ALL requests (Modern SaaS style)
-  // We don't block the screen here, just trigger the top progress bar
-  const isBlocking = false; // Minimal blocking
-  loadingManager.startLoading(undefined, isBlocking);
+  // Start global loading
+  loadingManager.startLoading(undefined, false);
 
   return config;
 });
