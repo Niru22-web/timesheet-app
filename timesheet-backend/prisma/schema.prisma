@@ -38,7 +38,7 @@ model Employee {
   notifications      Notification[]
   userPermission     UserPermission?
 
-  @@map("employees")
+  @@map("Employee")
 }
 
 model EmployeeProfile {
@@ -246,7 +246,7 @@ model LeaveBalance {
   updatedAt       DateTime @updatedAt
   usedLeaves      Int      @default(0)
   year            Int
-  employee        Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+  employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@map("leave_balance")
 }
@@ -275,7 +275,7 @@ model EmailConnection {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  employee     Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@unique([employeeId, provider])
 }
