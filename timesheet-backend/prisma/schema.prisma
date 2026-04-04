@@ -99,7 +99,7 @@ model Client {
   projects      Project[]
   reimbursements Reimbursement[]
 
-  @@map("clients")
+  @@map("Client")
 }
 
 model Project {
@@ -118,7 +118,7 @@ model Project {
   attachments   ProjectAttachment[]
   users         ProjectUser[]
 
-  @@map("projects")
+  @@map("Project")
 }
 
 model ProjectAttachment {
@@ -140,7 +140,7 @@ model ProjectUser {
   employee   Employee @relation(fields: [employeeId], references: [id])
   project    Project  @relation(fields: [projectId], references: [id])
 
-  @@map("project_users")
+  @@map("ProjectUser")
 }
 
 model Job {
@@ -158,7 +158,7 @@ model Job {
   project     Project   @relation(fields: [projectId], references: [id])
   timelogs    Timelog[]
 
-  @@map("jobs")
+  @@map("Job")
 }
 
 model Timelog {
@@ -188,7 +188,7 @@ model Timelog {
   reportingManager   Employee? @relation("TimelogReportingManager", fields: [reportingManagerId], references: [id])
   reportingPartner   Employee? @relation("TimelogReportingPartner", fields: [reportingPartnerId], references: [id])
 
-  @@map("timelogs")
+  @@map("Timelog")
 }
 
 model Reimbursement {
@@ -204,7 +204,7 @@ model Reimbursement {
   employee    Employee @relation(fields: [employeeId], references: [id])
   client      Client?   @relation(fields: [clientId], references: [id])
 
-  @@map("reimbursements")
+  @@map("Reimbursement")
 }
 
 model RegistrationToken {
@@ -234,7 +234,7 @@ model Leave {
   employeeId   String
   employee     Employee  @relation(fields: [employeeId], references: [id])
 
-  @@map("leaves")
+  @@map("Leave")
 }
 
 model LeaveBalance {
@@ -248,7 +248,7 @@ model LeaveBalance {
   year            Int
   employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
-  @@map("leave_balance")
+  @@map("LeaveBalance")
 }
 
 model LeaveTransaction {
