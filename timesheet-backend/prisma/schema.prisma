@@ -191,6 +191,8 @@ model Reimbursement {
   clientId    String?
   employee    Employee @relation(fields: [employeeId], references: [id])
   client      Client?   @relation(fields: [clientId], references: [id])
+
+  @@map("reimbursements")
 }
 
 model RegistrationToken {
@@ -219,6 +221,8 @@ model Leave {
   approvedDate DateTime?
   employeeId   String
   employee     Employee  @relation(fields: [employeeId], references: [id])
+
+  @@map("leaves")
 }
 
 model LeaveBalance {
@@ -231,6 +235,8 @@ model LeaveBalance {
   usedLeaves      Int      @default(0)
   year            Int
   employee        Employee @relation(fields: [employeeId], references: [employeeId], onDelete: Cascade)
+
+  @@map("leave_balance")
 }
 
 model LeaveTransaction {
