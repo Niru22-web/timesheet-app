@@ -37,6 +37,8 @@ model Employee {
   leaveTransactions  LeaveTransaction[]
   notifications      Notification[]
   userPermission     UserPermission?
+
+  @@map("employees")
 }
 
 model EmployeeProfile {
@@ -96,6 +98,8 @@ model Client {
   updatedAt     DateTime        @updatedAt
   projects      Project[]
   reimbursements Reimbursement[]
+
+  @@map("clients")
 }
 
 model Project {
@@ -113,6 +117,8 @@ model Project {
   client        Client              @relation(fields: [clientId], references: [id])
   attachments   ProjectAttachment[]
   users         ProjectUser[]
+
+  @@map("projects")
 }
 
 model ProjectAttachment {
@@ -133,6 +139,8 @@ model ProjectUser {
   employeeId String
   employee   Employee @relation(fields: [employeeId], references: [id])
   project    Project  @relation(fields: [projectId], references: [id])
+
+  @@map("project_users")
 }
 
 model Job {
@@ -149,6 +157,8 @@ model Job {
   createdBy   String?
   project     Project   @relation(fields: [projectId], references: [id])
   timelogs    Timelog[]
+
+  @@map("jobs")
 }
 
 model Timelog {
@@ -177,6 +187,8 @@ model Timelog {
   job                Job       @relation(fields: [jobId], references: [id])
   reportingManager   Employee? @relation("TimelogReportingManager", fields: [reportingManagerId], references: [id])
   reportingPartner   Employee? @relation("TimelogReportingPartner", fields: [reportingPartnerId], references: [id])
+
+  @@map("timelogs")
 }
 
 model Reimbursement {
