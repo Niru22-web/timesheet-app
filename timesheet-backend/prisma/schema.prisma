@@ -204,7 +204,7 @@ model Reimbursement {
   employee    Employee @relation(fields: [employeeId], references: [id])
   client      Client?   @relation(fields: [clientId], references: [id])
 
-  @@map("Reimbursement")
+  @@map("reimbursements")
 }
 
 model RegistrationToken {
@@ -234,7 +234,7 @@ model Leave {
   employeeId   String
   employee     Employee  @relation(fields: [employeeId], references: [id])
 
-  @@map("Leave")
+  @@map("leaves")
 }
 
 model LeaveBalance {
@@ -248,7 +248,7 @@ model LeaveBalance {
   year            Int
   employee        Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
-  @@map("LeaveBalance")
+  @@map("leave_balance")
 }
 
 model LeaveTransaction {
